@@ -18,6 +18,25 @@ intended for software, we adapt it to our specifications with the following sema
   specification, this would be the pathway to recovery.
   - Otherwise these are identical to 1.Y.Z.
 
+## Contributing
+
+### Adding a new specification
+
+You can either clone this repository to work locally, or you can click the "Add file"
+button to write in the GitHub UI.
+
+- Pick a meaningful, short name for the specification. This will become part of its URL
+  (e.g. `https://c2sp.org/short-name`). Name your specification file `short-name.md`, and
+  place it in the root of the repository.
+- Write the initial specification draft! Look at existing ones for an idea of the style.
+- Open a pull request!
+
+### Updating an existing specification
+
+You can either clone this repository and make changes locally, or you can edit a
+specification directly in the GitHub UI. In either case, once you are finished, open a
+pull request with your proposed updates.
+
 ## License
 
 All specifications in this repository are licensed under CC BY 4.0
