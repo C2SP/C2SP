@@ -1,5 +1,22 @@
 # Community Cryptography Specification Project
 
+## Motivation
+
+What if we wrote specifications like we write software? C2SP is an experiment to create
+usable specifications by following common software methodologies, like semantic versioning.
+
+## Structure
+
+C2SP maintains a collection of specification documents. Each specification is small and
+focused, with a limited scope.
+
+Every specification has an assigned maintainer, who is responsible for reviewing and
+accepting changes to that specification.
+
+There is a team of stewards that maintains the general repository, assigns and removes
+maintainers for specifications, and is the final decision level. Individual maintainers
+manage development of specifications on a day-to-day basis.
+
 ## Versioning
 
 All specifications use [Semantic Versioning](https://semver.org/). Since this is normally
@@ -19,6 +36,9 @@ intended for software, we adapt it to our specifications with the following sema
   - Otherwise these are identical to 1.Y.Z.
 
 ## Contributing
+
+Anyone is welcome to contribute new specifications or collaborate on existing documents,
+in accordance with the Contributor Code of Conduct and the relevant licenses.
 
 ### Adding a new specification
 
