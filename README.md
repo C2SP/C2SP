@@ -38,7 +38,8 @@ intended for software, we adapt it to our specifications with the following sema
 ## Contributing
 
 Anyone is welcome to contribute new specifications or collaborate on existing documents,
-in accordance with the Contributor Code of Conduct and the relevant licenses.
+in accordance with the [C2SP Code of Conduct](CODE_OF_CONDUCT.md) and the relevant
+licenses.
 
 ### Adding a new specification
 
