@@ -33,9 +33,8 @@ permutation, which is at most `T - 1`. The value `C = T - RATE` is called the ca
 - An internal state of `T` field elements.
 - A mode variable that is either `absorbing` or `squeezing`.
 - A cache of field elements corresponding to the current mode.
-- A padding operation to be applied to input elements prior to incorporating them into the
-  sponge state.
-  > TODO: See TODO below about how to define this operation.
+- A duplex padding function that is applied to input elements prior to incorporating them
+  into the sponge state.
 
 The only operations exposed by the sponge are:
 - `PoseidonSponge.Initialize`, which prepares a new sponge.
@@ -66,36 +65,44 @@ The sponge has an internal state of width `T`, divided into two sections:
 
 [BDPV2007]: https://keccak.team/files/SpongeFunctions.pdf
 
-### Domain separation and padding
-
-> TODO
-
 ### Initialization
 
-`PoseidonSponge.Initialize` takes as input a `PoseidonPermutation`, and a domain in which
-the sponge will be used, and proceeds as follows:
+`PoseidonSponge.Initialize` takes as input a `PoseidonPermutation`, a field element
+`domain_iv` that is used for domain separation, and a `duplex_padding` function. It
+proceeds as follows:
 
-1. Obtain `initial_capacity_value` and `padding_operation` from the domain.
-   > TODO: Define this.
-2. `state = [0; T]`.
-3. `state[RATE] = initial_capacity_value`.
-   > TODO: Will `initial_capacity_value` ever require more than one field element? We can
-   > have a minimum field element size requirement that ensures one field element is large
-   > enough.
-4. Return `PoseidonSponge(state, mode = absorbing, cache = [], padding_operation)`.
+1. Initialize the sponge state. The first element of the capacity portion is set to
+   `domain_iv`, while the remaining capacity elements, and all of the rate elements, are
+   initialized to zero.
+   ```
+   state = [0; T]
+   state[RATE] = domain_iv
+   ```
+
+2. Return the new sponge:
+   ```
+   PoseidonSponge(
+     PoseidonPermutation,
+     state,
+     mode = absorbing,
+     cache = [],
+     duplex_padding,
+   )
+   ```
+
+> TODO: Should `RATE` be passed directly to `PoseidonSponge.Initialize` instead of being
+> an implicit parameter?
 
 ### Internal helper functions
+
+`ZeroExtend` is a function that takes an input of between zero and `RATE` field elements.
+It appends the array `[0; RATE - len(input)]` and returns the result.
 
 `PoseidonSponge.PerformDuplex` takes an input of between zero and `RATE` field elements.
 It proceeds as follows:
 
 1. Apply the domain's padding function to the input, resulting in a padded input of `RATE`
    field elements.
-   > TODO: What about the variable-length case: is padding logically applied here to the
-   > input chunk, or to the entire input? The latter seems more sensible as otherwise if
-   > the variable length is a multiple of `RATE` then we can't detect here that padding is
-   > necessary. But we _do_ need a padding function inside the duplex sponge or else we
-   > can't run the permutation correctly.
 
 2. Add the padded input element-wise to the rate portion of `state`:
    ```
@@ -140,6 +147,60 @@ It proceeds as follows:
 
 3. Remove the first element from `cache` and return it.
 
-## High-level constructions
+## Hash functions
 
-> TODO
+### Hash function with fixed-length input
+
+`PoseidonHash.ConstantLength` takes as input:
+
+- A `PoseidonPermutation` with the desired properties.
+- `message`, an array of `msg_len` field elements (where `msg_len` is a fixed constant in
+  some higher-level protocol).
+- An output size `out_len`.
+
+Hashing proceeds as follows:
+
+```
+sponge = PoseidonSponge.Initialize(
+    PoseidonPermutation,
+    (msg_len << 64) + (out_len - 1),
+    ZeroExtend,
+)
+
+for i in [0, msg_len):
+    sponge.Absorb(message[i])
+
+output = [0; out_len]
+for i in [0, out_len):
+    output[i] = sponge.Squeeze()
+return output
+```
+
+### Hash function with variable-length input
+
+`PoseidonHash.VariableLength` takes as input:
+
+- A `PoseidonPermutation` with the desired properties.
+- `message`, a sequence of field elements of variable length.
+- An output size `out_len`.
+
+Hashing proceeds as follows:
+
+```
+sponge = PoseidonSponge.Initialize(
+    PoseidonPermutation,
+    (1 << 64) + (out_len - 1),
+    ZeroExtend,
+)
+
+for i in [0, len(message)):
+    sponge.Absorb(message[i])
+
+# Domain-separate from fixed-length hash by terminating the message with a constant.
+sponge.Absorb(1)
+
+output = [0; out_len]
+for i in [0, out_len):
+    output[i] = sponge.Squeeze()
+return output
+```
