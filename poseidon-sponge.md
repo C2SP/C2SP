@@ -149,6 +149,40 @@ It proceeds as follows:
 
 ## Hash functions
 
+### Merkle tree digest
+
+Merkle trees are built around `arity`-to-1 compression functions, that combine a set of
+nodes from one tree layer into a single node in the next layer.
+
+> TODO: Explain more clearly why the Merkle tree digest outputs `C` elements (as it's
+> confusing on its face that it becomes an `arity`-to-`C` compression function).
+
+`PoseidonHash.MerkleTree` takes as input:
+
+- The `arity` of the Merkle tree, of maximum value 32.
+  - The `RATE` of the sponge is set to `arity`.
+- A `PoseidonPermutation` with the desired properties; in particular, its width `T` must
+  equal `arity + C`, where `C` depends on the desired security level `M`.
+- `nodes`, an array of `arity` field elements.
+
+The digest proceeds as follows:
+
+```
+sponge = PoseidonSponge.Initialize(
+    PoseidonPermutation,
+    (1 << arity) - 1,
+    ZeroExtend,
+)
+
+for i in [0, arity):
+    sponge.Absorb(nodes[i])
+
+output = [0; C]
+for i in [0, C):
+    output[i] = sponge.Squeeze()
+return output
+```
+
 ### Hash function with fixed-length input
 
 `PoseidonHash.ConstantLength` takes as input:
