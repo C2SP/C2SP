@@ -13,7 +13,7 @@ in RFC 5234, Appendix B.1.
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
 in [RFC 4648][], Section 4. Encoders MUST generate canonical base64 according to
-RFC 4648, Section 3.4, and decoders MUST reject non-canonical encodings.
+RFC 4648, Section 3.5, and decoders MUST reject non-canonical encodings.
 
 Keys derived with HKDF-SHA-256 are produced by applying HKDF-Extract with the
 specified salt followed by HKDF-Expand with the specified info according to
@@ -50,7 +50,7 @@ reused across multiple files.
 ### Header
 
 The textual file header wraps the _file key_ for one or more _recipients_, so
-that it can be unwrapped by the corresponding _identity_. It starts with a
+that it can be unwrapped by one of the corresponding _identities_. It starts with a
 version line, followed by one or more recipient stanzas, and ends with a MAC.
 
     age-encryption.org/v1
@@ -76,7 +76,7 @@ version line may change in future versions.
 
 #### Recipient stanza
 
-A recipient stanza starts with `->`, followed by one or more space-separated
+A recipient stanza starts with `->`, followed after a space by one or more space-separated
 arguments, and a base64-encoded body wrapped at 64 columns. The body MUST end
 with a line shorter than 64 characters, which MAY be empty.
 
