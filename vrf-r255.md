@@ -52,7 +52,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][]
 * The `string_to_point` function is the ristretto255 decoding group function
   defined in [draft-irtf-cfrg-ristretto255-decaf448-03, Section 4.3.1][].
 
-* The hash function `Hash` is SHA-512 as specified in [RFC 6234][], with hLen = 64.
+* The hash function `Hash` is SHA-512 as specified in [RFC 6234][], with `hLen` = 64.
 
 * The `ECVRF_encode_to_curve` function is as specified in
   [#encode-to-curve](#encode-to-curve).
@@ -101,7 +101,7 @@ from any other `Hash` instantiation. [draft-irtf-cfrg-vrf-11, Section 7.8][]
 argues that it's ok to use [irtf-cfrg-hash-to-curve][] for `ECVRF_encode_to_curve`
 because it will always invoke `Hash` with a non-zero final input byte, while most
 other uses of `Hash` in the document append a zero byte to the input. Since
-ristretto255 provides a one-way map and hLen is conveniently the same size as
+ristretto255 provides a one-way map and `hLen` is conveniently the same size as
 its input, in this document we get to skip all that complexity and use an
 instantiation of `Hash` that's domain-separated like every other hash use in
 draft-irtf-cfrg-vrf-11.
