@@ -12,8 +12,10 @@ ABNF syntax follows [RFC 5234][] and [RFC 7405][] and references the core rules
 in RFC 5234, Appendix B.1.
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
-in [RFC 4648][], Section 4. Encoders MUST generate canonical base64 according to
-RFC 4648, Section 3.5, and decoders MUST reject non-canonical encodings.
+in [RFC 4648][], Section 4, without `=` padding characters (sometimes referred
+to as "raw" or "unpadded" base64). Encoders MUST generate canonical base64
+according to RFC 4648, Section 3.5, and decoders MUST reject non-canonical
+encodings and encodings ending with `=` padding characters.
 
 Keys derived with HKDF-SHA-256 are produced by applying HKDF-Extract with the
 specified salt followed by HKDF-Expand with the specified info according to
