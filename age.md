@@ -173,7 +173,7 @@ type based on X25519, and a passphrase encryption type based on scrypt.
 
 An X25519 identity is generated as
 
-    recipient = read(CSPRNG, 32)
+    identity = read(CSPRNG, 32)
 
 and encoded as [Bech32][] with HRP `AGE-SECRET-KEY-`.
 
