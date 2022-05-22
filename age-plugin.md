@@ -126,9 +126,9 @@ notations (optional fields indicated with `[brackets]`):
 - `(COMMAND, [METADATA] STANZA...)` - `STANZA` is a complete stanza.
 - `(COMMAND)` - a command with no metadata or data.
 
-Stanzas are serialized exactly as in age headers, using the explicit encoding
-of stanza bodies. For example, if three commands are sent, and the second
-command has no associated data:
+Stanzas are serialized exactly as in the [v1 age header][], using the explicit
+encoding of stanza bodies. For example, if three commands are sent, and the
+second command has no associated data:
 ```
 -> command-1 metadata
 Base64(data)
@@ -548,3 +548,4 @@ this is to have a 1:1 relationship between plugins and recipient types.
   various platforms, as well as be safe across OS upgrades.
 
 [RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
+[v1 age header]: https://c2sp.org/age#abnf-definition-of-file-header
