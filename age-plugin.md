@@ -27,6 +27,13 @@ With this composable design, developers can implement a recipient or identity
 that they would use directly with an age library, and then also deploy it as a
 plugin binary.
 
+## Conventions used in this document
+
+The Base64 encoding used throughout is the standard Base 64 encoding specified
+in [RFC 4648][], Section 4, without padding characters. Encoders MUST generate
+canonical Base64 according to RFC 4648, Section 3.5, and decoders MUST reject
+non-canonical encodings.
+
 ## Mapping recipients and identities to plugin binaries
 
 age plugins are identified by an arbitrary case-insensitive string `NAME`. This
@@ -539,3 +546,5 @@ this is to have a 1:1 relationship between plugins and recipient types.
   more complex configuration support; instead of only needing one per-user
   folder, we would also need to handle system configuration folders across
   various platforms, as well as be safe across OS upgrades.
+
+[RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
