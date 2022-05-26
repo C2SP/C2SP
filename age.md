@@ -277,7 +277,8 @@ headers where an scrypt stanza is present alongside any other stanza.
 
 age files that need to be transmitted as 7-bit ASCII SHOULD be encoded according
 to the strict PEM encoding specified in [RFC 7468][], Section 3 (Figure 3), with
-case-sensitive label "AGE ENCRYPTED FILE".
+case-sensitive label "AGE ENCRYPTED FILE". Note that this encoding employs
+base64 with `=` padding characters, unlike the rest of this document.
 
 Note that ASCII armored files are malleable unless care is taken to reject any
 data before and after the PEM encoding, a strict PEM parser is used, and
