@@ -67,7 +67,7 @@ or at the first line shorter than 64 columns (for stanzas).
 #### Version line
 
 The version line always starts with "age-encryption.org/", is followed by an
-arbitrary version string, and ends with a line feed (`0x0a`).
+arbitrary version string, and ends with a line feed (`0x0A`).
 
     version-line = %s"age-encryption.org/" version LF
 
