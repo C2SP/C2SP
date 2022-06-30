@@ -144,7 +144,7 @@ ChaCha20-Poly1305, using the payload key and a 12-byte nonce composed as
 follows: the first 11 bytes are a big endian chunk counter starting at zero and
 incrementing by one for each subsequent chunk; the last byte is 0x01 for the
 final chunk and 0x00 for all preceding ones. The final chunk MAY be shorter than
-64 KiB and MAY be empty.
+64 KiB but MUST NOT be empty unless the whole payload is empty.
 
 This is a STREAM variant from [Online Authenticated-Encryption and its
 Nonce-Reuse Misuse-Resistance][STREAM]. It is similar to those used by [Tink][]
