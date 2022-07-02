@@ -259,13 +259,13 @@ The body is computed as
 where the ChaCha20-Poly1305 nonce is fixed as 12 0x00 bytes and scrypt is from
 [RFC 7914][].
 
-The identity implementation MUST
-reject any scrypt stanza that has more or less than three arguments, where the
-second argument is not a canonical encoding of a 16-byte value, or where the
-third argument is not a decimal number composed of only digits (in ABNF,
-`1*DIGIT`). The identity implementation SHOULD apply an upper limit to the work
-factor, and it MUST check that the body length is exactly 32 bytes before
-attempting to decrypt it.
+The identity implementation MUST reject any scrypt stanza that has more or less
+than three arguments, where the second argument is not a canonical encoding of a
+16-byte value, or where the third argument is not a decimal number composed of
+only digits with no leading zeroes (`%x31-39 *DIGIT` in ABNF or `^[1-9][0-9]*$`
+in regular expression). The identity implementation SHOULD apply an upper limit
+to the work factor, and it MUST check that the body length is exactly 32 bytes
+before attempting to decrypt it.
 
 An scrypt stanza, if present, MUST be the only stanza in the header. In other
 words, scrypt stanzas MAY NOT be mixed with other scrypt stanzas or stanzas of
