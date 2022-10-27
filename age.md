@@ -286,6 +286,11 @@ canonical base64 is enforced. age implementations SHOULD reject non-canonical
 ASCII armor encodings except for whitespace before and after the PEM block, and
 MAY choose to accept both LF and CRLF line endings.
 
+## Test vectors
+
+A comprehensive set of test vectors is avaliable at
+https://age-encryption.org/testkit.
+
 [RFC 5234]: https://www.rfc-editor.org/rfc/rfc5234.html
 [RFC 7405]: https://www.rfc-editor.org/rfc/rfc7405.html
 [RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
