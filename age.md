@@ -6,6 +6,8 @@
 age is a modern file encryption format with multiple pluggable recipients, and
 seekable streaming encryption.
 
+DO NOT MERGE
+
 ## Conventions used in this document
 
 ABNF syntax follows [RFC 5234][] and [RFC 7405][] and references the core rules
