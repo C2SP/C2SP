@@ -1,5 +1,3 @@
-{%hackmd theme-dark %}
-
 # Plugin system for age
 
 ## Introduction
