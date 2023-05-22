@@ -27,6 +27,9 @@ plugin binary.
 
 ## Conventions used in this document
 
+ABNF syntax follows [RFC 5234][] and [RFC 7405][] and references the core rules
+in RFC 5234, Appendix B.1.
+
 The Base64 encoding used throughout is the standard Base 64 encoding specified
 in [RFC 4648][], Section 4, without padding characters. Encoders MUST generate
 canonical Base64 according to RFC 4648, Section 3.5, and decoders MUST reject
@@ -34,8 +37,14 @@ non-canonical encodings.
 
 ## Mapping recipients and identities to plugin binaries
 
-age plugins are identified by an arbitrary case-insensitive string `NAME`. This
-string is used in three places:
+age plugins are identified by an arbitrary case-insensitive string `NAME`. In
+ABNF:
+
+```
+NAME = 1*VCHAR
+```
+
+This string is used in three places:
 
 - Plugin-compatible recipients are encoded using Bech32 with the HRP `age1name`
   (lowercase).
@@ -545,5 +554,7 @@ this is to have a 1:1 relationship between plugins and recipient types.
   folder, we would also need to handle system configuration folders across
   various platforms, as well as be safe across OS upgrades.
 
+[RFC 5234]: https://www.rfc-editor.org/rfc/rfc5234.html
+[RFC 7405]: https://www.rfc-editor.org/rfc/rfc7405.html
 [RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
 [v1 age header]: https://c2sp.org/age#abnf-definition-of-file-header
