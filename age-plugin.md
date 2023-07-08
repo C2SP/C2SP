@@ -490,11 +490,11 @@ A --> P | -> wrap-file-key
         | Base64(FILE_KEY)
 A --> P | -> done
         |
-A <-- P | -> recipient-stanza 0 some-tag CJM36AHmTbdHSuOQL+NESqyVQE75f2e610iRdLPEN20
+P --> A | -> recipient-stanza 0 some-tag CJM36AHmTbdHSuOQL+NESqyVQE75f2e610iRdLPEN20
         | C3ZAeY64NXS4QFrksLm3EGz+uPRyI0eQsWw7LWbbYig
-A <-- P | -> recipient-stanza 0 another-tag 42 ytazqsbmUnPwVWMVx0c1X9iUtGdY4yAB08UQTY2hNCI
+P --> A | -> recipient-stanza 0 another-tag 42 ytazqsbmUnPwVWMVx0c1X9iUtGdY4yAB08UQTY2hNCI
         | N3pgrXkbIn/RrVt0T0G3sQr1wGWuclqKxTSWHSqGdkc
-A <-- P | -> done
+P --> A | -> done
         |
 ```
 
@@ -511,23 +511,23 @@ A --> P | -> recipient-stanza 1 yubikey mhir0Q ZV/AhotwSGqaPCU43cepl4WYUouAa17a3
         | fgMiVLJHMlg9fW7CVG/hPS5EAU4Zeg19LyCP7SoH5nA
 A --> P | -> done
         |
-A <-- P | -> msg
+P --> A | -> msg
         | Base64("Please insert YubiKey with serial 65227134")
 A --> P | -> ok
         |
-A <-- P | -> file-key 0
+P --> A | -> file-key 0
         | Base64(FILE_KEY)
 A --> P | -> ok
         |
-A <-- P | -> request-secret
+P --> A | -> request-secret
         | Base64("Please enter PIN for YubiKey with serial 65227134")
 A --> P | -> ok
         | Base64(123456)
-A <-- P | -> file-key 1
+P --> A | -> file-key 1
         | Base64(FILE_KEY)
 A --> P | -> ok
         |
-A <-- P | -> done
+P --> A | -> done
         |
 ```
 
