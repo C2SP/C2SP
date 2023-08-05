@@ -221,6 +221,8 @@ Four commands are defined for this phase:
   - A label is defined in ABNF by the `argument` type from the [v1 age header][].
   - Clients MUST check that all recipient stanzas wrapping a given file key have
     the exact same label set. Clients MUST NOT permit partial overlapping sets.
+  - If the plugin does not respond with a `labels` command in phase 2, clients MUST
+    treat the plugin's recipient stanzas has having an empty label set.
   - The `x25519` recipient stanza has an implicit empty label set.
   - The `scrypt` recipient stanza has an implicit label set containing a single
     random label.
