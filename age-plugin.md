@@ -295,10 +295,11 @@ The following commands and responses are defined for this phase:
     - *Random label* - used by plugins that want to ensure their stanzas are not
       used with any other recipient stanzas. This can be used to produce a file key
       that is only encrypted to a single recipient stanza.
+  - Plugins MUST NOT send duplicate labels, and MUST NOT send a `labels` command
+    more than once.
   - The order of labels in the command is undefined. Clients MUST treat them as a
-    set, and MUST check for duplicate labels.
-  - Response is `(ok)` if the labels are unique and this is the first `labels`
-    command sent by the plugin; `(fail)` otherwise.
+    set.
+  - Response is `(ok)`.
   - The plugin SHOULD send this command as early as it can, to avoid any expensive
     computations required to generate the recipient stanzas if the client is going
     to raise an error (because the label set does not match those associated with
