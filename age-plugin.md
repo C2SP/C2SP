@@ -207,7 +207,7 @@ encryptions.
 
 ### Phase 1 [client, uni-directional]
 
-Three commands are defined for this phase:
+Four commands are defined for this phase:
 
 - `(add-recipient, RECIPIENT)` - specifies a recipient that the client wants to
   wrap all the file keys to.
@@ -216,6 +216,14 @@ Three commands are defined for this phase:
   wrap all the file keys to.
   - `IDENTITY` is the Bech32 encoding of an identity.
 - `(wrap-file-key; FILE_KEY)` - a file key to be wrapped.
+- `(extension-labels)` - indicates that the client is using "labels" to constrain
+  the recipient stanzas that it will accept.
+  - A label is defined in ABNF by the `argument` type from the [v1 age header][].
+  - Clients MUST check that all recipient stanzas wrapping a given file key have
+    the exact same label set. Clients MUST NOT permit partial overlapping sets.
+  - The `x25519` recipient stanza has an implicit empty label set.
+  - The `scrypt` recipient stanza has an implicit label set containing a single
+    random label.
 
 The plugin indexes recipients, identities, and file keys in the order received
 (starting from 0). The two may be interleaved by the client, with no semantic
@@ -270,6 +278,31 @@ The following commands and responses are defined for this phase:
     be mapping the stanzas to specific recipients, and will cache stanzas for
     separate files until the state machine completes.
   - Response is `(ok)`.
+- `(labels, [LABEL [LABEL...]])` - if the client sent a `extension-labels` command
+  in phase 1, the plugin sends the set of labels it associates with the set of
+  recipient stanzas it generates in this phase.
+  - Labels can have any value, but usually take one of several forms:
+    - *Common public label* - used by multiple plugins to permit their recipient
+      stanzas to be used together. Examples include:
+      - `postquantum` - indicates that the recipient stanzas being generated are
+        postquantum-secure, and that they can only be combined with other stanzas
+        that are also postquantum-secure.
+    - *Common private label* - used by plugins created by the same private entity
+      to permit their recipient stanzas to be used together. For example, private
+      plugins used in a corporate environment could all send the same private label
+      in order to prevent compliant age clients from simultaneously wrapping file
+      keys with other plugins.
+    - *Random label* - used by plugins that want to ensure their stanzas are not
+      used with any other recipient stanzas. This can be used to produce a file key
+      that is only encrypted to a single recipient stanza.
+  - The order of labels in the command is undefined. Clients MUST treat them as a
+    set, and MUST check for duplicate labels.
+  - Response is `(ok)` if the labels are unique and this is the first `labels`
+    command sent by the plugin; `(fail)` otherwise.
+  - The plugin SHOULD send this command as early as it can, to avoid any expensive
+    computations required to generate the recipient stanzas if the client is going
+    to raise an error (because the label set does not match those associated with
+    other stanzas in the header being constructed).
 - An `error` command with three variants:
   - `(error, recipient RECIPIENT_INDEX; MESSAGE)` - a specific recipient is the
     cause of an error.
