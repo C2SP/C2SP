@@ -2,7 +2,8 @@
 
 This document specifies the XAES-256-GCM authenticated encryption with
 additional data algorithm, based on the composition of a standard [NIST SP
-800-108r1] KDF and the standard NIST AES-256-GCM AEAD.
+800-108r1] KDF and the standard NIST AES-256-GCM AEAD ([NIST SP 800-38D], [FIPS
+197]).
 
 The XAES-256-GCM inputs are a 256-bit key, a 192-bit nonce, a plaintext of up to
 approximately 64GiB, and additional data of up to 2 EiB.
@@ -25,10 +26,10 @@ cipher, with no library modifications.
 
 ## Overview
 
-XAES-256-GCM derives a subkey for use with AES-256-GCM from the input key and
-half the input nonce using a [NIST SP 800-108r1] KDF, as described below. The
-derived key and the second half (last 96 bits) of the input nonce are used to
-encrypt the message with AES-256-GCM.
+XAES-256-GCM derives a subkey for use with AES-256-GCM ([NIST SP 800-38D], [FIPS
+197]) from the input key and half the input nonce using a [NIST SP 800-108r1]
+KDF, as described below. The derived key and the second half (last 96 bits) of
+the input nonce are used to encrypt the message with AES-256-GCM.
 
 The counter-based KDF ([NIST SP 800-108r1, Section 4.1]) is instantiated with
 CMAC-AES256 ([NIST SP 800-38B]) and the input key as *Kin*, the ASCII letter `X`
@@ -167,6 +168,8 @@ round subkeys, resolving the issue and improving the cipher. That would
 obviously be non-standard, and would require us to use a hash-based key
 derivation.
 
+[NIST SP 800-38D]: https://csrc.nist.gov/pubs/sp/800/38/d/final
+[FIPS 197]: https://csrc.nist.gov/pubs/fips/197/final
 [NIST SP 800-38B]: https://csrc.nist.gov/publications/detail/sp/800-38b/final
 [NIST SP 800-38B, Section 6.1]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38B.pdf#%5B%7B%22num%22%3A30%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C70%2C637%2C0%5D
 [NIST SP 800-38B, Section 6.2]: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38B.pdf#%5B%7B%22num%22%3A30%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C70%2C248%2C0%5D
