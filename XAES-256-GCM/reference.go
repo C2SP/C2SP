@@ -61,7 +61,7 @@ func (x *xaes256gcm) deriveKey(nonce []byte) []byte {
 
 func (x *xaes256gcm) Seal(dst, nonce, plaintext, additionalData []byte) []byte {
 	if len(nonce) != NonceSize {
-		panic("xaes256gcm: bad nonce length passed to Seal")
+		panic("xaes256gcm: bad nonce length")
 	}
 
 	k, n := x.deriveKey(nonce[:12]), nonce[12:]
@@ -74,7 +74,7 @@ var errOpen = errors.New("xaes256gcm: message authentication failed")
 
 func (x *xaes256gcm) Open(dst, nonce, ciphertext, additionalData []byte) ([]byte, error) {
 	if len(nonce) != NonceSize {
-		panic("xaes256gcm: bad nonce length passed to Open")
+		return nil, errors.New("xaes256gcm: bad nonce length")
 	}
 
 	k, n := x.deriveKey(nonce[:12]), nonce[12:]
