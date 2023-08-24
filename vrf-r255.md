@@ -57,7 +57,8 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][]
       two kind of setters for scalar field elements: one that reduces the input
       modulo `q`, suitable for `k` in `ECVRF_nonce_generation`; and one that
       checks that the input is below `q`, suitable for `s` in
-      `ECVRF_decode_proof`. `c` is always smaller than `q` due to its length, so
+      `ECVRF_decode_proof`. `c` in `ECVRF_challenge_generation` and
+      `ECVRF_decode_proof` is always smaller than `q` due to its length, so
       either setter can be used. Right-padding with zeroes or truncation might be
       necessary to accommodate the various lengths.
 
