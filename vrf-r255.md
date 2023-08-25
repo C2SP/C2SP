@@ -3,9 +3,8 @@
 [c2sp.org/vrf-r255](https://c2sp.org/vrf-r255)
 
 This document defines the ECVRF-RISTRETTO255-SHA512 ciphersuite of the ECVRF
-construction specified in [draft-irtf-cfrg-vrf-15][], similarly to
-[draft-irtf-cfrg-vrf-15, Section 5.5][] and according to
-[draft-irtf-cfrg-vrf-15, Section 7.10][].
+construction specified in [RFC 9381][], similarly to [RFC 9381, Section 5.5][]
+and according to [RFC 9381, Section 7.10][].
 
 ## Conventions used in this document
 
@@ -48,10 +47,9 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][]
   representation.
 
     * In practice, most implementations neither will nor should deal with
-      arbitrary integer types. Instead, every time this document or
-      draft-irtf-cfrg-vrf-15 use `int_to_string` and `string_to_int` or perform
-      arithmetic on integers, they're operating on elements of the scalar field
-      (integers modulo `q`).
+      arbitrary integer types. Instead, every time this document or RFC 9381 use
+      `int_to_string` and `string_to_int` or perform arithmetic on integers,
+      they're operating on elements of the scalar field (integers modulo `q`).
 
     * ristretto255 libraries commonly provide constant-time implementations of
       two kind of setters for scalar field elements: one that reduces the input
@@ -80,15 +78,15 @@ checking that the public key is not the identity element.
 
 ### Nonce generation
 
-The ECVRF-EDWARDS25519-SHA512 ciphersuites adopt the [RFC 8032][] key and
-nonce generation procedures, which [are hard to prove formally][] and [require a
-more convoluted argument for hash domain separation][]. Instead, here we use a
-straightforwardly domain-separated `Hash` invocation to derive the nonce from the
-inputs, similarly to how the ECVRF-P256-SHA256 ciphersuites work, but without
-the dependency on HMAC-DRBG. This also enables `SK` to be equal to `x`, and along
-with the simplified [#encode-to-curve](#encode-to-curve) procedure ensures that
-every `Hash` instantiation in ECVRF-RISTRETTO255-SHA512 is domain-separated by a
-fixed prefix.
+The ECVRF-EDWARDS25519-SHA512 ciphersuites adopt the [RFC 8032][] key and nonce
+generation procedures, which [are hard to prove formally][] and [require a more
+convoluted argument for hash domain separation][RFC 9381, Section 7.8]. Instead,
+here we use a straightforwardly domain-separated `Hash` invocation to derive the
+nonce from the inputs, similarly to how the ECVRF-P256-SHA256 ciphersuites work,
+but without the dependency on HMAC-DRBG. This also enables `SK` to be equal to
+`x`, and along with the simplified [#encode-to-curve](#encode-to-curve)
+procedure ensures that every `Hash` instantiation in ECVRF-RISTRETTO255-SHA512
+is domain-separated by a fixed prefix.
 
 `ECVRF_nonce_generation(SK, h_string)`
 
@@ -112,14 +110,13 @@ Steps:
 ### Encode to curve
 
 The [PWHVNRG17] proof models `ECVRF_encode_to_curve` as a random oracle separate
-from any other `Hash` instantiation. [draft-irtf-cfrg-vrf-15, Section 7.8][]
-argues that it's ok to use [irtf-cfrg-hash-to-curve][] for `ECVRF_encode_to_curve`
-because it will always invoke `Hash` with a non-zero final input byte, while most
-other uses of `Hash` in the document append a zero byte to the input. Since
-ristretto255 provides a one-way map and `hLen` is conveniently the same size as
-its input, in this document we get to skip all that complexity and use an
-instantiation of `Hash` that's domain-separated like every other hash use in
-draft-irtf-cfrg-vrf-15.
+from any other `Hash` instantiation. [RFC 9381, Section 7.8][] argues that it's
+ok to use [RFC 9380][] for `ECVRF_encode_to_curve` because it will always invoke
+`Hash` with a non-zero final input byte, while most other uses of `Hash` in the
+document append a zero byte to the input. Since ristretto255 provides a one-way
+map and `hLen` is conveniently the same size as its input, in this document we
+get to skip all that complexity and use an instantiation of `Hash` that's
+domain-separated like every other hash use in RFC 9381.
 
 `ECVRF_encode_to_curve(encode_to_curve_salt, alpha_string)`
 
@@ -187,10 +184,10 @@ beta = dd653f0879b48c3ef69e13551239bec4cbcc1c18fe8894de2e9e1c790e182736
     03bf1c6c25d7a797aeff3c43fd32b974d3fcbd4bcce916007097922a3ea3a794
 ```
 
-[draft-irtf-cfrg-vrf-15]: https://www.ietf.org/archive/id/draft-irtf-cfrg-vrf-15.html
-[draft-irtf-cfrg-vrf-15, Section 5.5]: https://www.ietf.org/archive/id/draft-irtf-cfrg-vrf-15.html#name-ecvrf-ciphersuites
-[draft-irtf-cfrg-vrf-15, Section 7.10]: https://www.ietf.org/archive/id/draft-irtf-cfrg-vrf-15.html#name-futureproofing
-[draft-irtf-cfrg-vrf-15, Section 7.8]: https://www.ietf.org/archive/id/draft-irtf-cfrg-vrf-15.html#name-hash-function-domain-separa
+[RFC 9381]: https://www.rfc-editor.org/info/rfc9381
+[RFC 9381, Section 5.5]: https://www.rfc-editor.org/rfc/rfc9381.html#section-5.5
+[RFC 9381, Section 7.10]: https://www.rfc-editor.org/rfc/rfc9381.html#section-7.10
+[RFC 9381, Section 7.8]: https://www.rfc-editor.org/rfc/rfc9381.html#section-7.8
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/info/rfc2119
 [RFC 8174]: https://www.rfc-editor.org/info/rfc8174
@@ -203,6 +200,5 @@ beta = dd653f0879b48c3ef69e13551239bec4cbcc1c18fe8894de2e9e1c790e182736
 [RFC 6234]: https://www.rfc-editor.org/info/rfc6234
 [RFC 8032]: https://www.rfc-editor.org/info/rfc8032
 [are hard to prove formally]: https://eprint.iacr.org/2020/823
-[require a more convoluted argument for hash domain separation]: https://www.ietf.org/archive/id/draft-irtf-cfrg-vrf-15.html#name-hash-function-domain-separa
 [PWHVNRG17]: https://eprint.iacr.org/2017/099
-[irtf-cfrg-hash-to-curve]: https://datatracker.ietf.org/doc/draft-irtf-cfrg-hash-to-curve/
+[RFC 9380]: https://www.rfc-editor.org/info/rfc9380
