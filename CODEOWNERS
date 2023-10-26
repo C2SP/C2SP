@@ -9,3 +9,5 @@ vrf-r255.md     @FiloSottile
 poseidon-*.md   @str4d
 jq255.md        @pornin
 jq255/          @pornin
+chacha8rand.md  @FiloSottile @rsc
+chacha8rand/    @FiloSottile @rsc
