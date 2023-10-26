@@ -30,6 +30,8 @@ output = output[16:]
 
 **Key erasure vs state compression.** Traditional key erasure involves immediately overwriting the key, and deleting buffered output bytes as soon as they are produced. An alternative strategy is deferring the overwriting until the next iteration starts, in which case the state can be serialized to just the last iteration input (from which the current buffer and the next iteration key can be regenerated) and a counter.
 
+**Why four blocks at a time?** All amd64 processors have 128-bit vector registries, so we can target them without CPU feature detection. Other implementers might find it preferable to pay the complexity and buffer size cost, to parallelize eight or sixteen blocks, with 256-bit and 512-bit vector instructions respectively.
+
 **“Similar performance”?** Compared to our [PCG64 DXSM](https://dotat.at/@/2023-06-21-pcg64-dxsm.html) which uses 128-bit wide multiplications, our ChaCha8Rand SIMD implementation is 25% slower on amd64, and 2% faster on arm64. It’s also faster on 32-bit 386.
 
 **Why ChaCha8?** The goal was designing a CSPRNG fast enough that it could viably replace a non-cryptographic PRNG, so performance was a primary goal. [Too Much Crypto by Jean-Philippe Aumasson](https://eprint.iacr.org/2019/1492.pdf) provides a compelling rationale for why eight rounds are enough.
