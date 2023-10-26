@@ -28,10 +28,10 @@ func New(key []byte) (cipher.AEAD, error) {
 	x.c, _ = aes.NewCipher(key)
 	x.c.Encrypt(x.k1[:], x.k1[:])
 
+	// Shift left k1 by one bit, then XOR with 0b10000111 if the MSB was set.
 	var msb byte
 	for i := len(x.k1) - 1; i >= 0; i-- {
-		msb = x.k1[i] >> 7
-		x.k1[i] = x.k1[i]<<1 | msb
+		msb, x.k1[i] = x.k1[i]>>7, x.k1[i]<<1|msb
 	}
 	x.k1[len(x.k1)-1] ^= msb * 0b10000111
 
