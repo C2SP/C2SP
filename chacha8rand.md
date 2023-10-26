@@ -1,6 +1,6 @@
 # ChaCha8Rand
 
-ChaCha8Rand is a ChaCha8-based key-erasure CSPRNG with performance similar to non-cryptographic random number generators, designed to be [the default source for the `math/rand{,v2}` and `runtime` Go packages][].
+ChaCha8Rand is a ChaCha8-based key-erasure CSPRNG with performance similar to non-cryptographic random number generators, designed to be [the default source for the `math/rand{,v2}` and `runtime` Go packages](https://go.dev/issue/61716).
 
 It accepts a 32-bytes seed, and requires 289 bytes of state, which can be serialized to 33 bytes (see below). It’s optimized for systems with 128-bit vector math.
 
