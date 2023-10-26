@@ -82,8 +82,8 @@ func ChaCha8(key, dst []byte) {
 		x2, x7, x8, x13 := quarterRound(p2, p7, fcr8, p13)
 		x3, x4, x9, x14 := quarterRound(p3, fcr4, p9, p14)
 
-		// The remaining 18 rounds.
-		for i := 0; i < 9; i++ {
+		// The remaining 6 rounds.
+		for i := 0; i < 3; i++ {
 			// Column round.
 			x0, x4, x8, x12 = quarterRound(x0, x4, x8, x12)
 			x1, x5, x9, x13 = quarterRound(x1, x5, x9, x13)
@@ -121,7 +121,7 @@ func ChaCha8(key, dst []byte) {
 	}
 }
 
-// The constant first 4 words of the ChaCha20 state.
+// The constant first 4 words of the ChaCha8 state.
 const (
 	j0 uint32 = 0x61707865 // expa
 	j1 uint32 = 0x3320646e // nd 3
@@ -129,8 +129,8 @@ const (
 	j3 uint32 = 0x6b206574 // te k
 )
 
-// quarterRound is the core of ChaCha20. It shuffles the bits of 4 state words.
-// It's executed 4 times for each of the 20 ChaCha20 rounds, operating on all 16
+// quarterRound is the core of ChaCha8. It shuffles the bits of 4 state words.
+// It's executed 4 times for each of the 8 ChaCha8 rounds, operating on all 16
 // words each round, in columnar or diagonal groups of 4 at a time.
 func quarterRound(a, b, c, d uint32) (uint32, uint32, uint32, uint32) {
 	a += b
