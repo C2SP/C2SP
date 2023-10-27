@@ -23,17 +23,22 @@ func main() {
 			output = append(output, stream[128+i*4:128+i*4+4]...)
 			output = append(output, stream[192+i*4:192+i*4+4]...)
 		}
-		copy(input, output[:16])
-		output = output[16:]
+		copy(input, output[:32])
+		output = output[32:]
 		for i := 0; i < len(output); i += 8 {
 			uints = append(uints, binary.LittleEndian.Uint64(output[i:]))
 		}
 		for len(output) > 0 {
-			fmt.Printf("%x\n", output[:40])
-			output = output[40:]
+			fmt.Printf("%x\n", output[:32])
+			output = output[32:]
 		}
 	}
-	fmt.Printf("%#x\n", uints)
+	for i, n := range uints {
+		if i%4 == 0 {
+			fmt.Printf("\n")
+		}
+		fmt.Printf("%#016x, ", n)
+	}
 }
 
 func ChaCha8(key, dst []byte) {
