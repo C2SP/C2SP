@@ -15,16 +15,26 @@ func main() {
 	var uints []uint64
 	for i := 0; i < 3; i++ {
 		var output []byte
-		stream := make([]byte, 256)
+		stream := make([]byte, 1024)
 		ChaCha8(input, stream)
-		for i := 0; i < 16; i++ {
-			output = append(output, stream[i*4:i*4+4]...)
-			output = append(output, stream[64+i*4:64+i*4+4]...)
-			output = append(output, stream[128+i*4:128+i*4+4]...)
-			output = append(output, stream[192+i*4:192+i*4+4]...)
+		for i := uint32(0); i < 16; i++ {
+			binary.LittleEndian.PutUint32(stream[i*64+0*4:], binary.LittleEndian.Uint32(stream[i*64+0*4:])-0x61707865)
+			binary.LittleEndian.PutUint32(stream[i*64+1*4:], binary.LittleEndian.Uint32(stream[i*64+1*4:])-0x3320646e)
+			binary.LittleEndian.PutUint32(stream[i*64+2*4:], binary.LittleEndian.Uint32(stream[i*64+2*4:])-0x79622d32)
+			binary.LittleEndian.PutUint32(stream[i*64+3*4:], binary.LittleEndian.Uint32(stream[i*64+3*4:])-0x6b206574)
+			binary.LittleEndian.PutUint32(stream[i*64+12*4:], binary.LittleEndian.Uint32(stream[i*64+12*4:])-i)
 		}
-		copy(input, output[:32])
-		output = output[32:]
+		for b := 0; b < 16; b += 4 {
+			for i := 0; i < 64; i += 4 {
+				output = append(output, stream[0*64+i:0*64+i+4]...)
+				output = append(output, stream[1*64+i:1*64+i+4]...)
+				output = append(output, stream[2*64+i:2*64+i+4]...)
+				output = append(output, stream[3*64+i:3*64+i+4]...)
+			}
+			stream = stream[256:]
+		}
+		copy(input, output[1024-32:])
+		output = output[:1024-32]
 		for i := 0; i < len(output); i += 8 {
 			uints = append(uints, binary.LittleEndian.Uint64(output[i:]))
 		}
