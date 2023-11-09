@@ -57,6 +57,10 @@ Although multiple signature types are specified, implementations SHOULD select o
 
 * `0x03` — Reserved.
 
+* `0x04` — Timestamped Ed25519 witness co-signatures, as specified by [c2sp.org/checkpoint](https://c2sp.org/checkpoint).
+
+* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by [c2sp.org/checkpoint](https://c2sp.org/checkpoint).
+
 * `0xfa`–`0xfe` — Reserved for future use.
 
 * `0xff` — Reserved for signature types without an identifier byte assigned by this specification. It is RECOMMENDED that this byte be followed by a longer identifier that is unlikely to collide.
