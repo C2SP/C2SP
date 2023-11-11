@@ -43,14 +43,12 @@ licenses.
 
 ### Adding a new specification
 
-You can either clone this repository to work locally, or you can click the "Add file"
-button to write in the GitHub UI.
+New specifications are approved by the stewards and assigned to a maintainer.
 
-- Pick a meaningful, short name for the specification. This will become part of its URL
-  (e.g. `https://c2sp.org/short-name`). Name your specification file `short-name.md`, and
-  place it in the root of the repository.
-- Write the initial specification draft! Look at existing ones for an idea of the style.
-- Open a pull request!
+If you wish to maintain a new spec, open an issue with a `New spec:` prefix.
+
+Pick a meaningful, short name for the specification. This will become part of its URL
+(e.g. `https://c2sp.org/short-name`).
 
 ### Updating an existing specification
 
