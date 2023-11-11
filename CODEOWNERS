@@ -9,3 +9,5 @@ vrf-r255.md     @FiloSottile
 poseidon-*.md   @str4d
 jq255.md        @pornin
 jq255/          @pornin
+XAES-256-GCM.md @FiloSottile
+XAES-256-GCM/   @FiloSottile
