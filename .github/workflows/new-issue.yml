@@ -1,0 +1,26 @@
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  notify-new-spec:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'new spec')
+    steps:
+      - name: Prepare webhook data
+        id: prepare
+        run: >
+          echo 'data={
+            "content": "New spec: ${{ github.event.issue.html_url }}"
+          }' >> $GITHUB_OUTPUT
+      - name: Execute Discord webhook
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: >
+          curl
+          -X POST
+          -H "Content-Type: application/json"
+          -H "X-GitHub-Event: ${{ github.event.name }}"
+          --data "${{ steps.prepare.outputs.data }}"
+          $DISCORD_WEBHOOK
