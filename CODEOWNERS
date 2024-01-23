@@ -10,4 +10,6 @@ chacha8rand/            @FiloSottile @rsc
 jq255.md                @pornin
 jq255/                  @pornin
 poseidon-*.md           @str4d
+streaming-encryption.md @FiloSottile @str4d
+streaming-encryption/   @FiloSottile @str4d
 vrf-r255.md             @FiloSottile
