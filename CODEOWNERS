@@ -3,11 +3,11 @@
 *         @dconnolly @FiloSottile @str4d
 
 # Spec maintainers own each individual spec.
-age.md          @FiloSottile
-age-plugin.md   @str4d
-vrf-r255.md     @FiloSottile
-poseidon-*.md   @str4d
-jq255.md        @pornin
-jq255/          @pornin
-chacha8rand.md  @FiloSottile @rsc
-chacha8rand/    @FiloSottile @rsc
+age.md                  @FiloSottile
+age-plugin.md           @str4d
+chacha8rand.md          @FiloSottile @rsc
+chacha8rand/            @FiloSottile @rsc
+jq255.md                @pornin
+jq255/                  @pornin
+poseidon-*.md           @str4d
+vrf-r255.md             @FiloSottile
