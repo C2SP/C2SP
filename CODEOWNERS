@@ -23,3 +23,5 @@ tlog-cosignature/       @FiloSottile @rgdd
 tlog-witness.md         @FiloSottile @rgdd
 tlog-witness/           @FiloSottile @rgdd
 vrf-r255.md             @FiloSottile
+XAES-256-GCM.md         @FiloSottile
+XAES-256-GCM/           @FiloSottile
