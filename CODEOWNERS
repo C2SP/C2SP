@@ -7,9 +7,19 @@ age.md                  @FiloSottile
 age-plugin.md           @str4d
 chacha8rand.md          @FiloSottile @rsc
 chacha8rand/            @FiloSottile @rsc
+https-bastion.md        @FiloSottile @rgdd
+https-bastion/          @FiloSottile @rgdd
 jq255.md                @pornin
 jq255/                  @pornin
 poseidon-*.md           @str4d
+signed-note.md          @FiloSottile @rsc
+signed-note/            @FiloSottile @rsc
 streaming-encryption.md @FiloSottile @str4d
 streaming-encryption/   @FiloSottile @str4d
+tlog-checkpoint.md      @FiloSottile @rgdd
+tlog-checkpoint/        @FiloSottile @rgdd
+tlog-cosignature.md     @FiloSottile @rgdd
+tlog-cosignature/       @FiloSottile @rgdd
+tlog-witness.md         @FiloSottile @rgdd
+tlog-witness/           @FiloSottile @rgdd
 vrf-r255.md             @FiloSottile
