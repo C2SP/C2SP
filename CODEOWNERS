@@ -16,6 +16,8 @@ signed-note.md          @FiloSottile @rsc
 signed-note/            @FiloSottile @rsc
 streaming-encryption.md @FiloSottile @str4d
 streaming-encryption/   @FiloSottile @str4d
+sunlight.md             @FiloSottile
+sunlight/               @FiloSottile
 tlog-checkpoint.md      @FiloSottile @rgdd
 tlog-checkpoint/        @FiloSottile @rgdd
 tlog-cosignature.md     @FiloSottile @rgdd
