@@ -1,3 +1,11 @@
+<p align="center">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://github.com/C2SP/C2SP/assets/1225294/0cd04af2-e84d-4f48-b42e-ed430354e563">
+        <source media="(prefers-color-scheme: light)" srcset="https://github.com/C2SP/C2SP/assets/1225294/0f239db0-7100-4bba-8608-bd4dc4134409">
+        <img alt="The Sunlight logo, a bench under a tree in stylized black ink, cast against a large yellow sun, with the text Sunlight underneath" width="250" src="https://github.com/C2SP/C2SP/assets/1225294/0f239db0-7100-4bba-8608-bd4dc4134409">
+    </picture>
+</p>
+
 # The Sunlight CT Logs
 
 https://c2sp.org/sunlight
