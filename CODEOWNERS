@@ -39,8 +39,8 @@ tlog-cosignature/       @AlCutter @FiloSottile @rgdd
 tlog-witness.md         @FiloSottile @rgdd
 tlog-witness/           @FiloSottile @rgdd
 
-vrf-r255.md             @FiloSottile
-vrf-r255/               @FiloSottile
+vrf-r255.md             @FiloSottile @gtank
+vrf-r255/               @FiloSottile @gtank
 
 XAES-256-GCM.md         @FiloSottile
 XAES-256-GCM/           @FiloSottile
