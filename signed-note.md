@@ -106,9 +106,10 @@ runtime if possible.
 
 * `0x03` — Reserved.
 
-* `0x04` — Timestamped Ed25519 witness co-signatures, as specified by TBD.
+* `0x04` — Timestamped Ed25519 witness co-signatures, as specified by
+  c2sp.org/tlog-cosignature.
 
-* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by TBD.
+* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by c2sp.org/sunlight.
 
 * `0xfa`–`0xfe` — Reserved for future use.
 
