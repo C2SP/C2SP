@@ -12,8 +12,8 @@ age-plugin/             @str4d
 chacha8rand.md          @FiloSottile
 chacha8rand/            @FiloSottile
 
-https-bastion.md        @FiloSottile @rgdd
-https-bastion/          @FiloSottile @rgdd
+https-bastion.md        @AlCutter @FiloSottile @rgdd
+https-bastion/          @AlCutter @FiloSottile @rgdd
 
 jq255.md                @pornin
 jq255/                  @pornin
@@ -30,11 +30,11 @@ streaming-encryption/   @FiloSottile @str4d
 sunlight.md             @FiloSottile
 sunlight/               @FiloSottile
 
-tlog-checkpoint.md      @FiloSottile @rgdd
-tlog-checkpoint/        @FiloSottile @rgdd
+tlog-checkpoint.md      @mhutchinson @FiloSottile @rgdd
+tlog-checkpoint/        @mhutchinson @FiloSottile @rgdd
 
-tlog-cosignature.md     @FiloSottile @rgdd
-tlog-cosignature/       @FiloSottile @rgdd
+tlog-cosignature.md     @AlCutter @FiloSottile @rgdd
+tlog-cosignature/       @AlCutter @FiloSottile @rgdd
 
 tlog-witness.md         @FiloSottile @rgdd
 tlog-witness/           @FiloSottile @rgdd
