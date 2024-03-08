@@ -12,6 +12,8 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 — example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
 ```
 
+[signed note]: https://c2sp.org/signed-note
+
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
@@ -64,7 +66,7 @@ constructed from one size and root hash to the other.
 The log’s key name in its signature line SHOULD match the origin line.
 
 Logs SHOULD use Ed25519 signatures to sign the checkpoint, but MAY use any note
-signature algorithm based on the ecosystem they operates in.
+signature algorithm based on the ecosystem they operate in.
 
 According to the note specification, clients MUST ignore unknown signatures.
 This enables, for example, log key rotation, or witness cosigning.
