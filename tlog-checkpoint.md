@@ -1,4 +1,4 @@
-# Checkpoints
+# Transparency Log Checkpoints
 
 A checkpoint is a [signed note][] where the body is precisely formatted for use
 in transparency log applications.  The mandatory note text includes the three

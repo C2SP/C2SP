@@ -65,11 +65,19 @@ in size.
 
 ## Signatures
 
+    — <key name> base64(32-bit key ID || signature)
+
 The tuple of key name and key ID uniquely identifies the key that performed the
 signature and the algorithm it used. Verifiers MUST ignore signatures from
 unknown keys, even if they share a name or ID (but not both) with a known key.
 If the key name and ID match a known key, verifiers MUST verify the signature
 and MAY treat a verification failure as an error.
+
+Note that the key ID is intentionally short, as it is an identifier, and not a
+cryptographically strong hash. An attacker can easily compute a public key that
+will collide a target key hash, but all they will get is a signature
+verification failure, because the client was necessarily securely configured
+with the expected public key for the key hash.
 
 It is RECOMMENDED that key names be schema-less URLs (e.g. `example.com/abc123`).
 Those endpoints don’t need to be reachable over the network.
@@ -83,9 +91,9 @@ if domain separation can be ensured).
 
     key ID = SHA-256(key name || 0x0A || signature type || public key)[:4]
 
-Collisions of *both* key name and key ID can lead to errors if signatures from
-colliding keys are applied to the same note. The recommendations above make such
-collisions exceedingly unlikely.
+Accidental collisions of *both* key name and key ID can lead to errors if
+signatures from colliding keys pairs are applied to the same note. The
+recommendations above make such collisions exceedingly unlikely.
 
 ### Signature types
 
