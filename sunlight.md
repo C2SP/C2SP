@@ -16,6 +16,25 @@ Aside from the different read API, a Sunlight log is a regular CT log that can w
 
 This document specifies the public endpoints of a Sunlight log, and is aimed at consumers (both readers and writers) of the log. A more comprehensive design document, which explores the motivating tradeoffs and details an implementation architecture, will be public soon and is available upon request.
 
+## Conventions used in this document
+
+Data structures are defined according to the conventions laid out in Section 3
+of [RFC 8446][], and with references to structures defined in [RFC 6962][].
+
+`U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
+encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
+value in the 0-255 range. `||` denotes concatenation.
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
+"SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this
+document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
+8174][] when, and only when, they appear in all capitals, as shown here.
+
+[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
+[BCP 14]: https://www.rfc-editor.org/info/bcp14
+[RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
+[RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
+
 ## Parameters
 
 A Sunlight log is defined by a public key (hashed into a LogID, as per RFC 6962, Section 3.2), and by two URL prefixes: the *submission prefix* for write APIs and the *monitoring prefix* for read APIs.
