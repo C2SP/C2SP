@@ -120,8 +120,8 @@ the 0-based index of the included entry in the log.
 The total length of an `extensions` field containing only a `leaf_index`
 extension is 8 bytes.
 
-Note that by design this limits Sunlight logs to a null Merge Delay, since
-entries must be merged in the log before an SCT is returned, for this extension
+Note that by design this encourages a null Merge Delay, since
+entries must be sequenced before an SCT is returned, for this extension
 to be included.
 
 This extension makes it possible for auditors to verify inclusion of an SCT in
