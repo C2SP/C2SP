@@ -21,7 +21,7 @@ it requires no modification to submitters and TLS clients.
 This document specifies the public endpoints of a Sunlight log, and is aimed at
 consumers (both readers and writers) of the log. A more comprehensive design
 document, which explores the motivating tradeoffs and details an implementation
-architecture, will be public soon and is available upon request.
+architecture, is available at https://filippo.io/a-different-CT-log.
 
 ## Conventions used in this document
 
