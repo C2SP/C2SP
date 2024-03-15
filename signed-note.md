@@ -50,8 +50,8 @@ The note text includes the final newline but not the separating blank line. The
 note text MAY contain empty lines; the text is separated from the signatures by
 the last empty line in the note.
 
-Key names MUST be non-empty, well-formed UTF-8 containing neither Unicode spaces
-nor plus (U+002B).
+Key names MUST be non-empty and MUST NOT contain any Unicode spaces or plus
+(U+002B) characters.
 
 Signatures are the base64 encoding of 4+n bytes. The first four bytes in the
 signature are the uint32 key ID stored in big-endian order. The remaining n
@@ -70,8 +70,10 @@ in size.
 The tuple of key name and key ID uniquely identifies the key that performed the
 signature and the algorithm it used. Verifiers MUST ignore signatures from
 unknown keys, even if they share a name or ID (but not both) with a known key.
-If the key name and ID match a known key, verifiers MUST verify the signature
-and MAY treat a verification failure as an error.
+If the key name and ID match a known key, verifiers MUST verify the signature.
+If a signature from a known key fails to verify, clients MAY reject the whole
+note. If no signature from a known key verifies successfully, clients MUST
+reject the note.
 
 Note that the key ID is intentionally short, as it is an identifier, and not a
 cryptographically strong hash. An attacker can easily compute a public key that
@@ -79,8 +81,9 @@ will collide a target key hash, but all they will get is a signature
 verification failure, because the client was necessarily securely configured
 with the expected public key for the key hash.
 
-It is RECOMMENDED that key names be schema-less URLs (e.g. `example.com/abc123`).
-Those endpoints don’t need to be reachable over the network.
+It is RECOMMENDED that key names be schema-less URLs (e.g. `example.com/abc123`),
+to avoid accidental collisions. Those endpoints don’t need to be reachable over
+the network.
 
 It is RECOMMENDED that key IDs be the first four bytes (interpreted in
 big-endian order) of the SHA-256 hash of the following sequence: the key name, a
@@ -114,7 +117,7 @@ runtime if possible.
 
 * `0x03` — Reserved.
 
-* `0x04` — Timestamped Ed25519 witness co-signatures, as specified by
+* `0x04` — Timestamped Ed25519 witness cosignatures, as specified by
   c2sp.org/tlog-cosignature.
 
 * `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by c2sp.org/sunlight.
