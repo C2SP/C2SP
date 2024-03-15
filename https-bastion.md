@@ -1,11 +1,12 @@
 # HTTPS Bastion
 
-This document specifies an HTTPS bastion, a service that acts as a reverse proxy
-accepting connections from both clients and backends and routing requests from
+This document specifies an HTTPS bastion: a service that acts as a reverse proxy
+accepting connections from both clients and backends, routing requests from
 the former to the latter.
 
-Bastions allow backends to run in an environment without a publicly reachable
-address, while still being reachable synchronously over a public HTTP endpoint.
+Bastions can be operated by third parties and allow backends to run in an
+environment without a publicly reachable address, while still being reachable
+synchronously over a public HTTP endpoint.
 
 The design requires no changes to HTTPS clients, and can be implemented as an
 abstraction or even a separate service on the backend side with no changes to
@@ -13,7 +14,8 @@ most HTTP servers.
 
 Backends are authenticated by their Ed25519 key, and the hash of that public key
 becomes the first segment of the path of client requests. To prevent abuse, it
-is RECOMMENDED that bastions apply allowlists for the backends that they serve.
+is RECOMMENDED that bastions apply allowlists or some other form of
+authorization to the backends that they serve.
 
 Like regular HTTPS reverse proxies, a bastion is in the position of blocking,
 observing, and manipulating the backend’s traffic. Bastions SHOULD only be used
@@ -26,19 +28,20 @@ which prefer not to accept connections directly from the Internet.
 
 ## API
 
-At a high level, backends connect to the bastion authenticating with their
-Ed25519 key and start serving HTTP/2 on that connection. The bastion then
-proxies to that connection all requests that include the backend's public key
-hash in the URL path.
+At a high level, backends connect to the bastion, authenticate with their
+Ed25519 key, and start serving HTTP/2 on that connection. The bastion then
+proxies to that connection all requests that are prefixed with the backend's
+public key hash in the URL path.
 
 ### Backend to bastion connection
 
 A backend connects to the bastion’s backend endpoint with TLS 1.3, specifying
 the ALPN protocol `bastion/0`. Other TLS versions MUST be rejected, as only TLS
-1.3 hides client certificates from network observers. The backend MUST present as
-its client certificate a self-signed Ed25519 certificate containing the backend
-public key. The backend verifies the bastion’s TLS certificate chain as usual.
-The bastion checks the backend public key against an allowlist.
+1.3 hides client certificates from network observers. The backend MUST present
+as its client certificate an Ed25519 certificate containing the backend public
+key. The backend certificate MAY be self-signed. The backend verifies the
+bastion’s TLS certificate chain as usual. The bastion checks the backend public
+key against an allowlist or verifies the client certificate chain.
 
 After opening the connection, the backend starts serving HTTP/2 traffic on it as
 if it was a client-initiated connection. HTTP/2’s multiplexing allows serving
@@ -60,8 +63,8 @@ https://<bastion host>/<key hash>/<path>
 where "key hash" MUST be a lowercase hex-encoded SHA-256 hash of a 32-byte
 Ed25519 public key.
 
-If the backend key doesn’t correspond to any open backend connection, the
-bastion MUST serve a 502 Bad Gateway response.
+If the key hash doesn’t correspond to the key of any open backend connection,
+the bastion MUST serve a 502 Bad Gateway response.
 
 Otherwise, the bastion MUST remove _all_ `X-Forwarded-For` headers from the
 request, add a single `X-Forwarded-For` header with the IP address of the
@@ -75,9 +78,12 @@ The bastion MUST ignore all caching headers in both request and response.
 Transparency log witnesses MAY choose to reuse the witness key as their bastion
 backend key.
 
-If domain separation between the TLS handshake signatures, the X.509 certificate
-self-signature, and the witness protocol signatures can’t be ensured, there’s a
-risk of cross-protocol attacks.
+For this to be safe, there must be domain separation between all protocols the
+key is used in to avoid the risk of cross-protocol attacks.
+
+This requirement holds true for the witness key use as described in this
+document since the various signed messages have no common prefix, guaranteeing
+domain separation:
 
    * TLS 1.3 handshake signatures for client certificates are always applied on
 messages starting with 64 ASCII spaces followed by the string `TLS 1.3, client
@@ -89,7 +95,8 @@ which encoded with DER always starts with 0x30 (`0` in ASCII).
    * The witness protocol produces [cosignatures][], which format signed
 messages with the prefix `cosignature/v1`.
 
-The signed messages have no common prefix, guaranteeing domain separation.
+Further reuses of the witness key are NOT RECOMMENDED and MUST be analyzed for
+domain separation.
 
 ## Appendix B — Example Go adapter
 
