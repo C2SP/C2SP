@@ -42,11 +42,11 @@ The note text is a sequence of at least three non-empty lines, separated by
 newlines (U+000A).
 
  1. The first line is the **origin**, a unique identifier for the log identity
-    which issued the checkpoint. Like note key names, it MUST be non-empty,
-    well-formed UTF-8 containing neither Unicode spaces nor plus (U+002B), and
-    it SHOULD be a schema-less URL, such as `example.com/log42`. This is only a
-    recommendation to avoid collisions, and clients MUST NOT assume that the
-    origin is following this format.
+    which issued the checkpoint. The origin MUST be non-empty, and it SHOULD be
+    a schema-less URL containing neither Unicode spaces nor plus (U+002B), such
+    as `example.com/log42`. This is only a recommendation to avoid collisions,
+    and clients MUST NOT assume that the origin is following this format or that
+    the URL corresponds to a reachable endpoint.
 
  2. The second line is the **tree size**, the ASCII decimal representation of
     the number of leaves in the tree, with no leading zeroes (unless the tree is
@@ -55,13 +55,15 @@ newlines (U+000A).
  3. The third line is the **root hash**, the base64 encoding of the root of the
     [RFC 6962] Merkle hash tree at the specified tree size.
 
- 4. Any following lines are **extension lines**, opaque and optional. Extension
-    lines, if any, must be non-empty.
+ 4. Any following lines are **extension lines**, opaque and OPTIONAL. Extension
+    lines, if any, MUST be non-empty. The use of extension lines is NOT
+    RECOMMENDED, as they are not auditable by log monitors.
 
 ## Signatures
 
-Logs MUST NOT sign inconsistent checkpoints, where a consistency proof can't be
-constructed from one size and root hash to the other.
+Logs MUST not sign any checkpoint which is inconsistent with any checkpoint it
+previously signed. Two checkpoints are inconsistent if a consistency proof can't
+be constructed from one to the other.
 
 The log’s key name in its signature line SHOULD match the origin line.
 
@@ -69,4 +71,4 @@ Logs SHOULD use Ed25519 signatures to sign the checkpoint, but MAY use any note
 signature algorithm based on the ecosystem they operate in.
 
 According to the note specification, clients MUST ignore unknown signatures.
-This enables, for example, log key rotation, or witness cosigning.
+This enables, for example, log key rotation, and witness cosigning.

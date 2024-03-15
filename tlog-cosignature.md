@@ -1,6 +1,6 @@
 # Transparency Log Cosignatures
 
-A cosignature is a statement by a transparency log [witness][] that it ensured
+A cosignature is a statement by a transparency log [witness][] that it verified
 the consistency of a [checkpoint][]. Log clients can verify a quorum of
 cosignatures to prevent split-view attacks before trusting an inclusion proof.
 
@@ -88,13 +88,13 @@ as an ASCII decimal with no leading zeroes. This value MUST match the
     20852163
     CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
-Semantically, a v1 co-signature is a statement that, as of the specified time,
+Semantically, a v1 cosignature is a statement that, as of the specified time,
 the consistent tree head with the largest size the witness has observed for the
 log identified by the origin line has the specified root hash.
 
-Extension lines MAY be included in the checkpoint, and if present MUST be
-included the cosigned message. However, it's important to understand that the
-witness is asserting observation of correct append-only operation of the log
-based on the first three lines of the checkpoint; no semantic statement is made
-about any extension lines, and consensus between witnesses on the extension
-lines SHALL NOT be assumed.
+Extension lines MAY be included in the checkpoint by the log, and if present
+MUST be included the cosigned message. However, it's important to understand
+that the witness is asserting observation of correct append-only operation of
+the log based on the first three lines of the checkpoint; no semantic statement
+is made about any extension lines, and consensus between witnesses on the
+extension lines SHALL NOT be assumed.
