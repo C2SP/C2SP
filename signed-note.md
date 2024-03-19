@@ -112,8 +112,11 @@ runtime if possible.
 
 * `0x02` — ECDSA signatures as implemented by github.com/transparency-dev/witness.
 
+  * The ECDSA curve MUST be one of NIST P-256, NIST P-384, or NIST P-521, and
+    SHOULD be NIST P-256.
+
   * Note that the key ID for these signatures is the truncated SHA-256 hash of
-  the DER encoded public key in SPKI format.
+    the DER encoded public key in SPKI format.
 
 * `0x03` — Reserved.
 
