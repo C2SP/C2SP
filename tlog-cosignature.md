@@ -41,8 +41,8 @@ Per the signed note format, a note signature line is
     — <key name> base64(32-bit key ID || signature)
 
 The key name SHOULD be a schema-less URL that identifies the witness. Like the
-checkpoint origin line, this is for disambiguation, and MAY NOT match a publicly
-reachable endpoint (if any).
+checkpoint origin line, this is for disambiguation, and MAY match a publicly
+reachable endpoint or not.
 
 The key ID MUST be
 
@@ -63,7 +63,7 @@ The signature MUST be a 72-byte `timestamped_signature` structure.
     }
 
 "timestamp" is the time at which the cosignature was generated, as seconds since
-the UNIX epoch.
+the UNIX epoch (January 1, 1970 00:00 UTC).
 
 "signature" is an [RFC 8032][] signature from the witness public key over the
 message defined in the next section.
@@ -78,9 +78,8 @@ The header line MUST be the fixed string `cosignature/v1`, and provides domain
 separation.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
-the number of seconds since the UNIX epoch (January 1, 1970 00:00 UTC) encoded
-as an ASCII decimal with no leading zeroes. This value MUST match the
-`timestamped_signature.timestamp` value.
+the number of seconds since the UNIX epoch encoded as an ASCII decimal with no
+leading zeroes. This value MUST match the `timestamped_signature.timestamp`.
 
     cosignature/v1
     time 1679315147
@@ -93,7 +92,7 @@ the consistent tree head with the largest size the witness has observed for the
 log identified by the origin line has the specified root hash.
 
 Extension lines MAY be included in the checkpoint by the log, and if present
-MUST be included the cosigned message. However, it's important to understand
+MUST be included in the cosigned message. However, it's important to understand
 that the witness is asserting observation of correct append-only operation of
 the log based on the first three lines of the checkpoint; no semantic statement
 is made about any extension lines, and consensus between witnesses on the
