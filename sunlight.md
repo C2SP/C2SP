@@ -81,6 +81,10 @@ In particular, a Sunlight log MUST implement:
 The Signed Certificate Timestamp and its signature MUST be calculated according
 to RFC 6962, Section 3.2.
 
+As an additional requirement on top of those of RFC 6962, the Issuer of each
+certificate in a submitted chain MUST match its parent's Subject by binary
+comparison, without applying the rules of RFC 5280, Section 7.
+
 ### SCT Extension
 
 RFC 6962 specifies no extensions, and current logs produce empty extensions
@@ -302,7 +306,12 @@ the checkpoint.
 
 The bundle consists of a deduplicated sequence of PEM-encoded certificates in
 unspecified order. It MUST include every issuer of every submitted chain
-accepted by the log, excluding any Precertificate Signing Certificates.
+accepted by the log, excluding any Precertificate Signing Certificates,
+including any roots, even if not included in the submitted chain by the client.
+
+Monitors can use this bundle to reconstruct chains from submitted certificates
+to roots. Note that monitors can rely on the requirement for binary comparison
+of Subject and Issuer in submitted chains to simplify chain-building.
 
 ## Acknowledgements
 
