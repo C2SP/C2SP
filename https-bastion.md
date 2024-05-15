@@ -73,10 +73,16 @@ that the `/<key hash>` portion of the path is trimmed.
 
 The bastion MUST ignore all caching headers in both request and response.
 
+Note that in the context of the Web platform, all backends are served from the
+same [origin](https://html.spec.whatwg.org/multipage/browsers.html#origin), so
+backends SHOULD NOT target browser clients or use cookies, and bastions SHOULD
+NOT serve non-trivial websites on the bastion host.
+
 ## Appendix A — Security analysis of reusing a witness key
 
 Transparency log witnesses MAY choose to reuse the witness key as their bastion
-backend key.
+backend key. (However, note this is not necessary and generating a separate
+bastion backend key is preferable.)
 
 For this to be safe, there must be domain separation between all protocols the
 key is used in to avoid the risk of cross-protocol attacks.
@@ -95,10 +101,12 @@ which encoded with DER always starts with 0x30 (`0` in ASCII).
    * The witness protocol produces [cosignatures][], which format signed
 messages with the prefix `cosignature/v1`.
 
-Further reuses of the witness key are NOT RECOMMENDED and MUST be analyzed for
-domain separation.
+Further reuses of the witness or bastion key are NOT RECOMMENDED and MUST be
+analyzed for domain separation.
 
 ## Appendix B — Example Go adapter
+
+This Go adapter turns a regular HTTP Handler into a bastion backend.
 
 ```go
 func connectAndServe(host string, handler http.Handler, key ed25519.PrivateKey) {
