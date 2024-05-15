@@ -106,12 +106,12 @@ analyzed for domain separation.
 
 ## Appendix B — Example Go adapter
 
-This Go adapter turns a regular HTTP Handler into a bastion backend.
+This Go adapter turns a regular `http.Server` into a bastion backend.
 
 ```go
-func connectAndServe(host string, handler http.Handler, key ed25519.PrivateKey) {
+func connectAndServe(ctx context.Context, host string, srv *http.Server, key ed25519.PrivateKey) {
 	log.Printf("Connecting to bastion...")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	dialCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	conn, err := (&tls.Dialer{
 		Config: &tls.Config{
@@ -121,16 +121,17 @@ func connectAndServe(host string, handler http.Handler, key ed25519.PrivateKey) 
 			}},
 			MinVersion: tls.VersionTLS13,
 			MaxVersion: tls.VersionTLS13,
+			NextProtos: []string{"bastion/0"},
 		},
-	}).DialContext(ctx, "tcp", host)
+	}).DialContext(dialCtx, "tcp", host)
 	if err != nil {
-		log.Printf("Failed to connect to bastion: %v", err)
-		return
+		log.Fatalf("Failed to connect to bastion: %v", err)
 	}
-
 	log.Printf("Connected to bastion. Serving connection...")
 	(&http2.Server{}).ServeConn(conn, &http2.ServeConnOpts{
-		Handler: handler,
+		Context:    ctx,
+		BaseConfig: srv,
+		Handler:    srv.Handler,
 	})
 }
 
