@@ -63,8 +63,13 @@ https://<bastion host>/<key hash>/<path>
 where "key hash" MUST be a lowercase hex-encoded SHA-256 hash of a 32-byte
 Ed25519 public key.
 
-If the key hash doesn’t correspond to the key of any open backend connection,
-the bastion MUST serve a 502 Bad Gateway response.
+If the bastion maintains a full list of known backend keys, and the key hash is
+unknown, the bastion MUST serve a 421 "Misdirected request" response. If the key
+hash is known but there are no corresponding open backend connections, the
+bastion MUST serve a 503 "Service unavailable" response. If the bastion can't
+distinguish between an unknown key hash and a disconnected backend (for example
+because it uses a private X.509 CA to authenticate backends), it MUST serve a
+502 "Bad gateway" response.
 
 Otherwise, the bastion MUST remove _all_ `X-Forwarded-For` headers from the
 request, add a single `X-Forwarded-For` header with the IP address of the
