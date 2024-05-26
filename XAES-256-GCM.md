@@ -126,7 +126,8 @@ to detect than nonce collisions, and they compromise the confidentiality only of
 colliding messages, instead of the authentication of all messages under the same
 key, but are still undesirable. Since the goal is providing a clean abstraction,
 we wish to avoid having to make users think about maximum message sizes while
-evaluating bounds. 
+evaluating bounds. Read more at [Galois/Counter Mode and random nonces]
+(https://neilmadden.blog/2024/05/23/galois-counter-mode-and-random-nonces/).
 
 Users could use AES-GCM-SIV (specifically, AEAD_AES_256_GCM_SIV) from [RFC
 8452]. AES-GCM-SIV is more complex, less widely available, slightly less
