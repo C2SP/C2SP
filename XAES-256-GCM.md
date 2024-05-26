@@ -154,6 +154,15 @@ complexity and confusion for the adopter. (All this is what AES-GCM-SIV refers
 to when claiming better-than-birthday bounds. In that sense, XAES-256-GCM also
 achieves better-than-birthday bounds.)
 
+[Double-Nonce-Derive-Key-GCM] (DNDK-GCM) by Shay Gueron is a very similar scheme
+that also derives an AES-256-GCM key from a 256-bit key and a 192-bit nonce,
+with nearly identical goals. (It has optional support for key commitment, which
+XAES-256-GCM does not.) Its key derivation function costs six AES invocations
+(as opposed to three in XAES-256-GCM) but doesn't use the underlying AES-256-GCM
+nonce. Its authors claim FIPS 140 compliance due to the use of AES-256-GCM, but
+the KDF does not appear to comply with any NIST standard. It is reportedly used
+in production at Meta.
+
 There are novel AEAD designs that reuse AES internals for performance and have
 our desired properties, such as [AEGIS]. Again, they are not standard compliant
 and not as widely available.
@@ -182,3 +191,4 @@ derivation.
 [reduced-round variant]: https://words.filippo.io/dispatches/xaes-256-gcm-11/
 [AEGIS]: https://datatracker.ietf.org/doc/draft-irtf-cfrg-aegis-aead/
 [RFC 8452, Section 9]: https://www.rfc-editor.org/rfc/rfc8452.html#section-9
+[Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
