@@ -1,5 +1,7 @@
 # The XAES-256-GCM extended-nonce AEAD
 
+https://c2sp.org/XAES-256-GCM
+
 This document specifies the XAES-256-GCM authenticated encryption with
 additional data algorithm, based on the composition of a standard [NIST SP
 800-108r1] KDF and the standard NIST AES-256-GCM AEAD ([NIST SP 800-38D], [FIPS
