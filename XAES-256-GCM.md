@@ -222,9 +222,13 @@ nonce. Its authors claim FIPS 140 compliance due to the use of AES-256-GCM, but
 the KDF does not appear to comply with any NIST standard. It is reportedly used
 in production at Meta.
 
+Soatok proposed in 2022 [AES-XGCM], a very similar scheme to XAES-256-GCM that
+also uses CMAC to derive an AES-GCM key from a 192-bit nonce. The use of CMAC in
+XAES-256-GCM is slightly more efficient, and compliant with NIST SP 800-108r1.
+
 There are novel AEAD designs that reuse AES internals for performance and have
-our desired properties, such as [AEGIS]. Again, they are not standard compliant
-and not as widely available.
+our desired properties, such as [AEGIS] or the [OCH / GCH / CIV AEAD family].
+Again, they are not standard compliant and not as widely available.
 
 AES-256-GCM is desirable for its longer key, but is also unfortunately defined
 to run more rounds than AES-128-GCM, affecting performance. It would be nice to
@@ -252,3 +256,5 @@ derivation.
 [RFC 8452, Section 9]: https://www.rfc-editor.org/rfc/rfc8452.html#section-9
 [RFC 8446, Section 3]: https://www.rfc-editor.org/rfc/rfc8446.html#section-3
 [Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
+[AES-XGCM]: https://soatok.blog/2022/12/21/extending-the-aes-gcm-nonce-without-nightmare-fuel/
+[OCH / GCH / CIV AEAD family]: https://www.youtube.com/watch?v=7GBzKytVjH4
