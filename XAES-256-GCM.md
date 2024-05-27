@@ -96,6 +96,63 @@ The algorithm maps to [NIST SP 800-38B] and [NIST SP 800-108r1] as follows:
 * Step 5 applies the CMAC PRF twice to the two single-block messages to derive
   the KDF output according to [NIST SP 800-38B, Section 6.2].
 
+## Test vectors
+
+In the following vectors, unquoted values are hex-encoded, and quoted values are
+ASCII strings.
+
+    K: 0101010101010101010101010101010101010101010101010101010101010101
+    N: "ABCDEFGHIJKLMNOPQRSTUVWX"
+
+    L: 7298caa565031eadc6ce23d23ea66378
+    K1: e531954aca063d5b8d9c47a47d4cc6f0
+    M1: 000158004142434445464748494a4b4c
+    M2: 000258004142434445464748494a4b4c
+    Kₓ: c8612c9ed53fe43e8e005b828a1631a0bbcb6ab2f46514ec4f439fcfd0fa969b
+    Nₓ: 4d4e4f505152535455565758
+
+    Plaintext: "XAES-256-GCM"
+    AAD: ""
+    Ciphertext: ce546ef63c9cc60765923609b33a9a1974e96e52daf2fcf7075e2271
+
+In the previous vector MSB₁(*L*) = 0, while in the following vector MSB₁ = 1.
+
+    K: 0303030303030303030303030303030303030303030303030303030303030303
+    N: "ABCDEFGHIJKLMNOPQRSTUVWX"
+
+    L: 91c08762876dccf9ba204a33768fa5fe
+    K1: 23810ec50edb99f374409466ed1f4b7b
+    M1: 000158004142434445464748494a4b4c
+    M2: 000258004142434445464748494a4b4c
+    Kₓ: e9c621d4cdd9b11b00a6427ad7e559aeedd66b3857646677748f8ca796cb3fd8
+    Nₓ: 4d4e4f505152535455565758
+
+    Plaintext: "XAES-256-GCM"
+    AAD: "c2sp.org/XAES-256-GCM"
+    Ciphertext: 986ec1832593df5443a179437fd083bf3fdb41abd740a21f71eb769d
+
+### Accumulated randomized tests
+
+For each test, the following structure (presented according to [RFC 8446,
+Section 3]) is read from a deterministic RNG, and the ciphertext is hashed.
+
+The deterministic RNG is a single SHAKE-128 instance with an empty input. (The
+RNG stream starts with `7f9c2ba4e88f827d616045507605853e`.) The hash is a
+separate SHAKE-128 instance.
+
+    opaque key[32];
+    opaque nonce[24];
+    opaque plaintext<0..255>;
+    opaque aad<0..255>;
+
+The resulting hash for 10 000 iterations is
+
+    e6b9edf2df6cec60c8cbd864e2211b597fb69a529160cd040d56c0c210081939
+
+The resulting hash for 1 000 000 iterations is
+
+    2163ae1445985a30b60585ee67daa55674df06901b890593e824b8a7c885ab15
+
 ## Alternatives
 
 The goal of this design is to provide an AES-based AEAD with safely randomizable
@@ -191,4 +248,5 @@ derivation.
 [reduced-round variant]: https://words.filippo.io/dispatches/xaes-256-gcm-11/
 [AEGIS]: https://datatracker.ietf.org/doc/draft-irtf-cfrg-aegis-aead/
 [RFC 8452, Section 9]: https://www.rfc-editor.org/rfc/rfc8452.html#section-9
+[RFC 8446, Section 3]: https://www.rfc-editor.org/rfc/rfc8446.html#section-3
 [Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
