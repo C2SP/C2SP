@@ -146,6 +146,11 @@ consistency with the current checkpoint. If an entry bundle remains partial for
 too long (as defined by client policy), the client MUST fetch it to prevent
 delaying entries from being processed indefinitely.
 
+Logs MAY serve entries in different formats, for example due to backwards
+compatibility concerns. If they do, they SHOULD also serve entry bundles, and
+MUST serve the differently-encoded entries at a different URL from the specified
+entry bundle URL.
+
 ## Acknowledgements
 
 This design is based on the Go Checksum Database developed with Russ Cox and on
