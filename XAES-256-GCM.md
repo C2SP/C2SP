@@ -168,8 +168,8 @@ We could use HMAC or KMAC instead of CMAC, or HKDF instead of a [NIST SP
 we avoid with the current design. [NIST SP 800-108r1] recommends against CMAC
 "unless, for example, AES is the only primitive implemented in the platform or
 using CMAC has a resource benefit", which applies to us. It goes on to explain
-that the issue with CMAC is one of key control security, which we mitigate by
-limiting the CMAC input to a single block.
+that the issue with CMAC is one of [key control security](https://scottarc.blog/2024/06/04/attacking-nist-sp-800-108/),
+which we mitigate by limiting the CMAC input to a single block.
 
 We could simply apply the AES-256 encryption function to a concatenation of a
 counter and half the nonce, without the extra scaffolding necessary to call it
