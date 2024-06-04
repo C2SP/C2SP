@@ -266,25 +266,17 @@ tile. Data tiles are sequences of the following structure, one per entry.
 ```
 struct {
 	TimestampedEntry timestamped_entry;
-	select(entry_type) {
+	select (entry_type) {
 		case x509_entry: Empty;
-		case precert_entry: PreCertExtraData;
-	} extra_data;
+		case precert_entry: ASN.1Cert pre_certificate;
+	};
 } TileLeaf;
-
-struct {
-	ASN.1Cert pre_certificate;
-	opaque PrecertificateSigningCertificate<0..2^24-1>;
-} PreCertExtraData;
 ```
 
 “timestamped_entry” is the `TimestampedEntry` sub-structure of a
 `MerkleTreeLeaf` according to RFC 6962, Section 3.4.
 
 “pre_certificate” is the Precertificate submitted for auditing.
-
-`PrecertificateSigningCertificate` is a Precertificate Signing Certificate, if
-one was used to sign the Precertificate. Otherwise, it is empty.
 
 ### Issuers
 
@@ -303,8 +295,9 @@ The response MUST be a single ASN.1-encoded issuing certificate, exactly
 matching what was submitted in an accepted client's `add-chain` or
 `add-pre-chain` request.
 
-Every issuer of every submitted chain accepted by the log, excluding any
-Precertificate Signing Certificates, MUST be exposed.
+Every issuer (all certificates excluding the final end-entity Certificate or
+Precertificate, but including Precertificate Signing Certificates) of every
+submitted chain accepted by the log MUST be exposed.
 
 ## Acknowledgements
 
