@@ -191,7 +191,7 @@ they need in parallel and compute arbitrary proofs.
 
 Tiles are served as at
 
-    <monitoring prefix>/tile/8/<L>/<N>[.p/<W>]
+    <monitoring prefix>/tile/<L>/<N>[.p/<W>]
 
 with `Content-Type: application/data`.
 
@@ -206,9 +206,6 @@ begin with an `x`. For example, index 1234067 will be encoded as
 The `.p/<W>` suffix is only present for partial tiles, defined below. `<W>` is
 the width of the tile, a decimal ASCII integer between 1 and 255, with no
 additional leading zeroes.
-
-(The `8` literal path element is the tile height. Sunlight logs MUST support
-tiles of height eight, and MAY support other heights as well.)
 
 This endpoint is immutable, so its caching headers SHOULD be long-lived.
 
@@ -252,7 +249,7 @@ tile is not available anymore.
 
 The log entries are served as a “data tile” at
 
-    <monitoring prefix>/tile/8/data/<N>[.p/<W>]
+    <monitoring prefix>/tile/data/<N>[.p/<W>]
 
 with `Content-Type: application/data`.
 
