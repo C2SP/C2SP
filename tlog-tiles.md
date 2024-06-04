@@ -51,10 +51,10 @@ carry additional signatures of other types.
 
 ### Merkle Tree
 
-Instead of serving arbitrary consistency and inclusion proofs, logs serve the
-Merkle Tree as a set of “tiles”: concatenated sequences of consecutive Merkle
-Tree Hashes at a certain tree height. Clients can fetch all the tiles they need
-in parallel and compute arbitrary proofs.
+Instead of serving consistency and inclusion proofs for arbitrary entries and/or
+tree sizes, logs serve the Merkle Tree as a set of “tiles”: concatenated
+sequences of consecutive Merkle Tree Hashes at a certain tree height. Clients
+can fetch all the tiles they need in parallel and compute any desired proof.
 
 Tiles are served at
 
@@ -123,16 +123,17 @@ with `Content-Type: application/data`.
 
 `<N>` and `.p/<W>` have the same meaning as in Merkle Tree tile paths above.
 
-Data tiles SHOULD be compressed at the HTTP layer. Logs MAY use
+Entry bundles SHOULD be compressed at the HTTP layer. Logs MAY use
 `Content-Encoding: gzip` with no negotiation, or any compression algorithm
 requested by the client with `Accept-Encoding`. Clients SHOULD include `gzip`
 and `identity` in their `Accept-Encoding` headers.
 
 This endpoint is immutable, so its caching headers SHOULD be long-lived.
 
-Data tiles are sequences of big-endian uint16 length-prefixed entries. Each
-entry in a data tile hashes to the corresponding entry in the corresponding
-“level 0” tile according to RFC 6962, Section 2.1.
+Entry bundles are sequences of big-endian uint16 length-prefixed log entries.
+Each entry in a bundle hashes to the corresponding entry in the corresponding
+“level 0” Merkle Tree tile. Hashing of entries is performed according to RFC
+6962, Section 2.1.
 
 TODO: check if current logs need bigger leaves.
 
