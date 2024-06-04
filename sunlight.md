@@ -62,7 +62,7 @@ will serve API endpoints defined below at
 
 and
 
-`https://rome2024h1.bucket.example.org/issuers.pem`
+`https://rome2024h1.bucket.example.org/checkpoint`
 
 ## Submission APIs
 
@@ -286,20 +286,25 @@ struct {
 `PrecertificateSigningCertificate` is a Precertificate Signing Certificate, if
 one was used to sign the Precertificate. Otherwise, it is empty.
 
-### Issuers Bundle
+### Issuers
 
-The issuers bundle is served as at
+The issuers are served at
 
-    <monitoring prefix>/issuers.pem
+    <monitoring prefix>/issuer/<fingerprint>
 
-with `Content-Type: text/plain; charset=utf-8`.
+with `Content-Type: application/pkix-cert`.
 
-This endpoint is mutable, so its caching headers SHOULD match those of
-the checkpoint.
+`<fingerprint>` is the hex-encoded SHA-256 hash of the ASN.1 encoding of the
+certificate.
 
-The bundle consists of a deduplicated sequence of PEM-encoded certificates in
-unspecified order. It MUST include every issuer of every submitted chain
-accepted by the log, excluding any Precertificate Signing Certificates.
+This endpoint is immutable, so its caching headers SHOULD be long-lived.
+
+The response MUST be a single ASN.1-encoded issuing certificate, exactly
+matching what was submitted in an accepted client's `add-chain` or
+`add-pre-chain` request.
+
+Every issuer of every submitted chain accepted by the log, excluding any
+Precertificate Signing Certificates, MUST be exposed.
 
 ## Acknowledgements
 
