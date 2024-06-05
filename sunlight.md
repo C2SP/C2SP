@@ -266,7 +266,7 @@ tile. Data tiles are sequences of the following structure, one per entry.
 ```
 struct {
 	TimestampedEntry timestamped_entry;
-	Fingerprint certificate_chain<32..2^16-1>;
+	Fingerprint certificate_chain<0..2^16-1>;
 	select (entry_type) {
 		case x509_entry: Empty;
 		case precert_entry: ASN.1Cert pre_certificate;
