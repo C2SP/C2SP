@@ -293,8 +293,8 @@ The issuers are served at
 
 with `Content-Type: application/pkix-cert`.
 
-`<fingerprint>` is the hex-encoded SHA-256 hash of the ASN.1 encoding of the
-certificate.
+`<fingerprint>` is the lowercase hex-encoded SHA-256 hash of the ASN.1 encoding
+of the certificate.
 
 This endpoint is immutable, so its caching headers SHOULD be long-lived.
 
