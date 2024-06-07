@@ -36,6 +36,9 @@ tlog-checkpoint/        @mhutchinson @FiloSottile @rgdd
 tlog-cosignature.md     @AlCutter @FiloSottile @rgdd
 tlog-cosignature/       @AlCutter @FiloSottile @rgdd
 
+tlog-tiles.md           @AlCutter @mhutchinson @FiloSottile
+tlog-tiles/             @AlCutter @mhutchinson @FiloSottile
+
 tlog-witness.md         @FiloSottile @rgdd
 tlog-witness/           @FiloSottile @rgdd
 
