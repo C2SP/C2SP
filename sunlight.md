@@ -294,13 +294,13 @@ The issuers are served at
 with `Content-Type: application/pkix-cert`.
 
 `<fingerprint>` is the lowercase hex-encoded SHA-256 hash of the ASN.1 encoding
-of the certificate.
+of the certificate, exactly matching what was submitted in an accepted client's
+`add-chain` or `add-pre-chain` request.
 
 This endpoint is immutable, so its caching headers SHOULD be long-lived.
 
-The response MUST be a single ASN.1-encoded issuing certificate, exactly
-matching what was submitted in an accepted client's `add-chain` or
-`add-pre-chain` request.
+The response MUST be a single ASN.1-encoded issuing certificate, hashing to the
+fingerprint.
 
 Every issuer referred to by a `TileLeaf` MUST be exposed at this endpoint.
 
