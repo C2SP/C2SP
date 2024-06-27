@@ -156,11 +156,12 @@ the log as a schema-less URL with no trailing slashes.
 For example, a log with *submission prefix* `https://rome.ct.example.com/2024h1/`
 will use `rome.ct.example.com/2024h1` as the checkpoint origin line.
 
-The signature and the timestamp are encoded as a [note signature][]. The key
-name of the signature line MUST match the checkpoint origin line. The key ID
-MUST be the first four bytes (interpreted in big-endian order) of the SHA-256
-hash of the following sequence: the key name, a newline character (`0x0A`), the
-signature type identifier byte `0x05`, and the 32-byte RFC 6962 `LogID`.
+The Signed Tree Head signature and timestamp are encoded as a [note
+signature][]. The key name of the signature line MUST match the checkpoint
+origin line. The key ID MUST be the first four bytes (interpreted in big-endian
+order) of the SHA-256 hash of the following sequence: the key name, a newline
+character (`0x0A`), the signature type identifier byte `0x05`, and the 32-byte
+RFC 6962 `LogID`.
 
 The signature body MUST be an encoding of the following structure.
 
@@ -181,6 +182,10 @@ A checkpoint signed with this algorithm MUST NOT include any extension lines.
 
 Note that a RFC 6962 `get-sth` response can be converted to a checkpoint (with
 knowledge of the origin line) and vice-versa without access to the private key.
+
+Checkpoints MAY include other note signatures by the log using different keys or
+key types, or by third parties (such as witnesses). Clients MUST ignore
+signatures with unknown key names and IDs.
 
 ### Merkle Tree
 
