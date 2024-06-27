@@ -18,7 +18,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 ## Parameters
 
 A tiled transparency log is defined by a URL *prefix*, a [checkpoint][] origin,
-and one or more Ed25519 [signed note][] public keys.
+and one or more [signed note][] public keys.
 
 The origin line SHOULD be the schema-less URL prefix of the log with no trailing
 slashes. For example, a log with *prefix* `https://rome.ct.example.com/tevere/`
@@ -46,8 +46,10 @@ with `Content-Type: text/plain; charset=utf-8`.
 This endpoint is mutable, so its headers SHOULD prevent caching beyond a few
 seconds.
 
-The checkpoint MUST carry at least one Ed25519 signature by the log, and MAY
-carry additional signatures of other types.
+If the log is public, or is interacting in any way with the public witness
+network, the checkpoint MUST carry at least one Ed25519 signature by the log.
+The checkpoint MAY carry additional signatures of other types, by the log or
+otherwise.
 
 ### Merkle Tree
 
