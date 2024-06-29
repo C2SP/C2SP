@@ -1,27 +1,24 @@
-<p align="center">
-    <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://github.com/C2SP/C2SP/assets/1225294/0cd04af2-e84d-4f48-b42e-ed430354e563">
-        <source media="(prefers-color-scheme: light)" srcset="https://github.com/C2SP/C2SP/assets/1225294/0f239db0-7100-4bba-8608-bd4dc4134409">
-        <img alt="The Sunlight logo, a bench under a tree in stylized black ink, cast against a large yellow sun, with the text Sunlight underneath" width="250" src="https://github.com/C2SP/C2SP/assets/1225294/0f239db0-7100-4bba-8608-bd4dc4134409">
-    </picture>
-</p>
+# The Static Certificate Transparency API
 
-# The Sunlight CT Logs
+https://c2sp.org/static-ct-api
 
-https://c2sp.org/sunlight
+The Static [Certificate Transparency][] API defines a read-path HTTP static
+asset hierarchy (for monitoring) to be implemented alongside the write-path
+[RFC 6962][] endpoints (for submission).
 
-A Sunlight log is a [Certificate Transparency][] log that implements [RFC
-6962][] on the write path (for submission), and an HTTP static asset hierarchy
-on the read path (for monitoring).
+Aside from the different read endpoints, a log that implements the Static API is
+a regular CT log that can work alongside RFC 6962 logs and that fulfills the
+same purpose. In particular, it requires no modification to submitters and TLS
+clients.
 
-Aside from the different read API, a Sunlight log is a regular CT log that can
-work alongside RFC 6962 logs and that fulfills the same purpose. In particular,
-it requires no modification to submitters and TLS clients.
+This document specifies the public endpoints of the Static Certificate
+Transparency API, and is aimed at consumers (both readers and writers) of CT
+logs. A more comprehensive design document, which explores the motivating
+tradeoffs and details an implementation architecture, is available at
+https://filippo.io/a-different-CT-log.
 
-This document specifies the public endpoints of a Sunlight log, and is aimed at
-consumers (both readers and writers) of the log. A more comprehensive design
-document, which explores the motivating tradeoffs and details an implementation
-architecture, is available at https://filippo.io/a-different-CT-log.
+This document was formerly known as the Sunlight API, and was originally
+developed alongside the [Sunlight](https://sunlight.dev) CT log implementation.
 
 ## Conventions used in this document
 
@@ -44,9 +41,9 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 ## Parameters
 
-A Sunlight log is defined by a public key (hashed into a LogID, as per RFC 6962,
-Section 3.2), and by two URL prefixes: the *submission prefix* for write APIs
-and the *monitoring prefix* for read APIs.
+A CT log that implements the Static API is defined by a public key (hashed into
+a LogID, as per RFC 6962, Section 3.2), and by two URL prefixes: the *submission
+prefix* for write APIs and the *monitoring prefix* for read APIs.
 
 A log MAY use the same value for both the *submission prefix* and the
 *monitoring prefix*.
@@ -66,10 +63,11 @@ and
 
 ## Submission APIs
 
-For clients submitting certificates, a Sunlight log is fully RFC 6962 compliant:
-it implements the RFC 6962 submission APIs and produces RFC 6962 signatures.
+For clients submitting certificates, a log that implements the Static API is
+fully RFC 6962 compliant: it implements the RFC 6962 submission APIs and
+produces RFC 6962 signatures.
 
-In particular, a Sunlight log MUST implement:
+In particular, a Static API log MUST implement:
 
    - the `<submission prefix>/ct/v1/add-chain` API endpoint according to
      RFC 6962, Section 4.1
@@ -85,7 +83,7 @@ to RFC 6962, Section 3.2.
 
 RFC 6962 specifies no extensions, and current logs produce empty extensions
 fields. This document defines a format for the `CtExtensions` type, and one
-REQUIRED `SignedCertificateTimestamp` extension for Sunlight logs.
+REQUIRED `SignedCertificateTimestamp` extension for Static API logs.
 
 According to RFC 6962, submitters SHALL encode the `extensions` field of
 `add-[pre-]chain` responses into serialized `SignedCertificateTimestamp`s and
@@ -112,7 +110,7 @@ same extensions field.
 	uint8 uint40[5];
 	uint40 LeafIndex;
 
-Sunlight logs MUST include a `leaf_index` extension in the `extensions` field of
+Static API logs MUST include a `leaf_index` extension in the `extensions` field of
 `SignedCertificateTimestamp`. The `extension_data` field of this extension MUST
 be a `LeafIndex` value, which is a big-endian unsigned 40-bit integer specifying
 the 0-based index of the included entry in the log.
@@ -129,15 +127,15 @@ the log by fetching the entry by index, rather than by hash.
 
 ## Monitoring APIs
 
-The entries in a Sunlight tree, as well as accessory information such as proofs
-and signed tree heads are exposed not through the RFC 6962 dynamic APIs, but as
-static assets which can be fetched with HTTP GET requests, and which can be
-efficiently cached and compressed.
+The entries in a log that implements the Static API, as well as accessory
+information such as proofs and signed tree heads, are exposed not through the
+RFC 6962 dynamic APIs, but as static assets which can be fetched with HTTP GET
+requests, and which can be efficiently cached and compressed.
 
 Note that all cryptographic operations (such as hashes and signatures) are as
 specified by RFC 6962, so these APIs can be thought of as an alternative
 encoding format for the same data, and operators MAY run a full RFC 6962
-interface as a reverse proxy in front of a Sunlight log.
+interface as a reverse proxy in front of a Static API log.
 
 ### Checkpoints
 
@@ -189,7 +187,7 @@ signatures with unknown key names and IDs.
 
 ### Merkle Tree
 
-Instead of serving arbitrary consistency and inclusion proofs, Sunlight logs
+Instead of serving arbitrary consistency and inclusion proofs, Static API logs
 serve the Merkle Tree as a set of “tiles”: concatenated sequences of consecutive
 Merkle Tree Hashes at a certain tree height. Clients can fetch all the tiles
 they need in parallel and compute arbitrary proofs.
@@ -243,7 +241,7 @@ level 1 tile of width 17, and one partial level 2 tile of width 1. Note that a
 tree of size 256 will be represented by a full level 0 tile and a partial level
 1 tile of width 1.
 
-Sunlight logs MUST serve partial tiles corresponding to tree sizes for which a
+Logs MUST serve partial tiles corresponding to tree sizes for which a
 checkpoint was produced, but MAY omit any partial tile for which the
 corresponding full tile is available. Clients MUST NOT fetch arbitrary partial
 tiles without verifying a checkpoint with a size that requires their existence,

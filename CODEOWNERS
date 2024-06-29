@@ -27,8 +27,8 @@ signed-note/            @FiloSottile
 streaming-encryption.md @FiloSottile @str4d
 streaming-encryption/   @FiloSottile @str4d
 
-sunlight.md             @FiloSottile
-sunlight/               @FiloSottile
+static-ct-api.md        @FiloSottile
+static-ct-api/          @FiloSottile
 
 tlog-checkpoint.md      @mhutchinson @FiloSottile @rgdd
 tlog-checkpoint/        @mhutchinson @FiloSottile @rgdd
