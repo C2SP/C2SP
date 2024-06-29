@@ -23,8 +23,8 @@ otherwise the same performance profile. The subkey derivation operation can be
 described easily without reference to [NIST SP 800-108r1].
 
 XAES-256-GCM can be easily implemented on top of any cryptography library that
-exposes AES-256-GCM and either [NIST SP 800-108r1] KDFs or the AES-256 block
-cipher, with no library modifications.
+exposes AES-256-GCM and either [NIST SP 800-108r1] KDFs, AES-256-CBC, or the
+AES-256 block cipher, with no library modifications.
 
 ## Overview
 
