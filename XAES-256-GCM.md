@@ -179,7 +179,7 @@ the compliance advantages of complying with [NIST SP 800-108r1].
 Using AES-GCM with 128-bit nonces is possible, but does not do what users might
 expect: when the nonce is not 96 bits, instead of concatenating the nonce with a
 32-bit counter, the nonce is hashed and used as the starting counter. This means
-that the AES-CTR collision probability becomes a function not only of the number
+that the AES-CTR input block collision probability becomes a function not only of the number
 of messages but also of their length. Mid-message AES-CTR collisions are harder
 to detect than nonce collisions, and they compromise the confidentiality only of
 colliding messages, instead of the authentication of all messages under the same
@@ -192,25 +192,15 @@ Users could use AES-GCM-SIV (specifically, AEAD_AES_256_GCM_SIV) from [RFC
 performant, and not FIPS 140 compliant, but has the advantage of being
 nonce-misuse resistant. Libraries that abstract away nonce generation by reading
 bytes from the OS CSPRNG can minimize the risk of nonce reuse with XAES-256-GCM
-on any properly functioning modern system.
+on any properly functioning modern system, making nonce-misuse resistance less
+critical.
 
 Note that AES-GCM-SIV still has 96-bit nonces, so no more than 2³² messages can
 be encrypted unless nonce reuse is tolerable. AES-GCM-SIV is resistant to nonce
 reuse in the sense that it only allows an attacker to detect identical messages
 if nonces are reused. If that is acceptable, the analysis for how many messages
 can be safely encrypted with random nonces [is complicated][RFC 8452, Section 9]
-and was amended multiple times. The specification provides bounds for
-*ciphertext indistinguishability* which is a somewhat overly strict goal for an
-AES-CTR-based scheme, as the distinguishing "attack" is just noticing that
-blocks don't repeat even after they would be expected to in a random stream,
-because AES is a PRP. NIST itself doesn't care about that for AES-GCM and
-provides bounds that exceed the single-key AES indistinguishability bounds. The
-result is a table that has to take into account the maximum message size, and
-that has worse bounds than AES-GCM for messages longer than 8GiB. Again, that's
-probably an artifact of the ciphertext indistinguishability goal, but it adds
-complexity and confusion for the adopter. (All this is what AES-GCM-SIV refers
-to when claiming better-than-birthday bounds. In that sense, XAES-256-GCM also
-achieves better-than-birthday bounds.)
+and was amended multiple times.
 
 [Double-Nonce-Derive-Key-GCM] (DNDK-GCM) by Shay Gueron is a very similar scheme
 that also derives an AES-256-GCM key from a 256-bit key and a 192-bit nonce,
@@ -245,8 +235,8 @@ AES-256-GCM counter-intuitively has less security margin than AES-128-GCM given
 the same number of rounds because of AES's poor key schedule. Since we are
 deriving keys, we could decide to rip out the AES key schedule and just derive
 round subkeys, resolving the issue and improving the cipher. That would
-obviously be non-standard, and would require us to use a hash-based key
-derivation.
+obviously be non-standard, and would require us to introduce a new primitive
+for key derivation.
 
 [NIST SP 800-38D]: https://csrc.nist.gov/pubs/sp/800/38/d/final
 [FIPS 197]: https://csrc.nist.gov/pubs/fips/197/final
