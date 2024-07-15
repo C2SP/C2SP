@@ -225,6 +225,14 @@ Soatok proposed in 2022 [AES-XGCM], a very similar scheme to XAES-256-GCM that
 also uses CMAC to derive an AES-GCM key from a 192-bit nonce. The use of CMAC in
 XAES-256-GCM is slightly more efficient, and compliant with NIST SP 800-108r1.
 
+[AES-GEM] is a nonce-extended mode presented at the NIST workshop on the
+requirements for an accordion mode cipher. It also uses CMAC for subkey
+derivation, but not according to NIST SP 800-108r1, and it doesn't claim current
+FIPS 140 compliance. It also reallocates part of the AES-GCM nonce to counter
+space, encrypts the GHASH output to improve the security of tag truncation, and
+offers optional key commitment. These tweaks are incompatible with FIPS 140
+compliance at this time.
+
 There are novel AEAD designs that reuse AES internals for performance and have
 our desired properties, such as [AEGIS] or the [OCH / GCH / CIV AEAD family].
 Again, they are not standard compliant and not as widely available.
@@ -257,3 +265,4 @@ derivation.
 [Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
 [AES-XGCM]: https://soatok.blog/2022/12/21/extending-the-aes-gcm-nonce-without-nightmare-fuel/
 [OCH / GCH / CIV AEAD family]: https://www.youtube.com/watch?v=7GBzKytVjH4
+[AES-GEM]: 
