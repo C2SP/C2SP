@@ -33,7 +33,7 @@ HTTP GET requests, and which can be efficiently cached and compressed.
 
 Note that all Merkle tree cryptographic operations are as specified by RFC 6962,
 so these APIs can be thought of as an alternative encoding format for the same
-data.
+data. The hashing algorithm is defined to be SHA-256.
 
 ### Checkpoints
 
