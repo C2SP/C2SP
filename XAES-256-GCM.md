@@ -255,4 +255,4 @@ for key derivation.
 [Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
 [AES-XGCM]: https://soatok.blog/2022/12/21/extending-the-aes-gcm-nonce-without-nightmare-fuel/
 [OCH / GCH / CIV AEAD family]: https://www.youtube.com/watch?v=7GBzKytVjH4
-[AES-GEM]: 
+[AES-GEM]: https://github.com/trailofbits/aes-gem
