@@ -216,8 +216,8 @@ Four commands are defined for this phase:
   wrap all the file keys to.
   - `IDENTITY` is the Bech32 encoding of an identity.
 - `(wrap-file-key; FILE_KEY)` - a file key to be wrapped.
-- `(extension-labels)` - indicates that the client is using "labels" to constrain
-  the recipient stanzas that it will accept.
+- `(extension-labels)` - indicates that the client supports "labels" to constrain
+  the recipient stanzas and will accept a `labels` command in phase 2.
   - A label is defined in ABNF by the `argument` type from the [v1 age header][].
   - Clients MUST check that all recipient stanzas wrapping a given file key have
     the exact same label set. Clients MUST NOT permit partial overlapping sets.
@@ -225,7 +225,7 @@ Four commands are defined for this phase:
     treat the plugin's recipient stanzas has having an empty label set.
   - The `x25519` recipient stanza has an implicit empty label set.
   - The `scrypt` recipient stanza has an implicit label set containing a single
-    random label.
+    random label. In other words, it can't be combined with any other stanza.
 
 The plugin indexes recipients, identities, and file keys in the order received
 (starting from 0). The two may be interleaved by the client, with no semantic
@@ -285,12 +285,12 @@ The following commands and responses are defined for this phase:
   recipient stanzas it generates in this phase.
   - Labels can have any value, but usually take one of several forms:
     - *Common public label* - used by multiple plugins to permit their recipient
-      stanzas to be used together. Examples include:
+      stanzas to be used only together. Examples include:
       - `postquantum` - indicates that the recipient stanzas being generated are
         postquantum-secure, and that they can only be combined with other stanzas
         that are also postquantum-secure.
     - *Common private label* - used by plugins created by the same private entity
-      to permit their recipient stanzas to be used together. For example, private
+      to permit their recipient stanzas to be used only together. For example, private
       plugins used in a corporate environment could all send the same private label
       in order to prevent compliant age clients from simultaneously wrapping file
       keys with other plugins.
@@ -299,9 +299,9 @@ The following commands and responses are defined for this phase:
       that is only encrypted to a single recipient stanza.
   - Plugins MUST NOT send duplicate labels, and MUST NOT send a `labels` command
     more than once.
-  - The order of labels in the command is undefined. Clients MUST treat them as a
-    set.
-  - Response is `(ok)`.
+  - The order of labels in the command is irrelevant. Clients MUST treat them as an
+    unordered set.
+  - Response is `(ok)` or an error.
   - The plugin SHOULD send this command as early as it can, to avoid any expensive
     computations required to generate the recipient stanzas if the client is going
     to raise an error (because the label set does not match those associated with
