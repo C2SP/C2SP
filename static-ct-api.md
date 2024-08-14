@@ -196,7 +196,7 @@ Tiles are served as at
 
     <monitoring prefix>/tile/<L>/<N>[.p/<W>]
 
-with `Content-Type: application/data`.
+with `Content-Type: application/octet-stream`.
 
 `<L>` is the “level” of the tile, and MUST be a decimal ASCII integer between 0
 and 63, with no additional leading zeroes.
@@ -254,7 +254,7 @@ The log entries are served as a “data tile” at
 
     <monitoring prefix>/tile/data/<N>[.p/<W>]
 
-with `Content-Type: application/data`.
+with `Content-Type: application/octet-stream`.
 
 Data tiles SHOULD be compressed at the HTTP layer. Logs MAY use
 `Content-Encoding: gzip` with no negotiation, or any compression algorithm
