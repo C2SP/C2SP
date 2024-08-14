@@ -62,7 +62,7 @@ Tiles are served at
 
 	<prefix>/tile/<L>/<N>[.p/<W>]
 
-with `Content-Type: application/data`.
+with `Content-Type: application/octet-stream`.
 
 `<L>` is the “level” of the tile, and MUST be a decimal ASCII integer between 0
 and 63, with no additional leading zeroes.
@@ -121,7 +121,7 @@ The log entries are served as a “entry bundles” at
 
 	<prefix>/tile/entries/<N>[.p/<W>]
 
-with `Content-Type: application/data`.
+with `Content-Type: application/octet-stream`.
 
 `<N>` and `.p/<W>` have the same meaning as in Merkle Tree tile paths above.
 
