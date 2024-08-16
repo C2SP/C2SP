@@ -1,0 +1,163 @@
+policy:
+  approval:
+    - or:
+      - the stewards have approved
+      - and:
+        - the age maintainers have approved relevant changes
+        - the age-plugin maintainers have approved relevant changes
+        - the chacha8rand maintainers have approved relevant changes
+        - the https-bastion maintainers have approved relevant changes
+        - the jq255 maintainers have approved relevant changes
+        - the signed-note maintainers have approved relevant changes
+        - the static-ct-api maintainers have approved relevant changes
+        - the tlog-checkpoint maintainers have approved relevant changes
+        - the tlog-cosignature maintainers have approved relevant changes
+        - the tlog-tiles maintainers have approved relevant changes
+        - the tlog-witness maintainers have approved relevant changes
+        - the vrf-r255 maintainers have approved relevant changes
+        - the XAES-256-GCM maintainers have approved relevant changes
+  disapproval:
+    requires: # stewards can block PRs
+      teams:
+        - "C2SP/stewards"
+
+approval_rules:
+  - name: the stewards have approved
+    requires:
+      count: 1
+      teams: ["C2SP/stewards"]
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the age maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^age\\.md$"
+        - "^age/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/age"]
+    options:
+      allow_contributor: true
+  - name: the age-plugin maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^age-plugin\\.md$"
+        - "^age-plugin/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/age-plugin"]
+    options:
+      allow_contributor: true
+  - name: the chacha8rand maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^chacha8rand\\.md$"
+        - "^chacha8rand/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/chacha8rand"]
+    options:
+      allow_contributor: true
+  - name: the https-bastion maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^https-bastion\\.md$"
+        - "^https-bastion/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/https-bastion"]
+    options:
+      allow_contributor: true
+  - name: the jq255 maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^jq255\\.md$"
+        - "^jq255/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/jq255"]
+    options:
+      allow_contributor: true
+  - name: the signed-note maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^signed-note\\.md$"
+        - "^signed-note/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/signed-note"]
+    options:
+      allow_contributor: true
+  - name: the static-ct-api maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^static-ct-api\\.md$"
+        - "^static-ct-api/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/static-ct-api"]
+    options:
+      allow_contributor: true
+  - name: the tlog-checkpoint maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^tlog-checkpoint\\.md$"
+        - "^tlog-checkpoint/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/tlog-checkpoint"]
+    options:
+      allow_contributor: true
+  - name: the tlog-cosignature maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^tlog-cosignature\\.md$"
+        - "^tlog-cosignature/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/tlog-cosignature"]
+    options:
+      allow_contributor: true
+  - name: the tlog-tiles maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^tlog-tiles\\.md$"
+        - "^tlog-tiles/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/tlog-tiles"]
+    options:
+      allow_contributor: true
+  - name: the tlog-witness maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^tlog-witness\\.md$"
+        - "^tlog-witness/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/tlog-witness"]
+    options:
+      allow_contributor: true
+  - name: the vrf-r255 maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^vrf-r255\\.md$"
+        - "^vrf-r255/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/vrf-r255"]
+    options:
+      allow_contributor: true
+  - name: the XAES-256-GCM maintainers have approved relevant changes
+    if:
+      changed_files:
+        - "^XAES-256-GCM\\.md$"
+        - "^XAES-256-GCM/.*$"
+    requires:
+      count: 1
+      teams: ["C2SP/maintainers/XAES-256-GCM"]
+    options:
+      allow_contributor: true
