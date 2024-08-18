@@ -63,8 +63,9 @@ approval_rules:
   - name: the age maintainers have approved relevant changes
     if:
       changed_files:
-        - "^age\\.md$"
-        - "^age/.*$"
+        paths:
+          - "^age\\.md$"
+          - "^age/.*$"
     requires:
       count: 1
       teams:
@@ -77,18 +78,21 @@ approval_rules:
   - name: the age maintainers have authored relevant changes
     if:
       changed_files:
-        - "^age\\.md$"
-        - "^age/.*$"
+        paths:
+          - "^age\\.md$"
+          - "^age/.*$"
       has_author_in:
-        - "C2SP/maintainers/age"
+        teams:
+          - "C2SP/maintainers/age"
     requires:
       count: 0
 
   - name: the age-plugin maintainers have approved relevant changes
     if:
       changed_files:
-        - "^age-plugin\\.md$"
-        - "^age-plugin/.*$"
+        paths:
+          - "^age-plugin\\.md$"
+          - "^age-plugin/.*$"
     requires:
       count: 1
       teams:
@@ -101,18 +105,21 @@ approval_rules:
   - name: the age-plugin maintainers have authored relevant changes
     if:
       changed_files:
-        - "^age-plugin\\.md$"
-        - "^age-plugin/.*$"
+        paths:
+          - "^age-plugin\\.md$"
+          - "^age-plugin/.*$"
       has_author_in:
-        - "C2SP/maintainers/age-plugin"
+        teams:
+          - "C2SP/maintainers/age-plugin"
     requires:
       count: 0
 
   - name: the chacha8rand maintainers have approved relevant changes
     if:
       changed_files:
-        - "^chacha8rand\\.md$"
-        - "^chacha8rand/.*$"
+        paths:
+          - "^chacha8rand\\.md$"
+          - "^chacha8rand/.*$"
     requires:
       count: 1
       teams:
@@ -125,18 +132,21 @@ approval_rules:
   - name: the chacha8rand maintainers have authored relevant changes
     if:
       changed_files:
-        - "^chacha8rand\\.md$"
-        - "^chacha8rand/.*$"
+        paths:
+          - "^chacha8rand\\.md$"
+          - "^chacha8rand/.*$"
       has_author_in:
-        - "C2SP/maintainers/chacha8rand"
+        teams:
+          - "C2SP/maintainers/chacha8rand"
     requires:
       count: 0
 
   - name: the ecdsa-keygen maintainers have approved relevant changes
     if:
       changed_files:
-        - "^ecdsa-keygen\\.md$"
-        - "^ecdsa-keygen/.*$"
+        paths:
+          - "^ecdsa-keygen\\.md$"
+          - "^ecdsa-keygen/.*$"
     requires:
       count: 1
       teams:
@@ -149,18 +159,21 @@ approval_rules:
   - name: the ecdsa-keygen maintainers have authored relevant changes
     if:
       changed_files:
-        - "^ecdsa-keygen\\.md$"
-        - "^ecdsa-keygen/.*$"
+        paths:
+          - "^ecdsa-keygen\\.md$"
+          - "^ecdsa-keygen/.*$"
       has_author_in:
-        - "C2SP/maintainers/ecdsa-keygen"
+        teams:
+          - "C2SP/maintainers/ecdsa-keygen"
     requires:
       count: 0
 
   - name: the https-bastion maintainers have approved relevant changes
     if:
       changed_files:
-        - "^https-bastion\\.md$"
-        - "^https-bastion/.*$"
+        paths:
+          - "^https-bastion\\.md$"
+          - "^https-bastion/.*$"
     requires:
       count: 1
       teams:
@@ -173,18 +186,21 @@ approval_rules:
   - name: the https-bastion maintainers have authored relevant changes
     if:
       changed_files:
-        - "^https-bastion\\.md$"
-        - "^https-bastion/.*$"
+        paths:
+          - "^https-bastion\\.md$"
+          - "^https-bastion/.*$"
       has_author_in:
-        - "C2SP/maintainers/https-bastion"
+        teams:
+          - "C2SP/maintainers/https-bastion"
     requires:
       count: 0
 
   - name: the jq255 maintainers have approved relevant changes
     if:
       changed_files:
-        - "^jq255\\.md$"
-        - "^jq255/.*$"
+        paths:
+          - "^jq255\\.md$"
+          - "^jq255/.*$"
     requires:
       count: 1
       teams:
@@ -197,18 +213,21 @@ approval_rules:
   - name: the jq255 maintainers have authored relevant changes
     if:
       changed_files:
-        - "^jq255\\.md$"
-        - "^jq255/.*$"
+        paths:
+          - "^jq255\\.md$"
+          - "^jq255/.*$"
       has_author_in:
-        - "C2SP/maintainers/jq255"
+        teams:
+          - "C2SP/maintainers/jq255"
     requires:
       count: 0
 
   - name: the signed-note maintainers have approved relevant changes
     if:
       changed_files:
-        - "^signed-note\\.md$"
-        - "^signed-note/.*$"
+        paths:
+          - "^signed-note\\.md$"
+          - "^signed-note/.*$"
     requires:
       count: 1
       teams:
@@ -221,18 +240,21 @@ approval_rules:
   - name: the signed-note maintainers have authored relevant changes
     if:
       changed_files:
-        - "^signed-note\\.md$"
-        - "^signed-note/.*$"
+        paths:
+          - "^signed-note\\.md$"
+          - "^signed-note/.*$"
       has_author_in:
-        - "C2SP/maintainers/signed-note"
+        teams:
+          - "C2SP/maintainers/signed-note"
     requires:
       count: 0
 
   - name: the static-ct-api maintainers have approved relevant changes
     if:
       changed_files:
-        - "^static-ct-api\\.md$"
-        - "^static-ct-api/.*$"
+        paths:
+          - "^static-ct-api\\.md$"
+          - "^static-ct-api/.*$"
     requires:
       count: 1
       teams:
@@ -245,18 +267,21 @@ approval_rules:
   - name: the static-ct-api maintainers have authored relevant changes
     if:
       changed_files:
-        - "^static-ct-api\\.md$"
-        - "^static-ct-api/.*$"
+        paths:
+          - "^static-ct-api\\.md$"
+          - "^static-ct-api/.*$"
       has_author_in:
-        - "C2SP/maintainers/static-ct-api"
+        teams:
+          - "C2SP/maintainers/static-ct-api"
     requires:
       count: 0
 
   - name: the tlog-checkpoint maintainers have approved relevant changes
     if:
       changed_files:
-        - "^tlog-checkpoint\\.md$"
-        - "^tlog-checkpoint/.*$"
+        paths:
+          - "^tlog-checkpoint\\.md$"
+          - "^tlog-checkpoint/.*$"
     requires:
       count: 1
       teams:
@@ -269,18 +294,21 @@ approval_rules:
   - name: the tlog-checkpoint maintainers have authored relevant changes
     if:
       changed_files:
-        - "^tlog-checkpoint\\.md$"
-        - "^tlog-checkpoint/.*$"
+        paths:
+          - "^tlog-checkpoint\\.md$"
+          - "^tlog-checkpoint/.*$"
       has_author_in:
-        - "C2SP/maintainers/tlog-checkpoint"
+        teams:
+          - "C2SP/maintainers/tlog-checkpoint"
     requires:
       count: 0
 
   - name: the tlog-cosignature maintainers have approved relevant changes
     if:
       changed_files:
-        - "^tlog-cosignature\\.md$"
-        - "^tlog-cosignature/.*$"
+        paths:
+          - "^tlog-cosignature\\.md$"
+          - "^tlog-cosignature/.*$"
     requires:
       count: 1
       teams:
@@ -293,18 +321,21 @@ approval_rules:
   - name: the tlog-cosignature maintainers have authored relevant changes
     if:
       changed_files:
-        - "^tlog-cosignature\\.md$"
-        - "^tlog-cosignature/.*$"
+        paths:
+          - "^tlog-cosignature\\.md$"
+          - "^tlog-cosignature/.*$"
       has_author_in:
-        - "C2SP/maintainers/tlog-cosignature"
+        teams:
+          - "C2SP/maintainers/tlog-cosignature"
     requires:
       count: 0
 
   - name: the tlog-tiles maintainers have approved relevant changes
     if:
       changed_files:
-        - "^tlog-tiles\\.md$"
-        - "^tlog-tiles/.*$"
+        paths:
+          - "^tlog-tiles\\.md$"
+          - "^tlog-tiles/.*$"
     requires:
       count: 1
       teams:
@@ -317,18 +348,21 @@ approval_rules:
   - name: the tlog-tiles maintainers have authored relevant changes
     if:
       changed_files:
-        - "^tlog-tiles\\.md$"
-        - "^tlog-tiles/.*$"
+        paths:
+          - "^tlog-tiles\\.md$"
+          - "^tlog-tiles/.*$"
       has_author_in:
-        - "C2SP/maintainers/tlog-tiles"
+        teams:
+          - "C2SP/maintainers/tlog-tiles"
     requires:
       count: 0
 
   - name: the tlog-witness maintainers have approved relevant changes
     if:
       changed_files:
-        - "^tlog-witness\\.md$"
-        - "^tlog-witness/.*$"
+        paths:
+          - "^tlog-witness\\.md$"
+          - "^tlog-witness/.*$"
     requires:
       count: 1
       teams:
@@ -341,18 +375,21 @@ approval_rules:
   - name: the tlog-witness maintainers have authored relevant changes
     if:
       changed_files:
-        - "^tlog-witness\\.md$"
-        - "^tlog-witness/.*$"
+        paths:
+          - "^tlog-witness\\.md$"
+          - "^tlog-witness/.*$"
       has_author_in:
-        - "C2SP/maintainers/tlog-witness"
+        teams:
+          - "C2SP/maintainers/tlog-witness"
     requires:
       count: 0
 
   - name: the vrf-r255 maintainers have approved relevant changes
     if:
       changed_files:
-        - "^vrf-r255\\.md$"
-        - "^vrf-r255/.*$"
+        paths:
+          - "^vrf-r255\\.md$"
+          - "^vrf-r255/.*$"
     requires:
       count: 1
       teams:
@@ -365,18 +402,21 @@ approval_rules:
   - name: the vrf-r255 maintainers have authored relevant changes
     if:
       changed_files:
-        - "^vrf-r255\\.md$"
-        - "^vrf-r255/.*$"
+        paths:
+          - "^vrf-r255\\.md$"
+          - "^vrf-r255/.*$"
       has_author_in:
-        - "C2SP/maintainers/vrf-r255"
+        teams:
+          - "C2SP/maintainers/vrf-r255"
     requires:
       count: 0
 
   - name: the XAES-256-GCM maintainers have approved relevant changes
     if:
       changed_files:
-        - "^XAES-256-GCM\\.md$"
-        - "^XAES-256-GCM/.*$"
+        paths:
+          - "^XAES-256-GCM\\.md$"
+          - "^XAES-256-GCM/.*$"
     requires:
       count: 1
       teams:
@@ -389,10 +429,12 @@ approval_rules:
   - name: the XAES-256-GCM maintainers have authored relevant changes
     if:
       changed_files:
-        - "^XAES-256-GCM\\.md$"
-        - "^XAES-256-GCM/.*$"
+        paths:
+          - "^XAES-256-GCM\\.md$"
+          - "^XAES-256-GCM/.*$"
       has_author_in:
-        - "C2SP/maintainers/XAES-256-GCM"
+        teams:
+          - "C2SP/maintainers/XAES-256-GCM"
     requires:
       count: 0
 
