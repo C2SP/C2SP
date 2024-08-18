@@ -25,3 +25,8 @@ specification proposal must include:
 * The text `/cc @C2SP/stewards`
 
 See [#45](https://github.com/C2SP/C2SP/issues/45) for an example.
+
+## Tagging new versions
+
+At the moment, there is no automation to tag new versions. Open an issue and cc
+@C2SP/stewards. We plan to fix this.
