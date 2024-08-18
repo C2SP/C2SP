@@ -1,0 +1,50 @@
+policy:
+  approval:
+    - or:
+      - the stewards have approved
+      - and:
+        {{- range . }}
+        - or:
+          - the {{ . }} maintainers have authored relevant changes
+          - the {{ . }} maintainers have approved relevant changes
+        {{- end }}
+  disapproval:
+    requires: # stewards can block PRs
+      teams:
+        - "C2SP/stewards"
+
+approval_rules:
+  - name: the stewards have approved
+    requires:
+      count: 1
+      teams:
+        - "C2SP/stewards"
+
+{{ range . }}
+  - name: the {{ . }} maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^{{ . }}\\.md$"
+          - "^{{ . }}/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/{{ . }}"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the {{ . }} maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^{{ . }}\\.md$"
+          - "^{{ . }}/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/{{ . }}"
+    requires:
+      count: 0
+{{ end }}
