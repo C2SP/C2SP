@@ -1,0 +1,16 @@
+name: Lint
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: .github/go.mod
+          check-latest: true
+      - run: |
+          cd .github/lint
+          go run .
