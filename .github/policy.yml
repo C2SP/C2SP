@@ -15,9 +15,6 @@ policy:
           - the chacha8rand maintainers have authored relevant changes
           - the chacha8rand maintainers have approved relevant changes
         - or:
-          - the ecdsa-keygen maintainers have authored relevant changes
-          - the ecdsa-keygen maintainers have approved relevant changes
-        - or:
           - the https-bastion maintainers have authored relevant changes
           - the https-bastion maintainers have approved relevant changes
         - or:
@@ -69,7 +66,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/age"
+        - "C2SP/age"
     options:
       allow_contributor: true
       methods:
@@ -83,7 +80,7 @@ approval_rules:
           - "^age/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/age"
+          - "C2SP/age"
     requires:
       count: 0
 
@@ -96,7 +93,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/age-plugin"
+        - "C2SP/age-plugin"
     options:
       allow_contributor: true
       methods:
@@ -110,7 +107,7 @@ approval_rules:
           - "^age-plugin/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/age-plugin"
+          - "C2SP/age-plugin"
     requires:
       count: 0
 
@@ -123,7 +120,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/chacha8rand"
+        - "C2SP/chacha8rand"
     options:
       allow_contributor: true
       methods:
@@ -137,34 +134,7 @@ approval_rules:
           - "^chacha8rand/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/chacha8rand"
-    requires:
-      count: 0
-
-  - name: the ecdsa-keygen maintainers have approved relevant changes
-    if:
-      changed_files:
-        paths:
-          - "^ecdsa-keygen\\.md$"
-          - "^ecdsa-keygen/.*$"
-    requires:
-      count: 1
-      teams:
-        - "C2SP/maintainers/ecdsa-keygen"
-    options:
-      allow_contributor: true
-      methods:
-        comments: [] # disable comment-based approval
-
-  - name: the ecdsa-keygen maintainers have authored relevant changes
-    if:
-      changed_files:
-        paths:
-          - "^ecdsa-keygen\\.md$"
-          - "^ecdsa-keygen/.*$"
-      has_author_in:
-        teams:
-          - "C2SP/maintainers/ecdsa-keygen"
+          - "C2SP/chacha8rand"
     requires:
       count: 0
 
@@ -177,7 +147,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/https-bastion"
+        - "C2SP/https-bastion"
     options:
       allow_contributor: true
       methods:
@@ -191,7 +161,7 @@ approval_rules:
           - "^https-bastion/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/https-bastion"
+          - "C2SP/https-bastion"
     requires:
       count: 0
 
@@ -204,7 +174,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/jq255"
+        - "C2SP/jq255"
     options:
       allow_contributor: true
       methods:
@@ -218,7 +188,7 @@ approval_rules:
           - "^jq255/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/jq255"
+          - "C2SP/jq255"
     requires:
       count: 0
 
@@ -231,7 +201,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/signed-note"
+        - "C2SP/signed-note"
     options:
       allow_contributor: true
       methods:
@@ -245,7 +215,7 @@ approval_rules:
           - "^signed-note/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/signed-note"
+          - "C2SP/signed-note"
     requires:
       count: 0
 
@@ -258,7 +228,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/static-ct-api"
+        - "C2SP/static-ct-api"
     options:
       allow_contributor: true
       methods:
@@ -272,7 +242,7 @@ approval_rules:
           - "^static-ct-api/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/static-ct-api"
+          - "C2SP/static-ct-api"
     requires:
       count: 0
 
@@ -285,7 +255,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/tlog-checkpoint"
+        - "C2SP/tlog-checkpoint"
     options:
       allow_contributor: true
       methods:
@@ -299,7 +269,7 @@ approval_rules:
           - "^tlog-checkpoint/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/tlog-checkpoint"
+          - "C2SP/tlog-checkpoint"
     requires:
       count: 0
 
@@ -312,7 +282,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/tlog-cosignature"
+        - "C2SP/tlog-cosignature"
     options:
       allow_contributor: true
       methods:
@@ -326,7 +296,7 @@ approval_rules:
           - "^tlog-cosignature/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/tlog-cosignature"
+          - "C2SP/tlog-cosignature"
     requires:
       count: 0
 
@@ -339,7 +309,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/tlog-tiles"
+        - "C2SP/tlog-tiles"
     options:
       allow_contributor: true
       methods:
@@ -353,7 +323,7 @@ approval_rules:
           - "^tlog-tiles/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/tlog-tiles"
+          - "C2SP/tlog-tiles"
     requires:
       count: 0
 
@@ -366,7 +336,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/tlog-witness"
+        - "C2SP/tlog-witness"
     options:
       allow_contributor: true
       methods:
@@ -380,7 +350,7 @@ approval_rules:
           - "^tlog-witness/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/tlog-witness"
+          - "C2SP/tlog-witness"
     requires:
       count: 0
 
@@ -393,7 +363,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/vrf-r255"
+        - "C2SP/vrf-r255"
     options:
       allow_contributor: true
       methods:
@@ -407,7 +377,7 @@ approval_rules:
           - "^vrf-r255/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/vrf-r255"
+          - "C2SP/vrf-r255"
     requires:
       count: 0
 
@@ -420,7 +390,7 @@ approval_rules:
     requires:
       count: 1
       teams:
-        - "C2SP/maintainers/XAES-256-GCM"
+        - "C2SP/XAES-256-GCM"
     options:
       allow_contributor: true
       methods:
@@ -434,7 +404,7 @@ approval_rules:
           - "^XAES-256-GCM/.*$"
       has_author_in:
         teams:
-          - "C2SP/maintainers/XAES-256-GCM"
+          - "C2SP/XAES-256-GCM"
     requires:
       count: 0
 
