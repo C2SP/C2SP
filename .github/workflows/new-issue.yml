@@ -4,15 +4,15 @@ on:
       - opened
 
 jobs:
-  notify-new-spec:
+  notify-new-issue:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'new spec')
+    if: contains(github.event.issue.body, 'C2SP/stewards')
     steps:
       - name: Prepare webhook data
         id: prepare
         run: >
           echo 'data={
-            "content": "New spec: ${{ github.event.issue.html_url }}"
+            "content": "New issue: ${{ github.event.issue.html_url }}"
           }' >> $GITHUB_OUTPUT
       - name: Execute Discord webhook
         env:
