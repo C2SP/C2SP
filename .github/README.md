@@ -22,6 +22,15 @@ A [small team of stewards] maintain the overall project, enforce the [C2SP Code
 of Conduct], assign [new specifications] to proposed maintainers, and may
 replace lapsed maintainers, but they have no authority over individual specs.
 
+Versions are tracked as git tags of the form `<spec-name>/vX.Y.Z` like
+`age/v1.2.3`.
+
+Specifications should be linked using their c2sp.org short-links.
+`https://c2sp.org/<spec-name>` and `https://c2sp.org/<spec-name>@<version>` are
+supported. (The former currently redirects to the specification in the main
+branch, this may change in the future to the latest tagged version of the spec.)
+GitHub URLs should not be considered stable.
+
 All C2SP specifications are licensed under [CC BY
 4.0](https://creativecommons.org/licenses/by/4.0/). All code and data in this
 repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
