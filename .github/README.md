@@ -18,9 +18,11 @@ of open source software development and maintenance to specification documents.
   ancillary files such as test vectors and non-production reference
   implementations.
 
-A [small team of stewards] maintain the overall project, enforce the [C2SP Code
-of Conduct], assign [new specifications] to proposed maintainers, and may
-replace lapsed maintainers, but they have no authority over individual specs.
+A [small team of stewards] maintains the overall project, enforces the [C2SP
+Code of Conduct], assigns [new specifications] to proposed maintainers, and may
+intervene in case of maintainer conflict or to replace lapsed maintainers, but
+they are otherwise not involved in the development of individual specs (in their
+steward capacity).
 
 Versions are tracked as git tags of the form `<spec-name>/vX.Y.Z` like
 `age/v1.2.3`.
