@@ -301,11 +301,7 @@ The following commands and responses are defined for this phase:
     more than once.
   - The order of labels in the command is irrelevant. Clients MUST treat them as an
     unordered set.
-  - Response is `(ok)` or an error.
-  - The plugin SHOULD send this command as early as it can, to avoid any expensive
-    computations required to generate the recipient stanzas if the client is going
-    to raise an error (because the label set does not match those associated with
-    other stanzas in the header being constructed).
+  - Response is `(ok)`.
 - An `error` command with three variants:
   - `(error, recipient RECIPIENT_INDEX; MESSAGE)` - a specific recipient is the
     cause of an error.
