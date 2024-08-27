@@ -13,7 +13,7 @@ of open source software development and maintenance to specification documents.
 * C2SP specs are **updateable**, and follow [semantic versioning]. Most
   specifications are expected to start at v0.x.x while in “draft” stage, then
   stay at v1.x.x for as long as they maintain backwards compatibility, ideally
-  forever.
+  forever. Drafts are expected to bump the minor version on breaking changes.
 * C2SP documents are developed as Markdown files on GitHub, and can include
   ancillary files such as test vectors and non-production reference
   implementations.
