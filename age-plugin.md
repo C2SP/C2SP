@@ -329,8 +329,7 @@ the plugin then decides whether this response is fatal.
 If any errors occur, the plugin MUST NOT send any stanzas to the client.
 
 Once all file keys have been successfully wrapped to all recipients and identities,
-the plugin sends the resulting stanzas to the client. The plugin MUST NOT return
-more stanzas per file than the number of recipients and identities.
+the plugin sends the resulting stanzas to the client.
 
 Example phase diagram:
 ```
