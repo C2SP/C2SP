@@ -211,8 +211,8 @@ nonce. Its authors claim FIPS 140 compliance due to the use of AES-256-GCM, but
 the KDF does not appear to comply with any NIST standard. It is reportedly used
 in production at Meta.
 
-Soatok proposed in 2022 [AES-XGCM], a very similar scheme to XAES-256-GCM that
-also uses CMAC to derive an AES-GCM key from a 192-bit nonce. The use of CMAC in
+In 2022, Soatok proposed [AES-XGCM], a similar scheme to XAES-256-GCM that
+uses CBC-MAC to derive an AES-GCM key from a 224-bit nonce. The use of CMAC in
 XAES-256-GCM is slightly more efficient, and compliant with NIST SP 800-108r1.
 
 [AES-GEM] is a nonce-extended mode presented at the NIST workshop on the
