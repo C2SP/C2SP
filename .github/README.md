@@ -50,6 +50,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | --- | --- | --- |
 | [`c2sp.org/age`](https://c2sp.org/age) | File encryption format | [Maintainers](https://github.com/orgs/C2SP/teams/age) |
 | [`c2sp.org/age-plugin`](https://c2sp.org/age-plugin) | The age plugin stdio protocol | [Maintainers](https://github.com/orgs/C2SP/teams/age-plugin) |
+| [`c2sp.org/BLAKE3`](https://c2sp.org/BLAKE3) | A fast cryptographic hash function (and PRF, MAC, KDF, and XOF) | [Maintainers](https://github.com/orgs/C2SP/teams/BLAKE3) |
 | [`c2sp.org/chacha8rand`](https://c2sp.org/chacha8rand) | Fast cryptographic random number generator | [Maintainers](https://github.com/orgs/C2SP/teams/chacha8rand) |
 | [`c2sp.org/https-bastion`](https://c2sp.org/https-bastion) | Bastion (reverse proxy) protocol for exposing HTTPS services | [Maintainers](https://github.com/orgs/C2SP/teams/https-bastion) |
 | [`c2sp.org/jq255`](https://c2sp.org/jq255) | Prime order groups, key exchange, and signatures | [Maintainers](https://github.com/orgs/C2SP/teams/jq255) |
