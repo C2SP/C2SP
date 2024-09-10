@@ -37,7 +37,7 @@ than BLAKE2.
 
 BLAKE3 was also designed to instantiate multiple cryptographic
 primitives, to offer a simpler and more efficient alternative to
-dedicated legacy modes and algorithms such as those in [RFC6234].  These
+dedicated legacy modes and algorithms.  These
 primitives include:
 
 * **Unkeyed hashing (hash)**:  This is the general-purpose hashing mode,
@@ -114,7 +114,7 @@ level (or layer) of the tree.
 ### 2.2. Initial Value (IV)
 
    The initial value (IV) of BLAKE3 is the same as SHA-256 IV, namely
-   the 8-word IV[0..7]: [RFC6234].
+   the 8-word IV[0..7]: 
 
 ```
          0x6a09e667
@@ -510,14 +510,6 @@ security analysis of BLAKE3.
    [BLAKE3]   O'Connor, J., Aumasson, J-P., Neves, S., and Z. Wilcox-
               O'Hearn, "BLAKE3", January 2020,
               <https://github.com/BLAKE3-team/BLAKE3>.
-
-   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
-              Requirement Levels", RFC 2119, BCP 14, March 1997,
-              <https://www.rfc-editor.org/rfc/rfc2119>.
-
-   [RFC6234]  Eastlake, D. and T. Hansen, "US Secure Hash Algorithms
-              (SHA and SHA-based HMAC and HKDF)", RFC 6234, May 2011,
-              <https://www.rfc-editor.org/rfc/rfc6234>.
 
    [RFC7693]  Saarinen, M-J. and J-P. Aumasson, "The BLAKE2
               Cryptographic Hash and Message Authentication Code (MAC)",
@@ -938,15 +930,3 @@ numbered from 0.
  hash value:
  e79d2838915accd3b21bb0ba76b5edf8dc08d3d78d0db65b713f0f37ec58c346
 ```
-
-
-
-
-
-
-
-
-
-
-
-Aumasson, et al.         Expires 27 January 2025               [Page 24]
