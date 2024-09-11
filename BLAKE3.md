@@ -15,32 +15,31 @@ cryptographic functionalities:
 * pseudo-random function (PRF)
 * message authentication code (MAC)
 
-[BLAKE3](https://github.com/BLAKE3-team/BLAKE3) was designed by Jack
-O'Connor, Jean-Philippe Aumasson, Samuel Neves, and Zooko Wilcox-
-O'Hearn.  BLAKE3 is an evolution from its predecessors
-[BLAKE](https://aumasson.jp/blake/) (a SHA3 competition finalist) and
-[BLAKE2](https://blake2.net) (RFC7693).  BLAKE2 is widely used in
-open-source software and in proprietary software.  For example, the
-Linux kernel ses BLAKE2 in its cryptographic pseudorandom generator, and
-the WireGuard secure tunnel protocol uses BLAKE2 for hashing and keyed
-hashing.
+[BLAKE3][repo] was designed by Jack O'Connor, Jean-Philippe Aumasson,
+Samuel Neves, and Zooko Wilcox- O'Hearn.  BLAKE3 is an evolution from
+its predecessors [BLAKE](https://aumasson.jp/blake/) (a SHA3
+competition finalist) and [BLAKE2](https://blake2.net) (RFC7693).
+BLAKE2 is widely used in open-source software and in proprietary
+software.  For example, the Linux kernel uses BLAKE2 in its
+cryptographic pseudorandom generator, and the WireGuard secure tunnel
+protocol uses BLAKE2 for hashing and keyed hashing.
 
-BLAKE3 was designed to be as secure as BLAKE2, yet considerably faster,
-thanks to 
+BLAKE3 was designed to be as secure as BLAKE2 yet considerably faster,
+thanks to
 
 1. a compression function with a reduced number of rounds, and
 2. a tree-based mode allowing implementations to leverage parallel
-processing.  
+processing.
 
-BLAKE3 takes advantage of multi- thread and multi-core processing, as
-well as of single-instruction multiple-data (SIMD) instructions of
+BLAKE3 takes advantage of multi-thread and multi-core processing, as
+well as single-instruction multiple-data (SIMD) instructions of
 modern processor architectures.
 
 At the time of its publication, BLAKE3 was demonstrated to be
 approximately five times faster than BLAKE2 when hashing 16 kibibyte
-messages and using a single thread.  When using multiple threads and
-hashing large messages, BLAKE3 can be more than twenty times faster
-than BLAKE2.
+messages using a single thread on CPUs supporting AVX-512.  When using
+multiple threads and hashing large messages, BLAKE3 can be more than
+twenty times faster than BLAKE2.
 
 ### 1.1.  Hashing Modes
 
@@ -48,26 +47,26 @@ BLAKE3 can instantiate multiple cryptographic primitives, to offer a
 simpler and more efficient alternative to dedicated legacy modes and
 algorithms.  These primitives include:
 
-* **Unkeyed hashing (hash)**:  This is the general-purpose hashing mode,
+* **Unkeyed hashing (`hash`)**:  This is the general-purpose hashing mode,
   taking a single input of arbitrary size.  BLAKE3 in this mode can be
   used whenever a preimage- or collision-resistant hash function is
   needed, and to instantiate random oracles in cryptographic protocols.
   For example, BLAKE3 can replace SHA-3, as well as any SHA-2 instance,
   in applications such as digital signatures.
 
-* **Keyed hashing (keyed_hash)**:  The keyed mode takes a 32-byte key,
+* **Keyed hashing (`keyed_hash`)**:  The keyed mode takes a 32-byte key,
   in addition to the arbitrary size input.  BLAKE3 in this mode can be
   used whenever a pseudorandom function (PRF) or message authentication
   code (MAC) is needed.  For example, keyed BLAKE3 can replace HMAC
   instances.
 
-* **Key derivation (derive_key)**:  The key derivation mode takes two
+* **Key derivation (`derive_key`)**:  The key derivation mode takes two
   input values, each of arbitrary size: a context string, and key
   material.  BLAKE3 in this mode can be used whenever a key derivation
   function (KDF) is needed.  For example, BLAKE3 in key derivation mode
   can replace HKDF.
 
-All 3 modes can produce an output of arbitrary size.  The hash
+All three modes can produce an output of arbitrary size.  The hash
 mode can thus be used as an extendable-output-function (XOF); the keyed
 hash mode can thus be used as a deterministic random bit generator
 (DRBG).  By default, each mode returns a 32-byte output.
@@ -107,8 +106,8 @@ level (or layer) of the tree.
 
 BLAKE3 works with 32-bit words and arrays thereof.
 Array indexing starts at zero: the first element of an n-element array
-"v" is v[0] and the last one is v[n - 1].  The sequence of all
-elements is denoted by v[0..n-1].
+`v` is `v[0]` and the last one is `v[n - 1]`.  The sequence of all
+elements is denoted by `v[0..n-1]`.
 
 Byte streams are interpreted as words in little-endian order,
 with the least significant byte first. Consider for example this
@@ -119,16 +118,16 @@ sequence of eight bytes:
    x = 0x01 0x23 0x45 0x67 0x89 0xab 0xcd 0xef
 ```
 
-When interpreted as a 32-bit word from the beginning memory address, x
-contains two 32-bit words x[0] and x[1], respectively equal to
+When interpreted as a 32-bit word from the beginning memory address, `x`
+contains two 32-bit words `x[0]` and `x[1]`, respectively equal to
 0x67452301 and 0xefcdab89 in hexadecimal, or 1732584193 and 4023233417
 in decimal.
 
 
 ### 2.2. Initial Value (IV)
 
-The initial value (IV) of BLAKE3 is the same as SHA-256 IV, namely the
-8-word IV[0..7]: 
+The initial value (IV) of BLAKE3 is the same as the SHA-256 IV, namely the
+8-word `IV[0..7]`:
 
 ```
    0x6a09e667
@@ -145,8 +144,8 @@ This IV is the initial chaining value of BLAKE3 when no key is
 used.  Otherwise the 256-bit key is the initial chaining value.
 
 This IV is also used as part of the compression function, where the
-first four words, IV[0..3] are copied into the 16-word local initial
-state, at positions v[8..11].
+first four words, `IV[0..3]` are copied into the 16-word local initial
+state, at positions `v[8..11]`.
 
 
 ### 2.3.  Message Word Permutation
@@ -158,13 +157,9 @@ BLAKE3 uses the following permutation of the 16 indices (0 to 15):
    2,  6,  3, 10,  7,  0,  4, 13,  1, 11, 12,  5,  9, 14, 15,  8
 ```
 
-Here, the second line shows the index of the word move to the position
-indexed on the first line.
-
-For example, after applying the permutation to an array v[0..15]
-consisting of elements v[0], v[1], ..., v[15], the permuted array shall
-consist of v[2] at the first position, v[6] at the second position, and
-so on.
+That is, after applying the permutation to an array `v[0..15]`
+consisting of elements `v[0], v[1], v[2], ..., v[15]`, the permuted
+array shall consist of elements `v[2], v[6], v[3], ..., v[8]`.
 
 
 ### 2.4.  Compression Function Flags
@@ -173,32 +168,32 @@ The compression function of BLAKE3 uses a set of flags to domain-
 separate different types of inputs.  These flags are defined as
 follows:
 
-* CHUNK_START (0x01):  Set for the first block of each chunk.
+* `CHUNK_START` (0x01):  Set for the first block of each chunk.
 
-* CHUNK_END (0x02):  Set for the last block of each chunk.  If a chunk
-  contains only one block, then both CHUNK_START and CHUNK_END are
+* `CHUNK_END` (0x02):  Set for the last block of each chunk.  If a chunk
+  contains only one block, then both `CHUNK_START` and `CHUNK_END` are
   set.
 
-* PARENT (0x04):  Set for parent nodes (non-chunk nodes).
+* `PARENT` (0x04):  Set for parent nodes (non-chunk nodes).
 
-* ROOT (0x08):  Set for the last compression of the root node.  If the
-  root is a parent node, this is in addition to PARENT.  If the root
-  is a chunk (the only chunk), this is in addition to CHUNK_END.
+* `ROOT` (0x08):  Set for the last compression of the root node.  If the
+  root is a parent node, this is in addition to `PARENT`.  If the root
+  is a chunk (the only chunk), this is in addition to `CHUNK_END.`
 
-* KEYED_HASH (0x10):  Set for all compressions in the keyed_hash mode.
+* `KEYED_HASH` (0x10):  Set for all compressions in the keyed_hash mode.
 
-* DERIVE_KEY_CONTEXT (0x20):  Set for all compressions of the context
+* `DERIVE_KEY_CONTEXT` (0x20):  Set for all compressions of the context
   string in the derive_key mode.
 
-* DERIVE_KEY_MATERIAL (0x40):  Set for all compressions of the input
+* `DERIVE_KEY_MATERIAL` (0x40):  Set for all compressions of the input
   (key material) in the derive_key mode.
 
 If two or more flags are set, then all their respective bits must
 appear in the flags compression function input.  This combination may
-be implemented as an XOR or integer addition between the flags.  For
-example, if CHUNK_START and KEYED_HASH are set, then the flags input
-word will be the 32-bit word 0x00000011, where 0x11 = 0x10 + 0x01 = 0x10
-^ 0x01.
+be implemented as an OR, XOR, or integer addition between the flags.
+For example, if `CHUNK_START` and `KEYED_HASH` are set, then the flags
+input word will be the 32-bit word 0x00000011, where `0x11 = 0x10 |
+0x01 = 0x10 ^ 0x01 = 0x10 + 0x01`.
 
 
 ## 3.  Compression Function
@@ -211,25 +206,25 @@ bytes from the root node(s).
 
 These variables are used in the algorithm description.
 
-* h[0..7]:  The hash chaining value, 8 words of 32 bits.
+* `h[0..7]`:  The hash chaining value, 8 words of 32 bits each.
 
-* m[0..15]:  The message block processed, 16 words of 32 bits.
+* `m[0..15]`:  The message block processed, 16 words of 32 bits each.
 
-* t[0..1]:  A 64-bit counter whose lower-order 32-bit word is t[0] and
-  higher-order 32-bit word is t[1].
+* `t[0..1]`:  A 64-bit counter whose lower-order 32-bit word is `t[0]` and
+  higher-order 32-bit word is `t[1]`.
 
-* len:  32-bit word encoding the number of application data bytes in the
-  block, at most 64.  That is, len is equal to 64 minus the number
-  of padding bytes, which are set to zero (0x00).
+* `len`:  A 32-bit word encoding the number of input bytes in the
+  message block, at most 64.  `len` is equal to 64 minus the number of
+  padding bytes, which are filled with zeros (0x00).
 
-* flags:  32-bit word encoding the flags defined for a given compression
+* `flags`:  A 32-bit word encoding the flags set for a given compression
   function call.
 
 
 ### 3.2.  Quarter-Round Function G
 
-   The G function mixes two input words x and y into four words indexed
-   by a, b, c, and d in the working array v[0..15].  The full modified
+   The `G` function mixes two input words `x` and `y` into four words indexed
+   by `a`, `b`, `c`, and `d` in the working array `v[0..15]`.  The full modified
    array is returned.
 
 ```
@@ -252,12 +247,12 @@ These variables are used in the algorithm description.
 
 ### 3.3.  Compression Function Processing
 
-   BLAKE3's compression function takes as input an 8-word state h, a
-   16-word message m, a 2-word counter t, a data length word len, and a
-   word flags (as a bit field encoding flags).
+   BLAKE3's compression function takes as input an 8-word chaining value `h`, a
+   16-word message block `m`, a 2-word counter `t`, a data length word `len`, and a
+   `flags` word (as a bit field encoding flags).
 
    BLAKE3's compression must do exactly 7 rounds, which are numbered 0
-   to 6 in the pseudocode below.  Each round includes 8 calls to the G
+   to 6 in the pseudocode below.  Each round includes 8 calls to the `G`
    function.
 
 
@@ -266,8 +261,8 @@ These variables are used in the algorithm description.
        FUNCTION BLAKE3_COMPRESS( h[0..7], m[0..15], t, len, flags )
        |
        |   // Initialize local 16-word array v[0..15]
-       |   v[0..7] := h[0..7]              // First half from state.
-       |   v[8..11] := IV[0..3]            // Second half from IV.
+       |   v[0..7] := h[0..7]              // 8 words from the state.
+       |   v[8..11] := IV[0..3]            // 4 words from the IV.
        |
        |   v[12] :=  t[0]                  // Low word of the counter.
        |   v[13] :=  t[1]                  // High word of the counter.
@@ -285,7 +280,7 @@ These variables are used in the algorithm description.
        |   |   v := G( v, 0, 5, 10, 15, m[ 8], m[ 9] )
        |   |   v := G( v, 1, 6, 11, 12, m[10], m[11] )
        |   |   v := G( v, 2, 7,  8, 13, m[12], m[13] )
-       |   |   v := G( v, 3, 4,  9, 14, m[15], m[15] )
+       |   |   v := G( v, 3, 4,  9, 14, m[14], m[15] )
        |   |
        |   |   PERMUTE(m)                  // Apply the permutation.
        |   |
@@ -304,7 +299,7 @@ These variables are used in the algorithm description.
 
 
    When processing chunks and parent nodes below the root, the output is
-   always truncated to the first 8 words v[0..7].  When computing the
+   always truncated to the first 8 words, `v[0..7]`.  When computing the
    output value, all 16 words may be used.
 
 
@@ -319,13 +314,13 @@ without committing to a length when processing starts.
 
 ### 4.1.  The 8-word Key
 
-Each hashing mode uses an 8-word "key" for some of the inputs h
-below.  In the unkeyed hashing mode (hash), the key is defined to be
-IV.  In the keyed hashing mode (keyed_hash), the caller provides a
+Each hashing mode uses an 8-word "key" for some of the inputs `h`
+below.  In the unkeyed hashing mode (`hash`), the key is defined to be
+`IV`.  In the keyed hashing mode (`keyed_hash`), the caller provides a
 32-byte key parameter, and that parameter is split into 8 little-
-endian words.  The key derivation mode (derive_key) operates in two
-phases: In the first phase (DERIVE_KEY_CONTEXT), the key is defined
-to be IV.  In the second phase (DERIVE_KEY_MATERIAL), the key is the
+endian words.  The key derivation mode (`derive_key`) operates in two
+phases: In the first phase (`DERIVE_KEY_CONTEXT`), the key is defined
+to be `IV`.  In the second phase (`DERIVE_KEY_MATERIAL`), the key is the
 truncated output of the first phase.
 
 ### 4.2.  Chunk Processing
@@ -338,7 +333,7 @@ chunk is empty if and only if the input is empty.
 Chunks are divided into 64-byte blocks.  If the input byte length is
 not a multiple of 64, the last block is short.  The last block is
 empty if and only if the input is empty.  Short or empty blocks are
-padded with zeros to be 64 bytes.
+padded with zeros (0x00) to be 64 bytes.
 
 Each chunk is processed by iterating the compression function
 (1024/64 = 16 times for a full 1024-byte chunk) to process the
@@ -346,25 +341,25 @@ Each chunk is processed by iterating the compression function
 
 Compression function input arguments are set as follows:
 
-* h[0..7]: For the first block of a chunk, this is the 8-word key
+* `h[0..7]`: For the first block of a chunk, this is the 8-word key
   defined above.  For subsequent blocks, this is the truncated output of
   the compression of the previous block.
 
-* m[0..15]: This is the block processed by the compression function.
+* `m[0..15]`: This is the block processed by the compression function.
 
-* t[0..1]: The counter t for each block is the chunk index, that is, 0
+* `t[0..1]`: The counter `t` for each block is the chunk index, that is, 0
   for all blocks in the first chunk, 1 for all blocks in the second
   chunk, and so on.
 
-* len: This word is the block length, or the number of data bytes in the
+* `len`: This word is the block length, or the number of data bytes in the
   block, which is 64 for all blocks except possibly the last block of
   the last chunk.
 
-* flag: This word is set as follows: The first block of each chunk sets
-  the CHUNK_START flag, and the last block of each chunk sets the
-  CHUNK_END flag.  If a chunk contains only one block, that block sets
-  both CHUNK_START and CHUNK_END.  If a chunk is the root of its tree,
-  the last block of that chunk also sets the ROOT flag.  Multiple flags
+* `flags`: This word is set as follows: The first block of each chunk sets
+  the `CHUNK_START` flag, and the last block of each chunk sets the
+  `CHUNK_END` flag.  If a chunk contains only one block, that block sets
+  both `CHUNK_START` and `CHUNK_END`.  If a chunk is the root of its tree,
+  the last block of that chunk also sets the `ROOT` flag.  Multiple flags
   may thus be set.
 
 
@@ -382,20 +377,20 @@ the compression function.
 The compression function used by parent nodes thus uses the following
 arguments:
 
-* h[0..7]:  This is the 8-word key defined above.
+* `h[0..7]`:  This is the 8-word key defined above.
 
-* m[0..15]:  This is the 64-byte block consisting in the concatenated
+* `m[0..15]`:  This is the 64-byte block consisting in the concatenated
       32-byte output of the two child nodes.
 
-* t[0..1]:  The counter t is set to zero (0).
+* `t[0..1]`:  The counter t is set to zero (0).
 
-* len:  The block length is set to 64.
+* `len`:  The block length is set to 64.
 
-* flag:  The PARENT flag is set for all parent nodes.  If a parent is
-      the root of the tree, then it also sets the ROOT flag (and keeps
-      the PARENT flag).  Parent nodes never set CHUNK_START and
-      CHUNK_END.  The mode flags (KEYED_HASH, DERIVE_KEY_CONTEXT,
-      DERIVE_KEY_MATERIAL) must be set for a parent node when operating
+* `flags`:  The `PARENT` flag is set for all parent nodes.  If a parent is
+      the root of the tree, then it also sets the `ROOT` flag (and keeps
+      the `PARENT` flag).  Parent nodes never set `CHUNK_START` and
+      `CHUNK_END`.  The mode flags (`KEYED_HASH`, `DERIVE_KEY_CONTEXT`,
+      `DERIVE_KEY_MATERIAL`) must be set for a parent node when operating
       in the respective modes.
 
 #### 4.3.2. Incomplete Trees
@@ -418,9 +413,9 @@ following rules:
 
 The root of the tree determines the final hash output.  By default, the
 BLAKE3 output is the 32-byte output of the root node (that is, the final
-values of v[0..7] in the compression function).  Output of up to 64
+values of `v[0..7]` in the compression function).  Output of up to 64
 bytes is formed by taking as many bytes as required from the final
-v[0..15] of the root's compression function.  See Section 4.4 for the
+`v[0..15]` of the root's compression function.  See Section 4.4 for the
 case of output values larger than 64 bytes.
 
 ### 4.4.  Extendable Output
@@ -429,21 +424,19 @@ BLAKE3, in any of its three modes, can produce outputs of any byte
 length up to 2<sup>64</sup> - 1.  This is done by repeating the root
 compression with incrementing values of the counter t.  The results of
 these repeated root compressions are then concatenated to form the
-output.
+output, possibly truncating the last one.
 
 ## 5.  Implementation Considerations
 
-Detailed implementation and optimization guidelines are given in Section
-5 of the [BLAKE3
-article](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf)
-This section providers a brief overview of these, as a starting point to
-implementers, covering the most salient points.
+Detailed implementation and optimization guidelines are given in
+Section 5 of the [BLAKE3 paper][paper] This section providers a brief
+overview of these, as a starting point to implementers, covering the
+most salient points.
 
 Reference implementations of BLAKE3 in the C and Rust languages are
-available in the [BLAKE3
-repository](https://github.com/BLAKE3-team/BLAKE3/). These
-implementations include parallel implementations leveraging multi-
-threading and different SIMD processing technologies.
+available in the [BLAKE3 repository][repo]. These implementations
+include parallel implementations leveraging multi-threading and
+different SIMD processing technologies.
 
 
 ### 5.1.  Incremental Hashing Implementation
@@ -470,8 +463,7 @@ In the compression function, the first four calls to G may be computed
 in parallel.  Likewise, the last four calls to G may be computed in
 parallel.  A parallel implementation of the compression function may
 leverage single-instruction multiple-date (SIMD) processing, as
-described in Section 5.3 of
-[BLAKE3](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf).
+described in Section 5.3 of [the BLAKE3 paper][paper].
 
 The permutation of words may be implemented by pre-computing the indices
 corresponding to 0, 1, 2, ..., 7 iterations of the permutation, and then
@@ -493,17 +485,16 @@ the 7 rounds.  These 7 permutations would then be:
 In addition to the potential parallel computing of the compression
 function internals via SIMD processing, BLAKE3 can benefit from
 multi-threaded software implementation.  Different approaches may be
-implemented, the performance-optimal one depending on the expected input
-data length.  Section 5.2 in the [BLAKE3
-article](https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf)
-provides further guidelines to implementers.
+implemented, the performance-optimal one depending on the expected
+input data length.  Section 5.2 in [the BLAKE3 paper][paper] provides
+further guidelines to implementers.
 
 
 ### 5.4.  Extendable Output Implementation
 
-Because the repeated root compressions differ only in the value of t,
+Because the repeated root compressions differ only in the value of `t`,
 the implementation can execute any number of them in parallel.  The
-caller can also adjust t to seek to any point in the output stream.  For
+caller can also adjust `t` to seek to any point in the output stream.  For
 example, computing the third 64-byte block of output (that is, the last
 64 bytes of a 192-byte output) does not require the computation of the
 first 128 bytes.
@@ -518,17 +509,20 @@ output as needed, without knowing the final length in advance.
 
 ## Appendix: Test Values
 
-   We provide execution traces for simple examples of BLAKE3 hashing.
-   More complex tests cases can be obtained from the reference source
-   code.
+We provide execution traces for simple examples of BLAKE3 hashing. More
+complex tests cases can be obtained from the reference source code.
 
 ### Single Chunk in hash Mode
 
-   In this first example, BLAKE3 in hash mode processes the 4-byte
-   message "IETF", padded with 60 zero bytes to form a 64-byte block.
-   Below we show the execution trace, including compression function
-   input and output values, and showing intermediate values of the 7
-   compression function rounds.
+In this first example, BLAKE3 in hash mode processes the 4-byte message
+"IETF", padded with 60 zero bytes to form a 64-byte block. Below we
+show the execution trace, including compression function input and
+output values, and intermediate values of the 7 compression function
+rounds. Note that 4-byte words below are rendered without the "0x"
+prefix but still in big-endian order. In particular, the ASCII codes
+for "I" (0x49), "E" (0x45), "T" (0x54), and "F" (0x46) appear reversed
+in the message block `m`, and the compress output and final hash value
+are the same bytes with different endianness.
 
 ```
  == COMPRESS: CHUNK  1, BLOCK  0 ==
@@ -910,3 +904,6 @@ numbered from 0.
  hash value:
  e79d2838915accd3b21bb0ba76b5edf8dc08d3d78d0db65b713f0f37ec58c346
 ```
+
+[repo]: https://github.com/BLAKE3-team/BLAKE3
+[paper]: https://github.com/BLAKE3-team/BLAKE3-specs/blob/master/blake3.pdf
