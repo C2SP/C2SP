@@ -464,7 +464,7 @@ In the compression function, the first four calls to G may be computed
 in parallel.  Likewise, the last four calls to G may be computed in
 parallel.  A parallel implementation of the compression function may
 leverage single-instruction multiple-date (SIMD) processing, as
-described in Section 5.3 of [the BLAKE3 paper][paper].
+described in Section 5.3 of the [BLAKE3 paper][paper].
 
 The permutation of words may be implemented by pre-computing the indices
 corresponding to 0, 1, 2, ..., 7 iterations of the permutation, and then
@@ -487,7 +487,7 @@ In addition to the potential parallel computing of the compression
 function internals via SIMD processing, BLAKE3 can benefit from
 multi-threaded software implementation.  Different approaches may be
 implemented, the performance-optimal one depending on the expected
-input data length.  Section 5.2 in [the BLAKE3 paper][paper] provides
+input data length.  Section 5.2 in the [BLAKE3 paper][paper] provides
 further guidelines to implementers.
 
 
