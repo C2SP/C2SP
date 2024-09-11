@@ -524,9 +524,9 @@ and its [test vectors].
 [reference implementation]: https://github.com/BLAKE3-team/BLAKE3/tree/master/reference_impl
 [test vectors]: https://github.com/BLAKE3-team/BLAKE3/blob/60ff2eafed63b29ed1622bb6330e640c22c683ff/test_vectors/test_vectors.json
 
-### Single Chunk in hash Mode
+### `hash` of a Single Block
 
-In this first example, BLAKE3 in hash mode processes the 4-byte message
+In this first example, BLAKE3 in the `hash` mode processes the 4-byte message
 "IETF", padded with 60 zero bytes to form a 64-byte block. Below we
 show the execution trace, including compression function input and
 output values, and intermediate values of the 7 compression function
@@ -588,9 +588,9 @@ are the same bytes with different endianness.
 ```
 
 
-### Multiple Chunks in keyed_hash Mode
+### `hash` of Multiple Chunks
 
-In this second example, BLAKE3 in keyed hash mode processes a message
+In this second example, BLAKE3 in the `hash` mode processes a message
 composed of two 1024-byte chunks, the first consisting only of 0xaa
 bytes and the second consisting only of 0xbb bytes.  Below we show the
 execution trace, including compression function input and output values
