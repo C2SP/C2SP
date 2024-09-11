@@ -336,9 +336,10 @@ truncated output of the first phase.
 ### 4.2.  Chunk Processing
 
 BLAKE3's chunk processing divides the BLAKE3 input into 1024-byte
-chunks, which will be leaves of a binary tree.  If the input byte
-length is not a multiple of 1024, the last chunk is short.  The last
-chunk is empty if and only if the input is empty.
+chunks, which will be leaves of a binary tree. The maximum total input
+length is 2<sup>64</sup> - 1 bytes. If the input byte length is not a
+multiple of 1024, the last chunk is short.  The last chunk is empty if
+and only if the input is empty.
 
 Chunks are divided into 64-byte blocks.  If the input byte length is
 not a multiple of 64, the last block is short.  The last block is
