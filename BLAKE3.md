@@ -10,7 +10,7 @@ designed to be fast and highly parallelizable.
 Apart from general-purpose hashing, BLAKE3 can realize the following
 cryptographic functionalities:
 
-* extendable- output function (XOF)
+* extendable-output function (XOF)
 * key derivation function (KDF)
 * pseudo-random function (PRF)
 * message authentication code (MAC)
