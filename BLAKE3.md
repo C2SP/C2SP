@@ -5,30 +5,30 @@
 
 ## 1. Introduction
 
-This document specifies BLAKE3, a secure cryptographic hashing primitive
+This document specifies BLAKE3, a cryptographic hashing primitive
 designed to be fast and highly parallelizable. 
 Apart from general-purpose hashing, BLAKE3 can realize the following
 cryptographic functionalities:
 
-* extendable-output function (XOF)
-* key derivation function (KDF)
-* pseudo-random function (PRF)
-* message authentication code (MAC)
+* Extendable-output function (XOF)
+* Key derivation function (KDF)
+* Pseudo-random function (PRF)
+* Message authentication code (MAC)
 
 [BLAKE3][repo] was designed by Jack O'Connor, Jean-Philippe Aumasson,
-Samuel Neves, and Zooko Wilcox- O'Hearn.  BLAKE3 is an evolution from
+Samuel Neves, and Zooko Wilcox-O'Hearn. BLAKE3 is an evolution from
 its predecessors [BLAKE](https://aumasson.jp/blake/) (a SHA3
 competition finalist) and [BLAKE2](https://blake2.net) (RFC7693).
-BLAKE2 is widely used in open-source software and in proprietary
-software.  For example, the Linux kernel uses BLAKE2 in its
-cryptographic pseudorandom generator, and the WireGuard secure tunnel
-protocol uses BLAKE2 for hashing and keyed hashing.
+BLAKE2 is widely used in open-source and proprietary software.  For
+example, the Linux kernel uses BLAKE2 in its cryptographic pseudorandom
+generator, and the WireGuard secure tunnel protocol uses BLAKE2 for
+hashing and keyed hashing.
 
 BLAKE3 was designed to be as secure as BLAKE2 yet considerably faster,
 thanks to
 
-1. a compression function with a reduced number of rounds, and
-2. a tree-based mode allowing implementations to leverage parallel
+1. A compression function with a reduced number of rounds, and
+2. A tree-based mode allowing implementations to leverage parallel
 processing.
 
 BLAKE3 takes advantage of multi-thread and multi-core processing, as
@@ -45,7 +45,7 @@ twenty times faster than BLAKE2.
 
 BLAKE3 can instantiate multiple cryptographic primitives, to offer a
 simpler and more efficient alternative to dedicated legacy modes and
-algorithms.  These primitives include:
+algorithms. These primitives include:
 
 * **Unkeyed hashing (`hash`)**:  This is the general-purpose hashing mode,
   taking a single input of arbitrary size.  BLAKE3 in this mode can be
@@ -67,30 +67,39 @@ algorithms.  These primitives include:
   can replace HKDF. The context string in this mode should be
   hardcoded, globally unique, and application-specific.
 
-All three modes can produce an output of arbitrary size.  The hash
-mode can thus be used as an extendable-output-function (XOF); the keyed
-hash mode can thus be used as a deterministic random bit generator
-(DRBG).  By default, each mode returns a 32-byte output.
+By default, all modes returns a 32-byte output, but they can produce an
+output of arbitrary size.
+Therefore, the hash mode can be used as an extendable-output-function
+(XOF), and the keyed hash mode can be used as a deterministic random bit
+generator (DRBG).  
 
 ### 1.2. Security Considerations
 
-BLAKE3 with an output of at least 32 bytes targets a security level of
-at least 128 bits for all its security goals.  BLAKE3 may be used in any
-of the modes described in this document to provide cryptographically
-secure hashing functionality.  BLAKE3 must not be used as a
-password-based hash function or password-based key derivation function,
-functionalities for which dedicated algorithms must be used, such as
-Argon2. 
+BLAKE3 with an output of at least 32 bytes offers a security level of at
+least 128 bits for all its security goals, as long as its core algorithm
+is cryptographically safe. This algorithm is based on that of the
+original BLAKE (published in 2008 and scrutinized throughout the SHA-3
+competition), and is itself a variant of the core algorithm of the
+ChaCha stream cipher, an established cipher that is standardized and
+used in countless applications such as TLS and SSH.
+
+BLAKE3 may be used in any of the modes described in this document to
+provide cryptographically secure hashing functionality.  
+
+BLAKE3 must not be used as a password-based hash function or
+password-based key derivation function, functionalities for which
+dedicated algorithms must be used, such as Argon2. 
+
 
 ### 1.3. Tree Hashing Overview
 
 BLAKE3 processes input data according to a binary tree structure: 
 
-1. It first splits its input into 1024-byte chunks, processing each
-chunk independently of the other chunks, using a compression function
+1. It splits its input into 1024-byte chunks, processing each chunk
+independently of the other chunks, using a compression function
 iterating over each of the 16 consecutive 64-byte blocks of a chunk.
 
-2. From the hash of each chunk, a binary hash tree is built to compute
+2. From the hash of each chunk, it builds a binary hash tree to compute
 the root of the tree, which determines the BLAKE3 output.
 
 In the simplest case, there is only one chunk.  In this case, this
@@ -98,7 +107,7 @@ node is seen as the tree's root and its output determines BLAKE3's
 output.  If the number of chunks is a power of 2, the binary tree is
 a complete tree and all leaves are at the same level.  If the number
 of chunks is not a power of 2, not all chunks will be at the same
-level (or layer) of the tree.
+level of the tree.
 
 
 ## 2. Definitions
@@ -224,9 +233,9 @@ These variables are used in the algorithm description.
 
 ### 3.2.  Quarter-Round Function G
 
-   The `G` function mixes two input words `x` and `y` into four words indexed
-   by `a`, `b`, `c`, and `d` in the working array `v[0..15]`.  The full modified
-   array is returned.
+The `G` function mixes two input words `x` and `y` into four words indexed
+by `a`, `b`, `c`, and `d` in the working array `v[0..15]`.  The full modified
+array is returned.
 
 ```
            FUNCTION G( v[0..15], a, b, c, d, x, y )
@@ -248,14 +257,14 @@ These variables are used in the algorithm description.
 
 ### 3.3.  Compression Function Processing
 
-   BLAKE3's compression function takes as input an 8-word chaining value `h`, a
-   16-word message block `m`, a 2-word counter `t`, a data length word `len`, and a
-   `flags` word (as a bit field encoding flags).
+BLAKE3's compression function takes as input an 8-word chaining value
+`h`, a 16-word message block `m`, a 2-word counter `t`, a data length
+word `len`, and a
+`flags` word (as a bit field encoding flags).
 
-   BLAKE3's compression must do exactly 7 rounds, which are numbered 0
-   to 6 in the pseudocode below.  Each round includes 8 calls to the `G`
-   function.
-
+BLAKE3's compression must do exactly 7 rounds, which are numbered 0 to 6
+in the pseudocode below.  Each round includes 8 calls to the `G`
+function.
 
 
 ```
@@ -299,9 +308,9 @@ These variables are used in the algorithm description.
 ```
 
 
-   When processing chunks and parent nodes below the root, the output is
-   always truncated to the first 8 words, `v[0..7]`.  When computing the
-   output value, all 16 words may be used.
+When processing chunks and parent nodes below the root, the output is
+always truncated to the first 8 words, `v[0..7]`.  When computing the
+output value, all 16 words may be used.
 
 
 ## 4.  Tree Mode of Operation
@@ -375,7 +384,7 @@ the compression function.
 
 #### 4.3.1. Parent Nodes Inputs
 
-The compression function used by parent nodes thus uses the following
+The compression function used by parent nodes uses the following
 arguments:
 
 * `h[0..7]`:  This is the 8-word key defined above.
@@ -460,8 +469,8 @@ structure may be used for this purpose, as proposed in Section 5.1 of
 
 ### 5.2.  Compression Function Implementation
 
-In the compression function, the first four calls to G may be computed
-in parallel.  Likewise, the last four calls to G may be computed in
+In the compression function, the first four calls to `G` may be computed
+in parallel.  Likewise, the last four calls to `G` may be computed in
 parallel.  A parallel implementation of the compression function may
 leverage single-instruction multiple-date (SIMD) processing, as
 described in Section 5.3 of the [BLAKE3 paper][paper].
@@ -503,9 +512,6 @@ first 128 bytes.
 BLAKE3 does not domain separate outputs of different lengths: shorter
 outputs are prefixes of longer ones.  The caller can extract as much
 output as needed, without knowing the final length in advance.
-
-
-
 
 
 ## Appendix: Test Values
@@ -589,7 +595,7 @@ message block for the first compression of a chunk, as all the
 subsequent blocks hash the same block value (respectively, all 0xaa and
 all 0xbb for the two chunks).  Likewise, we only show the counter value
 and flags when they changes (the counter is, 0, 1, and 0 respectively
-for the two chunks and for the root).  The len compression function
+for the two chunks and for the root).  The `len` compression function
 argument is always 64, so we don't show it.  Chunks and blocks are
 numbered from 0.
 
