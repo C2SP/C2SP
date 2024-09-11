@@ -64,7 +64,8 @@ algorithms.  These primitives include:
   input values, each of arbitrary size: a context string, and key
   material.  BLAKE3 in this mode can be used whenever a key derivation
   function (KDF) is needed.  For example, BLAKE3 in key derivation mode
-  can replace HKDF.
+  can replace HKDF. The context string in this mode should be
+  hardcoded, globally unique, and application-specific.
 
 All three modes can produce an output of arbitrary size.  The hash
 mode can thus be used as an extendable-output-function (XOF); the keyed
