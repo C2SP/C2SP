@@ -444,10 +444,10 @@ Section 5 of the [BLAKE3 paper][paper] This section providers a brief
 overview of these, as a starting point to implementers, covering the
 most salient points.
 
-Reference implementations of BLAKE3 in the C and Rust languages are
-available in the [BLAKE3 repository][repo]. These implementations
-include parallel implementations leveraging multi-threading and
-different SIMD processing technologies.
+Optimized implementations of BLAKE3 in the C and Rust languages are
+available in the [BLAKE3 repository][repo]. These include parallel
+implementations leveraging multi-threading and different SIMD
+processing technologies.
 
 
 ### 5.1.  Incremental Hashing Implementation
@@ -518,7 +518,11 @@ output as needed, without knowing the final length in advance.
 ## Appendix: Test Values
 
 We provide execution traces for simple examples of BLAKE3 hashing. More
-complex tests cases can be obtained from the reference source code.
+complex tests cases can be obtained from the [reference implementation]
+and its [test vectors].
+
+[reference implementation]: https://github.com/BLAKE3-team/BLAKE3/tree/master/reference_impl
+[test vectors]: https://github.com/BLAKE3-team/BLAKE3/blob/60ff2eafed63b29ed1622bb6330e640c22c683ff/test_vectors/test_vectors.json
 
 ### Single Chunk in hash Mode
 
