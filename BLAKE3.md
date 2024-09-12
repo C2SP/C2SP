@@ -12,13 +12,13 @@ cryptographic functionalities:
 
 * Extendable-output function (XOF)
 * Key derivation function (KDF)
-* Pseudo-random function (PRF)
+* Pseudorandom function (PRF)
 * Message authentication code (MAC)
 
 [BLAKE3][repo] was designed by Jack O'Connor, Jean-Philippe Aumasson,
 Samuel Neves, and Zooko Wilcox-O'Hearn. BLAKE3 is an evolution from
-its predecessors [BLAKE](https://aumasson.jp/blake/) (a SHA3
-competition finalist) and [BLAKE2](https://blake2.net) (RFC7693).
+its predecessors [BLAKE](https://aumasson.jp/blake/) (a SHA-3
+competition finalist) and [BLAKE2](https://blake2.net) (RFC 7693).
 BLAKE2 is widely used in open-source and proprietary software.  For
 example, the Linux kernel uses BLAKE2 in its cryptographic pseudorandom
 generator, and the WireGuard secure tunnel protocol uses BLAKE2 for
@@ -32,7 +32,7 @@ thanks to
 processing.
 
 BLAKE3 takes advantage of multi-thread and multi-core processing, as
-well as single-instruction multiple-data (SIMD) instructions of
+well as the single-instruction multiple-data (SIMD) features of
 modern processor architectures.
 
 At the time of its publication, BLAKE3 was demonstrated to be
