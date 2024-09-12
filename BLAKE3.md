@@ -760,8 +760,7 @@ numbered from 0.
  bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb
 
  t:
- 00000000 00000001
-
+ 00000001 00000000
 
  flags:
  01
