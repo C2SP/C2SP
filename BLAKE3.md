@@ -47,31 +47,30 @@ BLAKE3 can instantiate multiple cryptographic primitives, to offer a
 simpler and more efficient alternative to dedicated legacy modes and
 algorithms. These primitives include:
 
-* **Unkeyed hashing (`hash`)**:  This is the general-purpose hashing mode,
-  taking a single input of arbitrary size.  BLAKE3 in this mode can be
-  used whenever a preimage- or collision-resistant hash function is
-  needed, and to instantiate random oracles in cryptographic protocols.
-  For example, BLAKE3 can replace SHA-3, as well as any SHA-2 instance,
-  in applications such as digital signatures.
+* **Unkeyed hashing (`hash`)**:  This is the general-purpose hashing
+  mode, taking a single input of up to 2<sup>64</sup> - 1 bytes. BLAKE3
+  in this mode can be used whenever a preimage- or collision-resistant
+  hash function is needed, and to instantiate random oracles in
+  cryptographic protocols. For example, BLAKE3 can replace SHA-3, as
+  well as any SHA-2 instance, in applications such as digital
+  signatures.
 
-* **Keyed hashing (`keyed_hash`)**:  The keyed mode takes a 32-byte key,
-  in addition to the arbitrary size input.  BLAKE3 in this mode can be
-  used whenever a pseudorandom function (PRF) or message authentication
-  code (MAC) is needed.  For example, keyed BLAKE3 can replace HMAC
-  instances.
+* **Keyed hashing (`keyed_hash`)**:  The keyed mode takes a 32-byte key
+  in addition to the input.  BLAKE3 in this mode can be used whenever a
+  pseudorandom function (PRF) or message authentication code (MAC) is
+  needed.  For example, keyed BLAKE3 can replace HMAC instances.
 
 * **Key derivation (`derive_key`)**:  The key derivation mode takes two
-  input values, each of arbitrary size: a context string, and key
-  material.  BLAKE3 in this mode can be used whenever a key derivation
-  function (KDF) is needed.  For example, BLAKE3 in key derivation mode
-  can replace HKDF. The context string in this mode should be
-  hardcoded, globally unique, and application-specific.
+  inputs, a context string and key material, each of up to
+  2<sup>64</sup> - 1 bytes.  BLAKE3 in this mode can be used whenever a
+  key derivation function (KDF) is needed.  For example, BLAKE3 in key
+  derivation mode can replace HKDF. The context string in this mode
+  should be hardcoded, globally unique, and application-specific.
 
-By default, all modes return a 32-byte output, but they can produce an
-output of arbitrary size.
-Therefore, the hash mode can be used as an extendable-output-function
-(XOF), and the keyed hash mode can be used as a deterministic random bit
-generator (DRBG).  
+All modes return a 32-byte output by default, but they can produce up
+to 2<sup>64</sup> - 1 output bytes. This allows the `hash` mode to be
+used as an extendable-output-function (XOF) and the `keyed_hash` mode
+to be used as a deterministic random bit generator (DRBG).
 
 ### 1.2. Security Considerations
 
@@ -340,10 +339,9 @@ phase, and the message is the key material.
 ### 4.2.  Chunk Processing
 
 BLAKE3's chunk processing divides the BLAKE3 input into 1024-byte
-chunks, which will be leaves of a binary tree. The maximum total input
-length is 2<sup>64</sup> - 1 bytes. If the input byte length is not a
-multiple of 1024, the last chunk is short.  The last chunk is empty if
-and only if the input is empty.
+chunks, which will be leaves of a binary tree.  If the input byte
+length is not a multiple of 1024, the last chunk is short.  The last
+chunk is empty if and only if the input is empty.
 
 Chunks are divided into 64-byte blocks.  If the input byte length is
 not a multiple of 64, the last block is short.  The last block is
