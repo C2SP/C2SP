@@ -67,7 +67,7 @@ algorithms. These primitives include:
   can replace HKDF. The context string in this mode should be
   hardcoded, globally unique, and application-specific.
 
-By default, all modes returns a 32-byte output, but they can produce an
+By default, all modes return a 32-byte output, but they can produce an
 output of arbitrary size.
 Therefore, the hash mode can be used as an extendable-output-function
 (XOF), and the keyed hash mode can be used as a deterministic random bit
