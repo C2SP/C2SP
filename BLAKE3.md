@@ -390,7 +390,7 @@ arguments:
 
 * `h[0..7]`:  This is the 8-word key defined above.
 
-* `m[0..15]`:  This is the 64-byte block consisting in the concatenated
+* `m[0..15]`:  This is the 64-byte block consisting of the concatenated
       32-byte output of the two child nodes.
 
 * `t[0..1]`:  The counter t is set to zero (0).
@@ -441,7 +441,7 @@ output, possibly truncating the last one.
 
 Detailed implementation and optimization guidelines are given in
 Section 5 of the [BLAKE3 paper][paper] This section providers a brief
-overview of these, as a starting point to implementers, covering the
+overview of these, as a starting point for implementers, covering the
 most salient points.
 
 Optimized implementations of BLAKE3 in the C and Rust languages are
@@ -518,7 +518,7 @@ output as needed, without knowing the final length in advance.
 ## Appendix: Test Values
 
 We provide execution traces for simple examples of BLAKE3 hashing. More
-complex tests cases can be obtained from the [reference implementation]
+complex test cases can be obtained from the [reference implementation]
 and its [test vectors].
 
 [reference implementation]: https://github.com/BLAKE3-team/BLAKE3/tree/master/reference_impl
