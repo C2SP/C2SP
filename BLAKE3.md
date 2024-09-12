@@ -190,13 +190,13 @@ follows:
   root is a parent node, this is in addition to `PARENT`.  If the root
   is a chunk (the only chunk), this is in addition to `CHUNK_END.`
 
-* `KEYED_HASH` (0x10):  Set for all compressions in the keyed_hash mode.
+* `KEYED_HASH` (0x10):  Set for all compressions in the `keyed_hash` mode.
 
 * `DERIVE_KEY_CONTEXT` (0x20):  Set for all compressions of the context
-  string in the derive_key mode.
+  string in the `derive_key` mode.
 
 * `DERIVE_KEY_MATERIAL` (0x40):  Set for all compressions of the input
-  (key material) in the derive_key mode.
+  (key material) in the `derive_key` mode.
 
 If two or more flags are set, then all their respective bits must
 appear in the flags compression function input.  This combination may
@@ -327,11 +327,15 @@ without committing to a length when processing starts.
 Each hashing mode uses an 8-word "key" for some of the inputs `h`
 below.  In the unkeyed hashing mode (`hash`), the key is defined to be
 `IV`.  In the keyed hashing mode (`keyed_hash`), the caller provides a
-32-byte key parameter, and that parameter is split into 8 little-
-endian words.  The key derivation mode (`derive_key`) operates in two
-phases: In the first phase (`DERIVE_KEY_CONTEXT`), the key is defined
-to be `IV`.  In the second phase (`DERIVE_KEY_MATERIAL`), the key is the
-truncated output of the first phase.
+32-byte key parameter, and that parameter is split into 8 little-endian
+words.
+
+The key derivation mode (`derive_key`) operates in two phases, similar
+to a `hash` followed by a `keyed_hash`, but setting different flags. In
+the first phase (`DERIVE_KEY_CONTEXT`), the key is defined to be `IV`,
+and the message is the context string.  In the second phase
+(`DERIVE_KEY_MATERIAL`), the key is the truncated output of the first
+phase, and the message is the key material.
 
 ### 4.2.  Chunk Processing
 
