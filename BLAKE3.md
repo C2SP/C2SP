@@ -588,28 +588,29 @@ are the same bytes with different endianness.
 ```
 
 
-### `hash` of Multiple Chunks
+### `keyed_hash` of Multiple Chunks
 
-In this second example, BLAKE3 in the `hash` mode processes a message
-composed of two 1024-byte chunks, the first consisting only of 0xaa
-bytes and the second consisting only of 0xbb bytes.  Below we show the
-execution trace, including compression function input and output values
-for each compression function: the 16 + 16 = 32 compressions of the two
-chunks, and the compression of the root parent node.  We only show the
-message block for the first compression of a chunk, as all the
-subsequent blocks hash the same block value (respectively, all 0xaa and
-all 0xbb for the two chunks).  Likewise, we only show the counter value
-and flags when they changes (the counter is, 0, 1, and 0 respectively
-for the two chunks and for the root).  The `len` compression function
-argument is always 64, so we don't show it.  Chunks and blocks are
-numbered from 0.
+In this second example, BLAKE3 in the `keyed_hash` mode processes a
+message composed of two 1024-byte chunks, the first consisting only of
+0xaa bytes and the second consisting only of 0xbb bytes, using a
+32-byte key consisting of only 0xcc bytes.  Below we show the execution
+trace, including compression function input and output values for each
+compression function: the 16 + 16 = 32 compressions of the two chunks,
+and the compression of the root parent node. We only show the message
+block for the first compression of a chunk, as all the subsequent
+blocks hash the same block value (respectively, all 0xaa and all 0xbb
+for the two chunks).  Likewise, we only show the counter value and
+flags when they changes (the counter is, 0, 1, and 0 respectively for
+the two chunks and for the root).  The `len` compression function
+argument is always 64, and we omit it.  Chunks and blocks are numbered
+from 0.
 
 
 ```
  == COMPRESS: CHUNK  0, BLOCK  0 ==
 
  h:
- 6a09e667 bb67ae85 3c6ef372 a54ff53a 510e527f 9b05688c 1f83d9ab 5be0cd19
+ cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc
 
  m:
  aaaaaaaa aaaaaaaa aaaaaaaa aaaaaaaa aaaaaaaa aaaaaaaa aaaaaaaa aaaaaaaa
@@ -619,141 +620,141 @@ numbered from 0.
  00000000 00000000
 
  flags:
- 01
+ 11
 
  compress output:
- db668896 8e557d4d 684294f4 ae36d8ae eaec1efd 5f5fc3ec d8d1abc5 10094488
+ baa549b8 dea706e4 798b0aa9 544f7920 fc8e1726 b97cd19b 493e836a 91cac56b
 
  == COMPRESS: CHUNK  0, BLOCK  1 ==
 
  h:
- db668896 8e557d4d 684294f4 ae36d8ae eaec1efd 5f5fc3ec d8d1abc5 10094488
+ baa549b8 dea706e4 798b0aa9 544f7920 fc8e1726 b97cd19b 493e836a 91cac56b
 
  flags:
- 00
+ 10
 
  compress output:
- 68f7c3a8 8aaed76b f0decee2 d1b5993d 9564cba3 85b6c1ee baffea5b 0be671fb
+ dcc8eee6 e2cea5b5 5ff3c247 e11308d2 bc77281c 5445017f c9561731 1300e3f9
 
  == COMPRESS: CHUNK  0, BLOCK  2 ==
 
  h:
- 68f7c3a8 8aaed76b f0decee2 d1b5993d 9564cba3 85b6c1ee baffea5b 0be671fb
+ dcc8eee6 e2cea5b5 5ff3c247 e11308d2 bc77281c 5445017f c9561731 1300e3f9
 
  compress output:
- e79aed24 3ad3caa0 199ce8a2 31155523 f9e84a64 e5bc14a9 9af2e334 9985ca87
+ c9a030b5 9e370de1 762e7e79 671e218b 5cae980e 1988e543 7c2cc214 9e41c27f
 
  == COMPRESS: CHUNK  0, BLOCK  3 ==
 
  h:
- e79aed24 3ad3caa0 199ce8a2 31155523 f9e84a64 e5bc14a9 9af2e334 9985ca87
+ c9a030b5 9e370de1 762e7e79 671e218b 5cae980e 1988e543 7c2cc214 9e41c27f
 
  compress output:
- 35e722a9 0872b994 7a05884c 2968d0cd 08e92372 bc87969c d32d20e9 a5eb0ef6
+ c19842fb 240f1f42 398d8fa5 a7f13935 d2c70e95 af05dcda 7029a16e f8ee91e8
 
  == COMPRESS: CHUNK  0, BLOCK  4 ==
 
  h:
- 35e722a9 0872b994 7a05884c 2968d0cd 08e92372 bc87969c d32d20e9 a5eb0ef6
+ c19842fb 240f1f42 398d8fa5 a7f13935 d2c70e95 af05dcda 7029a16e f8ee91e8
 
  compress output:
- 0e618a8d 4c17b3a3 bf17a81a fae109b3 435486f5 7854e7ac 4b0e41f3 1b0a773a
+ f9b7f73f 5f730ca0 4e9a9d4f cbb33329 95cc7bff ce4bcf1f 7f1d55bb b1484e9c
 
  == COMPRESS: CHUNK  0, BLOCK  5 ==
 
  h:
- 0e618a8d 4c17b3a3 bf17a81a fae109b3 435486f5 7854e7ac 4b0e41f3 1b0a773a
+ f9b7f73f 5f730ca0 4e9a9d4f cbb33329 95cc7bff ce4bcf1f 7f1d55bb b1484e9c
 
  compress output:
- 689e8525 38241f4c 93c85386 8b89a303 200d341e cb4e0c76 0e4a9834 4ce07f14
+ 5fb55674 12ddc27e f481330c e6fbed3a 9a9ab905 1d23a7fa af95e6a9 2fc43b01
 
  == COMPRESS: CHUNK  0, BLOCK  6 ==
 
  h:
- 689e8525 38241f4c 93c85386 8b89a303 200d341e cb4e0c76 0e4a9834 4ce07f14
+ 5fb55674 12ddc27e f481330c e6fbed3a 9a9ab905 1d23a7fa af95e6a9 2fc43b01
 
  compress output:
- ae51c883 e29a64b4 573eb2c4 324a0bb3 458f4c80 312ff7f1 9e194290 65c78a4d
+ f4a22caa 7bfd6385 3b4f851a ddad3c1b 0be2b89c 9cac5085 aa2d60aa 245a58e3
 
  == COMPRESS: CHUNK  0, BLOCK  7 ==
 
  h:
- ae51c883 e29a64b4 573eb2c4 324a0bb3 458f4c80 312ff7f1 9e194290 65c78a4d
+ f4a22caa 7bfd6385 3b4f851a ddad3c1b 0be2b89c 9cac5085 aa2d60aa 245a58e3
 
  compress output:
- 082b24c1 4c09407c 9b80a3d9 ef173f4b f3f68d34 8afe0066 ed3c5f7e 83cf95d4
+ be0b5d38 2bc86413 e87b7127 8e616e88 53d77f04 714ac5c0 94c6bc67 46833b92
 
  == COMPRESS: CHUNK  0, BLOCK  8 ==
 
  h:
- 082b24c1 4c09407c 9b80a3d9 ef173f4b f3f68d34 8afe0066 ed3c5f7e 83cf95d4
+ be0b5d38 2bc86413 e87b7127 8e616e88 53d77f04 714ac5c0 94c6bc67 46833b92
 
  compress output:
- fafc4be2 0bb87f3b ca34144b 1103ce02 d6cb4c49 1f20eab9 3593d1cf 3742859e
+ f2301e2c 43cf8b96 1f2fdf31 22949544 d561c502 b3bd97c8 3c9e0eb0 98f922f7
 
  == COMPRESS: CHUNK  0, BLOCK  9 ==
 
  h:
- fafc4be2 0bb87f3b ca34144b 1103ce02 d6cb4c49 1f20eab9 3593d1cf 3742859e
+ f2301e2c 43cf8b96 1f2fdf31 22949544 d561c502 b3bd97c8 3c9e0eb0 98f922f7
 
  compress output:
- 51b45ba4 dd1b242a 002689c1 cfcd1997 073e3f21 3fe38ccb c59e4bcc 6c91298d
+ f010be56 93e3b9bb 2784704e 43058c38 bd00ccf5 4ecd501a eb472253 15789475
 
  == COMPRESS: CHUNK  0, BLOCK 10 ==
 
  h:
- 51b45ba4 dd1b242a 002689c1 cfcd1997 073e3f21 3fe38ccb c59e4bcc 6c91298d
+ f010be56 93e3b9bb 2784704e 43058c38 bd00ccf5 4ecd501a eb472253 15789475
 
  compress output:
- dc832743 8edfe4dc 2434e697 17460dde 6dbf6b54 614f9af3 ca696833 6ee12fcd
+ 97b93bc4 368cf217 bb5255e5 29eaaf01 51119ef8 83a681b1 1247e464 3c211a4c
 
  == COMPRESS: CHUNK  0, BLOCK 11 ==
 
  h:
- dc832743 8edfe4dc 2434e697 17460dde 6dbf6b54 614f9af3 ca696833 6ee12fcd
+ 97b93bc4 368cf217 bb5255e5 29eaaf01 51119ef8 83a681b1 1247e464 3c211a4c
 
  compress output:
- 86bda24a fc967396 ff8cf6db 017c4b90 ff72ef63 1bb302e4 0fe2b9cc 2a4470b7
+ 489377de a84ce607 615dc801 0abdce8d b8c62c73 2812c9b6 27f46f06 527ab15a
 
  == COMPRESS: CHUNK  0, BLOCK 12 ==
 
  h:
- 86bda24a fc967396 ff8cf6db 017c4b90 ff72ef63 1bb302e4 0fe2b9cc 2a4470b7
+ 489377de a84ce607 615dc801 0abdce8d b8c62c73 2812c9b6 27f46f06 527ab15a
 
  compress output:
- bba75e83 28bac312 8a1565c6 66972f60 95ebb0a3 5ebf7a85 a4de1420 bbccd8ba
+ 8b24d6ec 0fef6dc8 80f3a2bf 39980de6 ed40c8b6 231921d7 0ed6c3b8 216af5e9
 
  == COMPRESS: CHUNK  0, BLOCK 13 ==
 
  h:
- bba75e83 28bac312 8a1565c6 66972f60 95ebb0a3 5ebf7a85 a4de1420 bbccd8ba
+ 8b24d6ec 0fef6dc8 80f3a2bf 39980de6 ed40c8b6 231921d7 0ed6c3b8 216af5e9
 
  compress output:
- 37df0dd2 5521517f 2374fbfa 3811d80b 68f109d3 abf8cbf6 209efbdc 3432507b
+ 82305351 f39c3999 c4f58155 6033aecc c50d1a37 d2cd94e9 0fda6a32 783f75d3
 
  == COMPRESS: CHUNK  0, BLOCK 14 ==
 
  h:
- 37df0dd2 5521517f 2374fbfa 3811d80b 68f109d3 abf8cbf6 209efbdc 3432507b
+ 82305351 f39c3999 c4f58155 6033aecc c50d1a37 d2cd94e9 0fda6a32 783f75d3
 
  compress output:
- 996b6a0c e8dbdaeb da6a97ef 4391c111 12c223ba 3c092120 289dfbaa ed3ac2a5
+ 63e7e3be 04225085 80b70dfb 3abeec2f 03940104 81d8250a fe7c8027 0092e699
 
  == COMPRESS: CHUNK  0, BLOCK 15 ==
 
  h:
- 996b6a0c e8dbdaeb da6a97ef 4391c111 12c223ba 3c092120 289dfbaa ed3ac2a5
+ 63e7e3be 04225085 80b70dfb 3abeec2f 03940104 81d8250a fe7c8027 0092e699
 
  flags:
- 02
+ 12
 
  compress output:
- c8d63b32 b1d9fecb dbf2dac7 7fba1e91 a71a614b 022d5eb6 43b88567 5fb98dbb
+ 29262c25 7bd34920 9f5c3d18 bf3fc32b 3a10e594 9837aef0 67216d78 7384dda8
 
  == COMPRESS: CHUNK  1, BLOCK  0 ==
 
  h:
- 6a09e667 bb67ae85 3c6ef372 a54ff53a 510e527f 9b05688c 1f83d9ab 5be0cd19
+ cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc
 
  m:
  bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb
@@ -763,157 +764,157 @@ numbered from 0.
  00000001 00000000
 
  flags:
- 01
+ 11
 
  compress output:
- 4643287b d85bed11 5487228d a44a56de 4731717c cc6838ee 197aa105 db612375
+ f8d2d7f6 da05998d f3e8d669 ea509854 a8640452 537101cf 3b74c8a7 c3140f9b
 
  == COMPRESS: CHUNK  1, BLOCK  1 ==
 
  h:
- 4643287b d85bed11 5487228d a44a56de 4731717c cc6838ee 197aa105 db612375
+ f8d2d7f6 da05998d f3e8d669 ea509854 a8640452 537101cf 3b74c8a7 c3140f9b
 
  flags:
- 00
+ 10
 
  compress output:
- e5be3ee8 6b8a6388 c6f1bb2d 96c4422a 69c5e773 08f62b86 8e0ac6ef 60053eb3
+ 32bb9819 f7e708ff 2f025b74 eb3005f7 20ce66b9 1578615b b3fce09c 94a3223f
 
  == COMPRESS: CHUNK  1, BLOCK  2 ==
 
  h:
- e5be3ee8 6b8a6388 c6f1bb2d 96c4422a 69c5e773 08f62b86 8e0ac6ef 60053eb3
+ 32bb9819 f7e708ff 2f025b74 eb3005f7 20ce66b9 1578615b b3fce09c 94a3223f
 
  compress output:
- f14e85f1 7e3dd3cd 21821aea 13a60dd9 ed703026 6d162747 f486ce97 3b802292
+ afe3cf08 158913a9 f53241f5 3eb8275f cdad0af5 fdb24fb7 acb6c848 5fed58e2
 
  == COMPRESS: CHUNK  1, BLOCK  3 ==
 
  h:
- f14e85f1 7e3dd3cd 21821aea 13a60dd9 ed703026 6d162747 f486ce97 3b802292
+ afe3cf08 158913a9 f53241f5 3eb8275f cdad0af5 fdb24fb7 acb6c848 5fed58e2
 
  compress output:
- 434b8c2f 418e7faa 7161b184 adc28577 2952f240 a88b1cf8 7bec7d73 c051765d
+ 456318e4 9d40d864 5cb94c14 3975495a bea7d0f2 27093080 8f3b81ba 735a5e62
 
  == COMPRESS: CHUNK  1, BLOCK  4 ==
 
  h:
- 434b8c2f 418e7faa 7161b184 adc28577 2952f240 a88b1cf8 7bec7d73 c051765d
+ 456318e4 9d40d864 5cb94c14 3975495a bea7d0f2 27093080 8f3b81ba 735a5e62
 
  compress output:
- 421facc4 d3e21e47 c3a23dd3 610bd719 ecdb7a26 8c62e787 fe48f954 938aa686
+ a4326ebd c7b57481 9836a9ea 8388a8fb 74fd982e dada4781 1e7fd411 d8538ea0
 
  == COMPRESS: CHUNK  1, BLOCK  5 ==
 
  h:
- 421facc4 d3e21e47 c3a23dd3 610bd719 ecdb7a26 8c62e787 fe48f954 938aa686
+ a4326ebd c7b57481 9836a9ea 8388a8fb 74fd982e dada4781 1e7fd411 d8538ea0
 
  compress output:
- d6923df3 467f1fd5 0a819a24 abec94ae 9c302aa5 327db5ff 1ba49bc0 165a5863
+ fad9c888 55228532 0eff7275 3ce3dd76 09292e60 a4808616 355b6abc 180f3f01
 
  == COMPRESS: CHUNK  1, BLOCK  6 ==
 
  h:
- d6923df3 467f1fd5 0a819a24 abec94ae 9c302aa5 327db5ff 1ba49bc0 165a5863
+ fad9c888 55228532 0eff7275 3ce3dd76 09292e60 a4808616 355b6abc 180f3f01
 
  compress output:
- f666bec1 6fbbcaea 12a6ebd2 1739df2e 88b9ac50 1ef02104 36bc1314 f7fe8b33
+ f72d8ed8 e18a1c97 dd37019d 2dcd3619 45d86a9a 669ecbd6 988d6e5e 239b094b
 
  == COMPRESS: CHUNK  1, BLOCK  7 ==
 
  h:
- f666bec1 6fbbcaea 12a6ebd2 1739df2e 88b9ac50 1ef02104 36bc1314 f7fe8b33
+ f72d8ed8 e18a1c97 dd37019d 2dcd3619 45d86a9a 669ecbd6 988d6e5e 239b094b
 
  compress output:
- 967ea734 133aca4b 5f97ef2c cd0077bc acae43c3 2c84abb0 1105580a 494dc582
+ ddd825cb a63eccf2 711e1965 e762e7eb 10df5856 fe83880f 426243ab 17912393
 
  == COMPRESS: CHUNK  1, BLOCK  8 ==
 
  h:
- 967ea734 133aca4b 5f97ef2c cd0077bc acae43c3 2c84abb0 1105580a 494dc582
+ ddd825cb a63eccf2 711e1965 e762e7eb 10df5856 fe83880f 426243ab 17912393
 
  compress output:
- e1785148 4419c2b9 94dd4c1d 77a352d6 1e2a6e08 316cea7d efe58124 eaa512b0
+ 4d3a0cb8 b3fa6eb3 5562262c 21ecbe87 2cb06776 646d4444 917f3476 95dacdab
 
  == COMPRESS: CHUNK  1, BLOCK  9 ==
 
  h:
- e1785148 4419c2b9 94dd4c1d 77a352d6 1e2a6e08 316cea7d efe58124 eaa512b0
+ 4d3a0cb8 b3fa6eb3 5562262c 21ecbe87 2cb06776 646d4444 917f3476 95dacdab
 
  compress output:
- fb402a99 554f18e8 ffabb223 42d1c5c1 ff0241f7 13fb6f1b 23af7e2c 2ce45cb7
+ 4e3c8403 172f2851 9174c228 a1a02b1c 1f9f5195 6e2ef47b 71103308 2cebea3a
 
  == COMPRESS: CHUNK  1, BLOCK 10 ==
 
  h:
- fb402a99 554f18e8 ffabb223 42d1c5c1 ff0241f7 13fb6f1b 23af7e2c 2ce45cb7
+ 4e3c8403 172f2851 9174c228 a1a02b1c 1f9f5195 6e2ef47b 71103308 2cebea3a
 
  compress output:
- c5cbd479 30417e86 e1150c46 2d3ea9be c1b8b0d1 c3968e0a a6d74d02 7571b930
+ e90fa204 592a4848 b8c7badf 9afa2d5c f9f30477 3bc27906 dcdc8c12 8c57930b
 
  == COMPRESS: CHUNK  1, BLOCK 11 ==
 
  h:
- c5cbd479 30417e86 e1150c46 2d3ea9be c1b8b0d1 c3968e0a a6d74d02 7571b930
+ e90fa204 592a4848 b8c7badf 9afa2d5c f9f30477 3bc27906 dcdc8c12 8c57930b
 
  compress output:
- 279a13a8 69c61d6f 0a93894c be859817 9f0790fc 4c096ad4 e4398002 df9b93a5
+ 6d5b3ea9 288009bc 63d2fd33 f58ae27b d1cc9858 09c842b3 d45c69fd f7cf53ab
 
  == COMPRESS: CHUNK  1, BLOCK 12 ==
 
  h:
- 279a13a8 69c61d6f 0a93894c be859817 9f0790fc 4c096ad4 e4398002 df9b93a5
+ 6d5b3ea9 288009bc 63d2fd33 f58ae27b d1cc9858 09c842b3 d45c69fd f7cf53ab
 
  compress output:
- a8d114db b86a7942 1e7419c1 6a452196 758a05ca b744e642 93e41248 7cc614e1
+ c398059d 89d3db73 1cf0fb5c 8b9fe830 544ecbb6 81767776 81cb99bb 5bb3e546
 
  == COMPRESS: CHUNK  1, BLOCK 13 ==
 
  h:
- a8d114db b86a7942 1e7419c1 6a452196 758a05ca b744e642 93e41248 7cc614e1
+ c398059d 89d3db73 1cf0fb5c 8b9fe830 544ecbb6 81767776 81cb99bb 5bb3e546
 
  compress output:
- b6e7e6bb 6d3e124f 5dedef9e bde7f593 7a0400d5 50daf53d 49377ad8 dbd6a61f
+ d228d203 4aa56614 e20eeb08 3a030c71 04a5e52c 680b1da3 a202d5e9 ff681705
 
  == COMPRESS: CHUNK  1, BLOCK 14 ==
 
  h:
- b6e7e6bb 6d3e124f 5dedef9e bde7f593 7a0400d5 50daf53d 49377ad8 dbd6a61f
+ d228d203 4aa56614 e20eeb08 3a030c71 04a5e52c 680b1da3 a202d5e9 ff681705
 
  compress output:
- a40be2e1 a5101d8e 902ad7c3 dbac4a0f a1062d4f dbb1d38a 3ef37b7d 0a46f93e
+ 9bc8d417 c5934dc1 7cd704f3 293a98f7 acd5d444 c96af077 dfdb7ddb 4beed53e
 
  == COMPRESS: CHUNK  1, BLOCK 15 ==
 
  h:
- a40be2e1 a5101d8e 902ad7c3 dbac4a0f a1062d4f dbb1d38a 3ef37b7d 0a46f93e
+ 9bc8d417 c5934dc1 7cd704f3 293a98f7 acd5d444 c96af077 dfdb7ddb 4beed53e
 
  flags:
- 02
+ 12
 
  compress output:
- 70dc03d8 be50bb38 4a0f7bf3 db9d008b c02b11fb f2ae5f91 4c20d218 5f7db224
+ a1df18f4 c3cd10d0 7a695bb0 35f28871 c2e85b18 bf08c8ea d99162be 51be2388
 
  == COMPRESS: PARENT ==
 
  h:
- 6a09e667 bb67ae85 3c6ef372 a54ff53a 510e527f 9b05688c 1f83d9ab 5be0cd19
+ cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc cccccccc
 
  m:
- c8d63b32 b1d9fecb dbf2dac7 7fba1e91 a71a614b 022d5eb6 43b88567 5fb98dbb
- 70dc03d8 be50bb38 4a0f7bf3 db9d008b c02b11fb f2ae5f91 4c20d218 5f7db224
+ 29262c25 7bd34920 9f5c3d18 bf3fc32b 3a10e594 9837aef0 67216d78 7384dda8
+ a1df18f4 c3cd10d0 7a695bb0 35f28871 c2e85b18 bf08c8ea d99162be 51be2388
 
  t:
  00000000 00000000
 
  flags:
- 0c
+ 1c
 
  compress output:
- 38289de7 d3cc5a91 bab01bb2 f8edb576 d7d308dc 5bb60d8d 370f3f71 46c358ec
+ 3dabaf34 1697b337 844bdf42 fa3d2c86 35d5505c e39ce71b de24d93b 058d9f55
 
  hash value:
- e79d2838915accd3b21bb0ba76b5edf8dc08d3d78d0db65b713f0f37ec58c346
+ 34afab3d37b3971642df4b84862c3dfa5c50d5351be79ce33bd924de559f8d05
 ```
 
 [repo]: https://github.com/BLAKE3-team/BLAKE3
