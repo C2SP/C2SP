@@ -173,8 +173,8 @@ array shall consist of elements `v[2], v[6], v[3], ..., v[8]`.
 
 ### 2.4.  Compression Function Flags
 
-The compression function of BLAKE3 uses a set of flags to domain-
-separate different types of inputs.  These flags are defined as
+The compression function of BLAKE3 uses a set of flags to
+domain-separate different types of inputs.  These flags are defined as
 follows:
 
 * `CHUNK_START` (0x01):  Set for the first block of each chunk.
@@ -198,7 +198,7 @@ follows:
   (key material) in the `derive_key` mode.
 
 If two or more flags are set, then all their respective bits must
-appear in the flags compression function input.  This combination may
+appear in the `flags` compression function input.  This combination may
 be implemented as an OR, XOR, or integer addition between the flags.
 For example, if `CHUNK_START` and `KEYED_HASH` are set, then the flags
 input word will be the 32-bit word 0x00000011, where `0x11 = 0x10 |
@@ -493,7 +493,7 @@ the 7 rounds.  These 7 permutations would then be:
    11, 15,  5,  0,  1,  9,  8,  6, 14, 10,  2, 12,  3,  4,  7, 13
 ```
 
-### 5.3.  Multi-Thread Implementation
+### 5.3.  Multi-Threaded Implementation
 
 In addition to the potential parallel computing of the compression
 function internals via SIMD processing, BLAKE3 can benefit from
