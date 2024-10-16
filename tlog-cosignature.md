@@ -31,6 +31,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
+[RFC 8032]: https://www.rfc-editor.org/rfc/rfc8032.html
 
 ## Format
 
@@ -97,3 +98,7 @@ that the witness is asserting observation of correct append-only operation of
 the log based on the first three lines of the checkpoint; no semantic statement
 is made about any extension lines, and consensus between witnesses on the
 extension lines SHALL NOT be assumed.
+
+[note signature]: https://c2sp.org/signed-note
+[checkpoint]: https://c2sp.org/tlog-checkpoint
+[witness]: https://c2sp.org/tlog-witness
