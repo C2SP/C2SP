@@ -26,6 +26,8 @@ trust as part of their broad hosting infrastructure.
 Bastions were designed to enable synchronous [transparency log witnesses][]
 which prefer not to accept connections directly from the Internet.
 
+[transparency log witnesses]: https://c2sp.org/tlog-witness
+
 ## API
 
 At a high level, backends connect to the bastion, authenticate with their
@@ -108,6 +110,8 @@ messages with the prefix `cosignature/v1`.
 
 Further reuses of the witness or bastion key are NOT RECOMMENDED and MUST be
 analyzed for domain separation.
+
+[cosignatures]: https://c2sp.org/tlog-cosignature
 
 ## Appendix B — Example Go adapter
 
