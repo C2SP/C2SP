@@ -37,11 +37,13 @@ non-canonical encodings.
 
 ## Mapping recipients and identities to plugin binaries
 
-age plugins are identified by an arbitrary case-insensitive string `NAME`. In
-ABNF:
+age plugins are identified by a case-insensitive string `NAME`.
+
+A `NAME` MUST NOT be empty and MUST only contain alphanumeric characters and the
+following special characters: `-`, `_`, `.`, `+`. In ABNF:
 
 ```
-NAME = 1*VCHAR
+NAME = 1*(ALPHA / DIGIT / "-" / "_" / "." / "+")
 ```
 
 This string is used in three places:
@@ -55,7 +57,10 @@ This string is used in three places:
 Users interact with age clients by providing either recipients for file
 encryption, or identities for file decryption. When a plugin recipient or
 identity is provided, the age client searches the `PATH` for a binary with the
-corresponding plugin name.
+corresponding plugin name. Paths relative to the current working directory MUST
+NOT be searched, even [on platforms or systems where this is the
+default](https://go.dev/blog/path-security). Note that the plugin name MUST NOT
+contain path separators.
 
 Recipient stanza types are not required to be correlated to specific plugin
 names. When decrypting, age clients will pass all recipient stanzas to every
