@@ -199,7 +199,7 @@ Tiles are served as at
 with `Content-Type: application/octet-stream`.
 
 `<L>` is the “level” of the tile, and MUST be a decimal ASCII integer between 0
-and 6, with no additional leading zeroes.
+and 5, with no additional leading zeroes.
 
 `<N>` is the index of the tile within the level. It MUST be a non-negative
 integer encoded into 3-digit path elements. All but the last path element MUST
