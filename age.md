@@ -166,8 +166,10 @@ fresh nonce.
 
 ## Native recipient types
 
-This document specifies two core age recipient types: an asymmetric encryption
-type based on X25519, and a passphrase encryption type based on scrypt.
+This document specifies three core age recipient types: an asymmetric encryption
+type based on X25519, a passphrase encryption type based on scrypt, and a
+tagged assymetric encryption type based on NIST P-256 for use with keys stored
+on hardware tokens or PIV devices.
 
 ### The X25519 recipient type
 
@@ -272,6 +274,79 @@ words, scrypt stanzas MAY NOT be mixed with other scrypt stanzas or stanzas of
 other types. This is to uphold an expectation of authentication that is
 implicit in password-based encryption. The identity implementation MUST reject
 headers where an scrypt stanza is present alongside any other stanza.
+
+### The p256tag recipient type
+
+Age does not generate p256tag identities, but supports encrypting to
+p256tag recipients.
+
+The p256tag recipient is computed as 
+
+    recipient = P256(identity, basepoint)
+
+P256 is the scalar multiplication over P-256, with SEC 1 point decoding and 
+encoding.
+
+The recipient is encoded as Bech32 with HRP `age1p256tag`.
+
+    age1p256tag1qf0l9gks6x65ha077wq3w3u8fy02tpg3cd9w5j0jlgpfgqkcut2lwpmkcwq
+
+#### p256tag recipient stanza
+
+A p256tag recipient stanza has three arguments.
+
+    -> p256tag tHLLKQ Az7IeMpB4oX0CHt/Bc9xzk6x1K262zNxoUtfAikZa5T7
+    eCnx6Ik2/6gX9M79e4+NQQ36GtZZj9qa6+pNlWjA1Nk
+
+1.  The first argument is the fixed string `p256tag`.
+
+2.  The second argument is the base-64 encdoded tag of the recipient,
+    consisting of the first 4 bytes of the MAC of the recipient.
+    The MAC is computed with HMAC-SHA-256 (see [RFC 2104][]), using
+    the ephemeral share from the third argument as key.
+
+         tag = HMAC(recipient, ephemeral share)[0..4]
+
+3.  The third argument is the base64-encoded ephemeral share computed by
+    the recipient implementation as follows:
+
+         ephemeral secret = read(CSPRNG, 32)
+         ephemeral share = P256(ephemeral secret, basepoint)
+
+    A new ephemeral secret MUST be generated for each stanza and each
+    file.
+
+The body of the recipient stanza is computed by the recipient
+implementation as
+
+    salt = "age-encryption.org/v1/p256tag"
+    info = ephemeral share || recipient
+    shared secret = P256(ephemeral secret, recipient)
+    wrap key = HKDF-SHA-256(ikm = shared secret, salt, info)
+    body = ChaCha20-Poly1305(key = wrap key, plaintext = file key)
+
+where the ChaCha20-Poly1305 nonce is fixed as 12 0x00 bytes.
+
+The identity implementation MUST ignore any stanza that does not have
+`p256tag` as the first argument, and MUST otherwise reject any stanza
+that has more or less than three arguments, or where the second argument
+is not a canonical encoding of a 4-byte value, or the third argument is
+not a canonical encoding of a 32-byte value. It MUST check that the body
+length is exactly 32 bytes before attempting to decrypt it.
+
+The identity implementation MUST ignore any stanza with a tag for which
+it does not have any corresponding secret.
+
+The identity implementation computes the shared secret as follows:
+
+    shared secret = P256(identity, ephemeral share)
+
+If the shared secret is the point at infinity, the identity implementation
+MUST abort.
+
+Finally, it derives the key as above and decrypts the file key in the
+body.
+
 
 ## ASCII armor
 
