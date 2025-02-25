@@ -284,7 +284,7 @@ opaque Fingerprint[32];
 
 “pre_certificate” is the Precertificate submitted for auditing, corresponding
 to the `pre_certificate` specified in RFC 6962, Section 3.1. It is not the same
-as the PreCert in `timestamped_entry`, which is a TBS certificate.
+as `timestamped_entry.signed_entry`, which is a PreCert containing a TBSCertificate.
 
 “certificate_chain” are the SHA-256 hashes of the ASN.1 encoding of the issuers
 in the submitted chain, corresponding to the `certificate_chain` or
