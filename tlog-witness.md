@@ -85,8 +85,13 @@ The old size line MUST consist of the string `old`, a single space (0x20),
 and the tree size of the previous checkpoint encoded as an ASCII decimal with no
 leading zeroes (unless the size is zero, in which case the encoding MUST be `0`).
 
+The old size MUST be equal to or lower than the checkpoint size.
+
 Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
+
+For any request that does not match the required request body, the witness
+MUST respond with a "400 Bad Request" HTTP status code.
 
 The submitted checkpoint MAY include multiple signatures.
 
@@ -110,9 +115,6 @@ trusts for the checkpoint origin, and it MUST ignore signatures from unknown
 keys. If the checkpoint origin is unknown, the witness MUST respond with a "404
 Not Found" HTTP status code. If none of the signatures verify against a trusted
 public key, the witness MUST respond with a "403 Forbidden" HTTP status code.
-
-The old size MUST be equal to or lower than the checkpoint size. Otherwise,
-the witness MUST respond with a "400 Bad Request" HTTP status code.
 
 The witness MUST check that the old size matches the size of the latest
 checkpoint it cosigned for the checkpoint's origin (or zero if it never cosigned
