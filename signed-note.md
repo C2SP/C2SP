@@ -71,7 +71,7 @@ The tuple of key name and key ID uniquely identifies the key that performed the
 signature and the algorithm it used. Verifiers MUST ignore signatures from
 unknown keys, even if they share a name or ID (but not both) with a known key.
 If the key name and ID match a known key, verifiers MUST verify the signature.
-If a signature from a known key fails to verify, clients MAY reject the whole
+If a signature from a known key fails to verify, clients SHOULD reject the whole
 note. If no signature from a known key verifies successfully, clients MUST
 reject the note.
 
