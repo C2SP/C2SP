@@ -37,9 +37,9 @@ All C2SP specifications are licensed under [CC BY
 4.0](https://creativecommons.org/licenses/by/4.0/). All code and data in this
 repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 
-[maintainers]: https://github.com/orgs/C2SP/teams/maintainers
+[maintainers]: https://c2sp-maintainers.fly.dev/team/maintainers
 [semantic versioning]: https://semver.org/
-[small team of stewards]: https://github.com/orgs/C2SP/teams/stewards
+[small team of stewards]: https://c2sp-maintainers.fly.dev/team/stewards
 [C2SP Code of Conduct]: CODE_OF_CONDUCT.md
 [new specifications]: CONTRIBUTING.md#new-specifications
 [LICENSE-BSD-1-CLAUSE]: LICENSE-BSD-1-CLAUSE
@@ -48,20 +48,20 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 
 | Name | Description |  |
 | --- | --- | --- |
-| [`c2sp.org/age`](https://c2sp.org/age) | File encryption format | [Maintainers](https://github.com/orgs/C2SP/teams/age) |
-| [`c2sp.org/age-plugin`](https://c2sp.org/age-plugin) | The age plugin stdio protocol | [Maintainers](https://github.com/orgs/C2SP/teams/age-plugin) |
-| [`c2sp.org/BLAKE3`](https://c2sp.org/BLAKE3) | A fast cryptographic hash function (and PRF, MAC, KDF, and XOF) | [Maintainers](https://github.com/orgs/C2SP/teams/BLAKE3) |
-| [`c2sp.org/chacha8rand`](https://c2sp.org/chacha8rand) | Fast cryptographic random number generator | [Maintainers](https://github.com/orgs/C2SP/teams/chacha8rand) |
-| [`c2sp.org/https-bastion`](https://c2sp.org/https-bastion) | Bastion (reverse proxy) protocol for exposing HTTPS services | [Maintainers](https://github.com/orgs/C2SP/teams/https-bastion) |
-| [`c2sp.org/jq255`](https://c2sp.org/jq255) | Prime order groups, key exchange, and signatures | [Maintainers](https://github.com/orgs/C2SP/teams/jq255) |
-| [`c2sp.org/signed-note`](https://c2sp.org/signed-note) | Cleartext signed messages | [Maintainers](https://github.com/orgs/C2SP/teams/signed-note) |
-| [`c2sp.org/static-ct-api`](https://c2sp.org/static-ct-api) | Static asset-based Certificate Transparency logs | [Maintainers](https://github.com/orgs/C2SP/teams/static-ct-api) |
-| [`c2sp.org/tlog-checkpoint`](https://c2sp.org/tlog-checkpoint) | Interoperable transparency log signed tree heads | [Maintainers](https://github.com/orgs/C2SP/teams/tlog-checkpoint) |
-| [`c2sp.org/tlog-cosignature`](https://c2sp.org/tlog-cosignature) | Witness cosignatures for transparency log checkpoints | [Maintainers](https://github.com/orgs/C2SP/teams/tlog-cosignature) |
-| [`c2sp.org/tlog-tiles`](https://c2sp.org/tlog-tiles) | Static asset-based transparency log | [Maintainers](https://github.com/orgs/C2SP/teams/tlog-tiles) |
-| [`c2sp.org/tlog-witness`](https://c2sp.org/tlog-witness) | HTTP protocol to obtain transparency log witness cosignatures | [Maintainers](https://github.com/orgs/C2SP/teams/tlog-witness) |
-| [`c2sp.org/vrf-r255`](https://c2sp.org/vrf-r255) | Simplified ristretto255-based ECVRF ciphersuite | [Maintainers](https://github.com/orgs/C2SP/teams/vrf-r255) |
-| [`c2sp.org/XAES-256-GCM`](https://c2sp.org/XAES-256-GCM) | Extended-nonce AEAD from NIST-approved components | [Maintainers](https://github.com/orgs/C2SP/teams/XAES-256-GCM) |
+| [`c2sp.org/age`](https://c2sp.org/age) | File encryption format | [Maintainers](https://c2sp-maintainers.fly.dev/team/age) |
+| [`c2sp.org/age-plugin`](https://c2sp.org/age-plugin) | The age plugin stdio protocol | [Maintainers](https://c2sp-maintainers.fly.dev/team/age-plugin) |
+| [`c2sp.org/BLAKE3`](https://c2sp.org/BLAKE3) | A fast cryptographic hash function (and PRF, MAC, KDF, and XOF) | [Maintainers](https://c2sp-maintainers.fly.dev/team/BLAKE3) |
+| [`c2sp.org/chacha8rand`](https://c2sp.org/chacha8rand) | Fast cryptographic random number generator | [Maintainers](https://c2sp-maintainers.fly.dev/team/chacha8rand) |
+| [`c2sp.org/https-bastion`](https://c2sp.org/https-bastion) | Bastion (reverse proxy) protocol for exposing HTTPS services | [Maintainers](https://c2sp-maintainers.fly.dev/team/https-bastion) |
+| [`c2sp.org/jq255`](https://c2sp.org/jq255) | Prime order groups, key exchange, and signatures | [Maintainers](https://c2sp-maintainers.fly.dev/team/jq255) |
+| [`c2sp.org/signed-note`](https://c2sp.org/signed-note) | Cleartext signed messages | [Maintainers](https://c2sp-maintainers.fly.dev/team/signed-note) |
+| [`c2sp.org/static-ct-api`](https://c2sp.org/static-ct-api) | Static asset-based Certificate Transparency logs | [Maintainers](https://c2sp-maintainers.fly.dev/team/static-ct-api) |
+| [`c2sp.org/tlog-checkpoint`](https://c2sp.org/tlog-checkpoint) | Interoperable transparency log signed tree heads | [Maintainers](https://c2sp-maintainers.fly.dev/team/tlog-checkpoint) |
+| [`c2sp.org/tlog-cosignature`](https://c2sp.org/tlog-cosignature) | Witness cosignatures for transparency log checkpoints | [Maintainers](https://c2sp-maintainers.fly.dev/team/tlog-cosignature) |
+| [`c2sp.org/tlog-tiles`](https://c2sp.org/tlog-tiles) | Static asset-based transparency log | [Maintainers](https://c2sp-maintainers.fly.dev/team/tlog-tiles) |
+| [`c2sp.org/tlog-witness`](https://c2sp.org/tlog-witness) | HTTP protocol to obtain transparency log witness cosignatures | [Maintainers](https://c2sp-maintainers.fly.dev/team/tlog-witness) |
+| [`c2sp.org/vrf-r255`](https://c2sp.org/vrf-r255) | Simplified ristretto255-based ECVRF ciphersuite | [Maintainers](https://c2sp-maintainers.fly.dev/team/vrf-r255) |
+| [`c2sp.org/XAES-256-GCM`](https://c2sp.org/XAES-256-GCM) | Extended-nonce AEAD from NIST-approved components | [Maintainers](https://c2sp-maintainers.fly.dev/team/XAES-256-GCM) |
 
 ## Associated projects
 
