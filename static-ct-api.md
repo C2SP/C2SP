@@ -256,10 +256,9 @@ The log entries are served as a “data tile” at
 
 with `Content-Type: application/octet-stream`.
 
-Data tiles SHOULD be compressed at the HTTP layer. Logs MAY use
-`Content-Encoding: gzip` with no negotiation, or any compression algorithm
-requested by the client with `Accept-Encoding`. Clients SHOULD include `gzip`
-and `identity` in their `Accept-Encoding` headers.
+Data tiles SHOULD be compressed at the HTTP layer.
+Clients MUST support `Content-Encoding: gzip` and logs MAY use it with no negotiation.
+Clients SHOULD include `gzip` and `identity` in their `Accept-Encoding` headers.
 
 This endpoint is immutable, so its caching headers SHOULD be long-lived.
 
