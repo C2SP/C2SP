@@ -53,6 +53,9 @@ Clients are configured with tuples of (witness name, public key, supported
 cosignature version) and based on that they can compute the expected name and
 key ID, and ignore any signature lines that don't match the name and key ID.
 
+Public keys MAY be encoded as [vkeys][] with signature type 0x04 and the 32-byte
+Ed25519 witness public key as the public key material.
+
 Future cosignature formats MAY reuse the same witness public key with a
 different key ID algorithm byte (and a different signed message header line).
 
@@ -100,5 +103,6 @@ is made about any extension lines, and consensus between witnesses on the
 extension lines SHALL NOT be assumed.
 
 [note signature]: https://c2sp.org/signed-note
+[vkeys]: https://c2sp.org/signed-note#verifier-keys
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [witness]: https://c2sp.org/tlog-witness
