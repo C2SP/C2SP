@@ -248,6 +248,16 @@ tiles without verifying a checkpoint with a size that requires their existence,
 and SHOULD fetch the full tile in parallel as a fallback in case the partial
 tile is not available anymore.
 
+A client, such as a Monitor, that “tails” a log SHOULD, as an optimization,
+avoid fetching partial data tiles when possible.
+If applying this optimization, the client MUST fetch the corresponding partial
+“level 0” tile, and use that to verify the current checkpoint.
+When fetching a subsequent checkpoint, the client MUST verify its consistency
+with the current checkpoint.
+If a data tile remains partial for too long (as defined by client policy),
+the client MUST fetch it to prevent delaying entries from being processed
+indefinitely.
+
 ### Log entries
 
 The log entries are served as a “data tile” at
