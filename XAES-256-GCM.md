@@ -155,6 +155,12 @@ The resulting hash for 1 000 000 iterations is
 
     2163ae1445985a30b60585ee67daa55674df06901b890593e824b8a7c885ab15
 
+## Variants
+
+[Blockcipher-Based Key Commitment for Nonce-Derived Schemes](https://eprint.iacr.org/2025/758.pdf)
+by Kampanakis at al. from Amazon Web Services introduces KC-XAES,
+a key-committing variant of XAES-256-GCM which retains FIPS 140 compliance.
+
 ## Alternatives
 
 The goal of this design is to provide an AES-based AEAD with safely randomizable
@@ -202,14 +208,11 @@ if nonces are reused. If that is acceptable, the analysis for how many messages
 can be safely encrypted with random nonces [is complicated][RFC 8452, Section 9]
 and was amended multiple times.
 
-[Double-Nonce-Derive-Key-GCM] (DNDK-GCM) by Shay Gueron is a very similar scheme
-that also derives an AES-256-GCM key from a 256-bit key and a 192-bit nonce,
-with nearly identical goals. (It has optional support for key commitment, which
-XAES-256-GCM does not.) Its key derivation function costs six AES invocations
-(as opposed to three in XAES-256-GCM) but doesn't use the underlying AES-256-GCM
-nonce. Its authors claim FIPS 140 compliance due to the use of AES-256-GCM, but
-the KDF does not appear to comply with any NIST standard. It is reportedly used
-in production at Meta.
+[Double-Nonce-Derive-Key-GCM] (DNDK-GCM) by Shay Gueron and Thomas Ristenpart
+is a very similar scheme that also derives an AES-256-GCM key from a 256-bit key
+and a 192-bit nonce, with nearly identical goals. In version 2, its key derivation
+function also costs three AES invocations (or five with key commitment), but
+doesn't claim FIPS 140 compliance. It is reportedly used in production at Meta.
 
 In 2022, Soatok proposed [AES-XGCM], a similar scheme to XAES-256-GCM that
 uses CBC-MAC to derive an AES-GCM key from a 224-bit nonce. The use of CMAC in
@@ -252,7 +255,7 @@ for key derivation.
 [AEGIS]: https://datatracker.ietf.org/doc/draft-irtf-cfrg-aegis-aead/
 [RFC 8452, Section 9]: https://www.rfc-editor.org/rfc/rfc8452.html#section-9
 [RFC 8446, Section 3]: https://www.rfc-editor.org/rfc/rfc8446.html#section-3
-[Double-Nonce-Derive-Key-GCM]: https://iacr.org/submit/files/slides/2024/rwc/rwc2024/105/slides.pdf
+[Double-Nonce-Derive-Key-GCM]: https://eprint.iacr.org/2025/785.pdf
 [AES-XGCM]: https://soatok.blog/2022/12/21/extending-the-aes-gcm-nonce-without-nightmare-fuel/
 [OCH / GCH / CIV AEAD family]: https://www.youtube.com/watch?v=7GBzKytVjH4
 [AES-GEM]: https://github.com/trailofbits/aes-gem
