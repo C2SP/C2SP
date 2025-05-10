@@ -19,7 +19,8 @@ ed è subito sera.
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
-in [RFC 4648][], Section 4.
+in [RFC 4648][], Section 4. The hex encoding of a positive integer is the fixed
+length lowercase Base 16 encoding of its zero-padded big endian representation.
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
@@ -139,3 +140,35 @@ The key ID is generated as recommended above, with the public key encoded as 32
 bytes according to RFC 8032 and signature type identifier byte `0x01`.
 
     key ID = SHA-256(key name || 0x0A || 0x01 || 32-byte Ed25519 public key)[:4]
+
+## Verifier keys
+
+    <key name>+hex(32-bit key ID)+base64(signature type || public key)
+
+Verifier keys (or *vkey*s for short) are encoded as text strings composed of
+three parts separated by a plus (U+002B) character: the key name, the hex
+encoding of the key ID, and the base64 encoding of the concatenation of the
+signature type and the public key material.
+
+The signature type MUST match the key ID, and a parsed vkey SHOULD NOT be used
+to verify any other signature type. (E.g. a `0x01` vkey SHOULD NOT be used to
+verify `0x04` cosignatures, despite both being backed by Ed25519 public keys.)
+If used anyway to verify other signature types, those signatures MUST have a key
+ID that matches the effective signature type, and not the vkey.
+
+The public key material for Ed25519 vkeys is the 32-byte Ed25519 public key
+encoding according to [RFC 8032][].
+
+### Example
+
+The following verifier key
+
+    example.com/foo+530d903a+AekyeRrm56hApGFkyQR4ZCbV54Id2LKaANYcrnKv3U2k
+
+verifies the following signed note
+
+```
+This is an example message.
+
+— example.com/foo Uw2QOkn8srV1yJGh2VYRlL1Tnagv1YEq6TfXppzi2ONncAlTgK7Ztg1ERYNZXsYjOBH3mFXmRKuwHjG1Yu72IneyaQM=
+```
