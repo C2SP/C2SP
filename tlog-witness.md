@@ -1,4 +1,4 @@
-# Transparency Log Witnesses
+# Transparency Log Witness Protocol
 
 This document describes a synchronous HTTP-based protocol to obtain
 [cosignatures][] from transparency log witnesses.
