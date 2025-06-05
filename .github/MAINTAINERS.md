@@ -52,6 +52,10 @@
 
 - [@pornin](https://github.com/pornin)
 
+### phc-string-format
+
+- [@tarcieri](https://github.com/tarcieri)
+
 ### signed-note
 
 - [@FiloSottile](https://github.com/FiloSottile)
@@ -107,4 +111,3 @@
 ### xaes-256-gcm
 
 - [@FiloSottile](https://github.com/FiloSottile)
-
