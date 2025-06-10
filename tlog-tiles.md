@@ -1,3 +1,4 @@
+# Tiled Transparency Logs
 
 This document specifies an efficient HTTP API to fetch the signed checkpoint,
 Merkle Tree hashes, and entries of a transparency log containing arbitrary
