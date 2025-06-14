@@ -242,8 +242,9 @@ tree of size 256 will be represented by a full level 0 tile and a partial level
 1 tile of width 1.
 
 Logs MUST serve partial tiles corresponding to tree sizes for which a
-checkpoint was produced, but MAY omit any partial tile for which the
-corresponding full tile is available. Clients MUST NOT fetch arbitrary partial
+checkpoint was produced, as long as no corresponding tile is available. Once a
+corresponding full tile is made available, logs MAY omit any partial tiles. 
+Clients MUST NOT fetch arbitrary partial
 tiles without verifying a checkpoint with a size that requires their existence,
 and SHOULD fetch the full tile in parallel as a fallback in case the partial
 tile is not available anymore.
