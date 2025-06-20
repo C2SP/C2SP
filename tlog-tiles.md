@@ -90,7 +90,7 @@ Merkle Tree Hashes, with *i* from 0 to 255:
 
     MTH(D[(n * 256 + i) * 256**l : (n * 256 + i + 1) * 256**l])
 
-The tile's *start index* is defined to be `n * 256**(l+1)`. It's *end index* is
+The tile's *start index* is defined to be `n * 256**(l+1)`. Its *end index* is
 defined to be `(n + 1) * 256**(l+1)`. The Merkle Tree Hashes in the tile
 together span the range of entries `D[start_index : end_index]`.
 
@@ -173,7 +173,7 @@ tree size of the log's current checkpoint. In an unpruned log, the minimum index
 is zero.
 
 In response to a request for a full tile `<prefix>/tile/<L>/<N>`, or an entry
-bundle `<prefix>/tile/entries/<N>`, the log MAY return a 404 response if the
+bundle `<prefix>/tile/entries/<N>`, the log MAY return a 410 or 404 response if the
 resource's end index, defined above, is below or equal to the minimum index.
 Logs are RECOMMENDED to implement this by denying HTTP requests, rather than
 deleting the resources from storage. This allows the log to easily recover from
@@ -191,12 +191,12 @@ This pruning criteria allows a log client to obtain:
 * A consistency proof between any two available checkpoints
 
 Pruning is similar to the practice of [temporal sharding][] of logs, except it
-does not change the structure of the tree or the identity or the log. This means
+does not change the structure of the tree or the identity of the log. This means
 all existing proofs remain valid, and existing log clients remain compatible
 with the pruned log.
 
-This document defines *how* to prune a log, but not policies around *when* a log
-may be pruned. Log ecosystems that permit pruning SHOULD define retention
+This document defines *how* to prune a log, but not policies around *when* or *if*
+a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
 policies for how long entries must be available. For example, an ecosystem might
 require that entries remain accessible for 6 months after they expire.
 
