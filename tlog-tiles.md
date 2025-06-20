@@ -90,6 +90,10 @@ Merkle Tree Hashes, with *i* from 0 to 255:
 
     MTH(D[(n * 256 + i) * 256**l : (n * 256 + i + 1) * 256**l])
 
+The tile's *start index* is defined to be `n * 256**(l+1)`. It's *end index* is
+defined to be `(n + 1) * 256**(l+1)`. The Merkle Tree Hashes in the tile
+together span the range of entries `D[start_index : end_index]`.
+
 Note that a tile represents the entire subtree of height 8 with its hashes as
 the leaves. The Merkle Tree levels between those expressed by the tile hashes
 are reconstructed by hashing the leaves.
@@ -111,10 +115,10 @@ tree of size 256 will be represented by a full level 0 tile and a partial level
 
 Logs MUST serve partial tiles corresponding to tree sizes for which a checkpoint
 was produced, but MAY delete any partial tile once the corresponding full tile
-becomes available. Clients MUST NOT fetch arbitrary partial tiles without
-verifying a checkpoint with a size that requires their existence, and MAY fetch
-the full tile in parallel as a fallback in case the partial tile is not
-available anymore.
+is either available, or has been removed by the pruning criteria below. Clients
+MUST NOT fetch arbitrary partial tiles without verifying a checkpoint with a
+size that requires their existence, and MAY fetch the full tile in parallel as a
+fallback in case the partial tile is not available anymore.
 
 ### Log entries
 
@@ -136,7 +140,8 @@ This endpoint is immutable, so its caching headers SHOULD be long-lived.
 Entry bundles are sequences of big-endian uint16 length-prefixed log entries.
 Each entry in a bundle hashes to the corresponding entry in the corresponding
 “level 0” Merkle Tree tile. Hashing of entries is performed according to RFC
-6962, Section 2.1.
+6962, Section 2.1.  As above, a full bundle has a *start index* and *end index*,
+defined the same as above for “level 0”.
 
 TODO: check if current logs need bigger leaves.
 
@@ -154,6 +159,60 @@ compatibility concerns. If they do, they SHOULD also serve entry bundles, and
 MUST serve the differently-encoded entries at a different URL from the specified
 entry bundle URL.
 
+### Pruning
+
+In some log applications, such as [Certificate Transparency][], entries expire
+and are replaced with renewed versions. As this happens, the total size of the
+log grows, even if the unexpired subset remains fixed. To mitigate this, a log
+MAY be *pruned*. Pruning makes some prefix of the log unavailable, without
+changing the tree structure.
+
+Logs maintain a *minimum index* value. The minimum index is the index of the
+first log entry that the log publishes. It MUST be less than or equal to the
+tree size of the log's current checkpoint. In an unpruned log, the minimum index
+is zero.
+
+In response to a request for a full tile `<prefix>/tile/<L>/<N>`, or an entry
+bundle `<prefix>/tile/entries/<N>`, the log MAY return a 404 response if the
+resource's end index, defined above, is below or equal to the minimum index.
+Logs are RECOMMENDED to implement this by denying HTTP requests, rather than
+deleting the resources from storage. This allows the log to easily recover from
+misconfiguration if the minimum index was set to too high a value.
+
+An entry is said to be *available* if its index is greater than or equal to the
+minimum index. A checkpoint is said to be *available* if its tree size is
+greater than the minimum index.
+
+This pruning criteria allows a log client to obtain:
+
+* Any available entry
+* The hash value for any available checkpoint
+* An inclusion proof for any available entry to any containing checkpoint
+* A consistency proof between any two available checkpoints
+
+Pruning is similar to the practice of [temporal sharding][] of logs, except it
+does not change the structure of the tree or the identity or the log. This means
+all existing proofs remain valid, and existing log clients remain compatible
+with the pruned log.
+
+This document defines *how* to prune a log, but not policies around *when* a log
+may be pruned. Log ecosystems that permit pruning SHOULD define retention
+policies for how long entries must be available. For example, an ecosystem might
+require that entries remain accessible for 6 months after they expire.
+
+If an entry is pruned and historical data is not available, e.g. another copy of
+the entries or a trusted summary of expiration dates, it may not be possible to
+check if the retention policy has been honored. To mitigate this, log clients
+SHOULD be periodically updated with a lower bound on which entries to accept.
+This lower bound SHOULD be at least the log's minimum index at the time and MAY
+be higher, such as the index of the first available, currently unexpired log
+entry.
+
+TODO: Some HTTP endpoint for fetching the minimum index? The semantics would be
+something like: serving a minimum index equivalent to returning 404 from the
+tiles that would be deleted by the pruning criteria, including when evaluating a
+log client's availability policies.
+
 ## Acknowledgements
 
 This design is based on the Go Checksum Database developed with Russ Cox and on
@@ -164,3 +223,4 @@ the feedback of the Sigsum team and of many individuals in the WebPKI community.
 [RFC 5246]: https://www.rfc-editor.org/rfc/rfc5246.html
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [signed note]: https://c2sp.org/signed-note
+[temporal sharding]: https://googlechrome.github.io/CertificateTransparency/log_policy.html#temporal-sharding
