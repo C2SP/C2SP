@@ -182,15 +182,15 @@ allows the log to still produce a consistency proof if some witness is very far
 behind.
 
 An entry is said to be *available* if its index is greater than or equal to the
-minimum index. A tree head is said to be *available* if its tree size is greater
+minimum index. A checkpoint is said to be *available* if its tree size is greater
 than the minimum index.
 
 This pruning criteria allows a log client to obtain:
 
 * Any available entry
-* The root hash for any available tree head
-* An inclusion proof for any available entry to any containing tree head
-* A consistency proof between any two available tree heads
+* The root hash for any available checkpoint
+* An inclusion proof for any available entry to any containing checkpoint
+* A consistency proof between any two available checkpoints
 
 Pruning is similar to the practice of [temporal sharding][] of logs, except it
 does not change the structure of the tree or the identity of the log. This means
