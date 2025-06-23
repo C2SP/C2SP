@@ -180,15 +180,15 @@ deleting the resources from storage. This allows the log to easily recover from
 misconfiguration if the minimum index was set to too high a value.
 
 An entry is said to be *available* if its index is greater than or equal to the
-minimum index. A checkpoint is said to be *available* if its tree size is
-greater than the minimum index.
+minimum index. A tree head is said to be *available* if its tree size is greater
+than the minimum index.
 
 This pruning criteria allows a log client to obtain:
 
 * Any available entry
-* The hash value for any available checkpoint
-* An inclusion proof for any available entry to any containing checkpoint
-* A consistency proof between any two available checkpoints
+* The root hash for any available tree head
+* An inclusion proof for any available entry to any containing tree head
+* A consistency proof between any two available tree heads
 
 Pruning is similar to the practice of [temporal sharding][] of logs, except it
 does not change the structure of the tree or the identity of the log. This means
@@ -198,7 +198,9 @@ with the pruned log.
 This document defines *how* to prune a log, but not policies around *when* or *if*
 a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
 policies for how long entries must be available. For example, an ecosystem might
-require that entries remain accessible for 6 months after they expire.
+require that entries remain accessible for 6 months after they expire. Without a
+policy for when pruning is permitted, logs MUST NOT be pruned. I.e., the minimum
+index value MUST be set to zero.
 
 If an entry is pruned and historical data is not available, e.g. another copy of
 the entries or a trusted summary of expiration dates, it may not be possible to
