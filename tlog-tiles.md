@@ -177,7 +177,9 @@ bundle `<prefix>/tile/entries/<N>`, the log MAY return a 410 or 404 response if 
 resource's end index, defined above, is below or equal to the minimum index.
 Logs are RECOMMENDED to implement this by denying HTTP requests, rather than
 deleting the resources from storage. This allows the log to easily recover from
-misconfiguration if the minimum index was set to too high a value.
+misconfiguration if the minimum index was set to too high a value. It also
+allows the log to still produce a consistency proof if some witness is very far
+behind.
 
 An entry is said to be *available* if its index is greater than or equal to the
 minimum index. A tree head is said to be *available* if its tree size is greater
@@ -200,7 +202,8 @@ a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
 policies for how long entries must be available. For example, an ecosystem might
 require that entries remain accessible for 6 months after they expire. Without a
 policy for when pruning is permitted, logs MUST NOT be pruned. I.e., the minimum
-index value MUST be set to zero.
+index value MUST be set to zero. Retention policies SHOULD be set so that there
+is ample time for ecosystem participants to stay ahead of the minimum index.
 
 If an entry is pruned and historical data is not available, e.g. another copy of
 the entries or a trusted summary of expiration dates, it may not be possible to
