@@ -163,9 +163,9 @@ entry bundle URL.
 
 In some log applications, such as [Certificate Transparency][], entries expire
 and are replaced with renewed versions. As this happens, the total size of the
-log grows, even if the unexpired subset remains fixed. To mitigate this, a log
-MAY be *pruned*. Pruning makes some prefix of the log unavailable, without
-changing the tree structure.
+log grows, even if the unexpired subset remains fixed. To mitigate this, this
+section defines procedures to *prune* log. Pruning makes some prefix of the log
+unavailable, without changing the tree structure.
 
 Logs maintain a *minimum index* value. The minimum index is the index of the
 first log entry that the log publishes. It MUST be less than or equal to the
@@ -175,11 +175,18 @@ is zero.
 In response to a request for a full tile `<prefix>/tile/<L>/<N>`, or an entry
 bundle `<prefix>/tile/entries/<N>`, the log MAY return a 410 or 404 response if the
 resource's end index, defined above, is below or equal to the minimum index.
-Logs are RECOMMENDED to implement this by denying HTTP requests, rather than
-deleting the resources from storage. This allows the log to easily recover from
-misconfiguration if the minimum index was set to too high a value. It also
-allows the log to still produce a consistency proof if some witness is very far
-behind.
+
+Logs are RECOMMENDED to implement pruning by denying HTTP requests, rather than
+deleting the resources from storage. This means:
+
+* The log can easily recover from misconfiguration if the minimum index was set
+  incorrectly.
+* If there is a question about some pruned entry, the log can still produce it,
+  and an inclusion proof.
+* If some witness is very far behind, the log can still produce a consistency
+  proof to catch the witness up.
+* The log can choose to continue making the resources available but heavily
+  rate-limited or with limited access.
 
 An entry is said to be *available* if its index is greater than or equal to the
 minimum index. A checkpoint is said to be *available* if its tree size is greater
