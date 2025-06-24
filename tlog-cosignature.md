@@ -1,6 +1,6 @@
 # Transparency Log Cosignatures
 
-An cosignature is a statement by some party in a transparency log ecosystem,
+A cosignature is a statement by some party in a transparency log ecosystem,
 such as a [witness][], that it verified the consistency of a [checkpoint][],
 along with other properties specified by that cosigner. Log clients can verify a
 quorum of cosignatures to provide split-view attacks and also obtain assurance
@@ -44,7 +44,7 @@ checking consistency proofs. Along that branch, cosigners will generate
 part of the append-only branch and, optionally, provides additionally
 cosigner-specific assertions about the checkpoint.
 
-Cosigners have an **name** and a public key. The name is a unique
+Cosigners have a **name** and a public key. The name is a unique
 identifier for the cosigner. The name MUST be non-empty, and it SHOULD be
 a schema-less URL containing neither Unicode spaces nor plus (U+002B), such
 as `example.com/mirror42`. This is only a recommendation to avoid collisions,
@@ -57,7 +57,7 @@ contents are available from its monitoring interface. Other documents MAY define
 cosigner roles that provide other assertions, e.g. checking some [checkpoint][]
 extension, or some property of the entries.
 
-When an cosigner signs checkpoints, it is held responsible *both* for upholding
+When a cosigner signs checkpoints, it is held responsible *both* for upholding
 the append-only property *and* for meeting its defined guarantees for all
 entries in any checkpoints that it signed.
 
@@ -65,7 +65,7 @@ A single cosigner, with a single cosigner name and public key, MAY generate
 cosignatures for checkpoints from multiple logs. The signed message, defined
 below, includes both the cosigner name and log origin.
 
-An cosigner's name identifies the cosigner and thus the assertions provided. If
+A cosigner's name identifies the cosigner and thus the assertions provided. If
 a single operator performs multiple cosigner roles in an ecosystem, each role
 MUST use a distinct cosigner name and SHOULD use a distinct key.
 
@@ -112,14 +112,14 @@ over the message defined in the next section.
 ### Signed message
 
 The signed message MUST be three newline (U+000A) terminated lines (one header
-line, one timestamp line, and one name line) followed by the whole note body of
+line, one name line, and one timestamp line) followed by the whole note body of
 the cosigned checkpoint (including the final newline, but not including any
 signature lines).
 
 The header line MUST be the fixed string `cosignature/v2`, and provides domain
 separation.
 
-The name line MUST consistent of the cosigner name.
+The name line MUST be the cosigner name.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
 the number of seconds since the UNIX epoch encoded as an ASCII decimal with no
@@ -133,7 +133,7 @@ leading zeroes. This value MUST match the `timestamped_signature.timestamp`.
     CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
 Semantically, a v2 cosignature is a statement that, as of the specified time,
-the specified checkpoint is one of the largest size which:
+the specified checkpoint is of the largest size which:
 
 * has a tree hash which is consistent with all other checkpoints signed by the named cosigner
 * satisfies all other properties asserted by the named cosigner

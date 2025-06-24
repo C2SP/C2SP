@@ -39,7 +39,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 A mirror is a [cosigner][] that stores a copy of a log and, when signing a
 [checkpoint][], provides the additional guarantee that the mirror has
-durably logged the contents of the checkpoint and has made it accessible.
+durably logged and made accessible the contents of the checkpoint.
 
 A mirror is defined by a name, a public key, and by two URL prefixes:
 the *submission prefix* for write APIs and the *monitoring prefix* for read
@@ -119,7 +119,7 @@ name. The mirror's signature is computed later, as described below.
 
 ### add-entries
 
-The mirror implements a `add-entries` endpoint to upload entries for a supported
+The mirror implements an `add-entries` endpoint to upload entries for a supported
 log:
 
     POST <submission prefix>/<encoded origin>/add-entries
@@ -164,8 +164,8 @@ multiple of 256. The request MUST contain
 package `i`, for `0 <= i < num_packages`, MUST be computed from the interval
 `[start, end)` where:
 
-    start = upload_start, rounded_start + i * 256
-    end = upload_end, rounded_start + (i + 1) * 256
+    start = max(upload_start, rounded_start + i * 256)
+    end = min(upload_end, rounded_start + (i + 1) * 256)
 
 The package MUST contain the following values, concatenated.
 
@@ -272,7 +272,7 @@ that the two copies of the entries are identical. They will both be proven
 consistent with the pending checkpoints.
 
 When updating the mirror checkpoint to `upload_end`, it is possible that some
-concurrent of `add-entries` has already updated the checkpoint to `upload_end`
+concurrent instance of `add-entries` has already updated the mirror checkpoint to `upload_end`
 or past it. In this case, the mirror MUST NOT rewind the checkpoint and MUST
 instead skip the update.
 
@@ -281,7 +281,7 @@ representation in the tiled log interface. It is expected that most
 implementations will compute exactly one entry bundle from each entry package
 and commit it directly to log storage when the package is authenticated.
 
-A mirror that uses a different representation MAY buffer entry packets and defer
+A mirror that uses a different representation MAY buffer entry packages and defer
 committing them. For example, if the mirror internally stores entry bundles of
 size 512, it might commit entry packages two at a time.
 
@@ -292,6 +292,6 @@ mirror commits entries out of order, it MUST correctly compute the next entry to
 be the *first* missing entry, even if some subsequent entries have been
 committed. Mirror clients will then reupload the subsequent entries.
 
-Mirrors MAY additionally implement other update processes, provided it continues
+A mirror MAY additionally implement other update processes, provided it continues
 to correctly operate `add-entries` and never violates its cosigner requirements
 on mirror checkpoints.
