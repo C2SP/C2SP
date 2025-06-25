@@ -209,18 +209,22 @@ with the pruned log.
 This document defines *how* to prune a log, but not policies around *when* or *if*
 a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
 policies for how long entries must be available. For example, an ecosystem might
-require that entries remain accessible for 6 months after they expire. Without a
-policy for when pruning is permitted, logs MUST NOT be pruned. I.e., the minimum
-index value MUST be set to zero. Retention policies SHOULD be set so that there
-is ample time for ecosystem participants to stay ahead of the minimum index.
+require that entries remain accessible for 6 months after they expire. Retention
+policies MUST only permit pruning entries after they will no longer relevant to
+the log application. For example, expired X.509 certificates will no longer be
+accepted by relying parties. Retention policies SHOULD be set so that there is
+ample time for monitors to stay ahead of the minimum index.
 
-If an entry is pruned and historical data is not available, e.g. another copy of
-the entries or a trusted summary of expiration dates, it may not be possible to
-check if the retention policy has been honored. To mitigate this, log clients
-SHOULD be periodically updated with a lower bound on which entries to accept.
-This lower bound SHOULD be at least the log's minimum index at the time and MAY
-be higher, such as the index of the first available, currently unexpired log
-entry.
+Without a policy for when pruning is permitted, logs MUST NOT be pruned. That
+is, the minimum index value MUST be set to zero.
+
+If a log is subject to pruning, log clients SHOULD be periodically updated with
+a lower bound on which entries to accept. This lower bound MUST be at least the
+log's minimum index and MAY be higher, such as the index of the first available,
+currently unexpired log entry. This mitigates the possibility of a log being
+pruned outside its retention policy, and historical data is not available to
+determine this. Monitors MAY disregard entries below the lower bound accepted by
+up-to-date log clients.
 
 TODO: Some HTTP endpoint for fetching the minimum index? The semantics would be
 something like: serving a minimum index equivalent to returning 404 from the
