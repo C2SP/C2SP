@@ -152,7 +152,7 @@ entire request body.
 Each entry package is determined by a half-open interval `[start, end)` of log
 indices. The request MUST contain entry packages whose intervals' disjoint
 union, in order, is the interval `[upload_start, upload_end)`. The overall
-interval MUST be divided into packages at multiples of 256.
+interval MUST be divided into packages at multiples of 256, to align with the corresponding entry bundles.
 
 More precisely, if `upload_start` is equal to `upload_end`, there are no
 packages. Otherwise, let `rounded_start` be `upload_start` rounded down to a
