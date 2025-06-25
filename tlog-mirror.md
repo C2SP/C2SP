@@ -100,9 +100,7 @@ the log.
 The mirror implements a [witness][]'s `add-checkpoint` endpoint to update its
 pending checkpoint for a log:
 
-    POST <submission prefix>/<encoded origin>/add-checkpoint
-
-`encoded origin` is the log's origin, [percent-encoded][].
+    POST <submission prefix>/add-checkpoint
 
 The request is handled identically to that of a witness, updating the pending
 checkpoint (but not the mirror checkpoint), with the exception that it does not
@@ -122,15 +120,15 @@ name. The mirror's signature is computed later, as described below.
 The mirror implements an `add-entries` endpoint to upload entries for a supported
 log:
 
-    POST <submission prefix>/<encoded origin>/add-entries
-
-`encoded origin` is the log's origin, [percent-encoded][].
+    POST <submission prefix>/add-entries
 
 #### Request Body
 
 The request body MUST have `Content-Type` of `application/octet-stream` and
 contain the following values, concatenated.
 
+* 2 bytes, encoding a big-endian, unsigned 16-bit integer: `log_origin_size`
+* `log_origin_size` bytes, containing the log origin
 * 8 bytes, encoding a big-endian, unsigned 64-bit integer: `upload_start`
 * 8 bytes, encoding a big-endian, unsigned 64-bit integer: `upload_end`
 * 2 bytes, encoding a big-endian, unsigned 16-bit integer: `ticket_size`
@@ -190,11 +188,17 @@ The request body has unbounded size, so the client and mirror SHOULD stream it.
 
 The mirror processes the request as follows:
 
-First, the mirror reads `upload_start`, `upload_end`, and `ticket`. If
-`upload_end` is not the tree size of a known pending checkpoint value, the
-mirror MUST respond with a "409 Conflict" HTTP status code. If `upload_start` is
-greater than the mirror's next entry, or too far below the mirror's next entry,
-the mirror MUST also respond with a "409 Conflict" HTTP status code.
+First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
+`ticket`. If `log_origin` is not a known log, the mirror MUST respond with a
+"404 Not Found" HTTP status code. If `upload_end` is not the tree size of a
+known pending checkpoint value, the mirror MUST respond with a "409 Conflict"
+HTTP status code. If `upload_start` is greater than the mirror's next entry, or
+too far below the mirror's next entry, the mirror MUST also respond with a
+"409 Conflict" HTTP status code.
+
+The mirror SHOULD send these error responses without waiting for the entire
+request body to be available. Conversely, the client SHOULD be prepared to
+receive an error response before the request body is fully sent.
 
 When sending a 409 response, the response body MUST have a `Content-Type` of
 `text/x.tlog.mirror-info` and consist of three lines, each followed by a
@@ -204,13 +208,10 @@ newline (U+000A):
 * The next entry, in decimal
 * An opaque, possibly zero length, ticket value, encoded in base64
 
-The mirror SHOULD send this response without waiting for the entire request body
-to be available. Conversely, the client SHOULD be prepared to receive a 409
-response before the request body is fully sent. If the client's `upload_end`
-value was valid, the first line SHOULD contain `upload_end`. This allows the
-client to resume an interrupted upload without recomputing subtree consistency
-proofs. Otherwise, the first line SHOULD be the tree size of the current pending
-checkpoint.
+If the client's `upload_end` value was valid, the first line SHOULD contain
+`upload_end`. This allows the client to resume an interrupted upload without
+recomputing subtree consistency proofs. Otherwise, the first line SHOULD be the
+tree size of the current pending checkpoint.
 
 After receiving a 409 Conflict, the client SHOULD retry setting `upload_end` to
 the tree size, `upload_start` to the advertised next entry value, and the
