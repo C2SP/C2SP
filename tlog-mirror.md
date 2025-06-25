@@ -127,11 +127,11 @@ log:
 The request body MUST have `Content-Type` of `application/octet-stream` and
 contain the following values, concatenated.
 
-* 2 bytes, encoding a big-endian, unsigned 16-bit integer: `log_origin_size`
+* 2 bytes, encoding a big-endian uint16: `log_origin_size`
 * `log_origin_size` bytes, containing the log origin
-* 8 bytes, encoding a big-endian, unsigned 64-bit integer: `upload_start`
-* 8 bytes, encoding a big-endian, unsigned 64-bit integer: `upload_end`
-* 2 bytes, encoding a big-endian, unsigned 16-bit integer: `ticket_size`
+* 8 bytes, encoding a big-endian uint64: `upload_start`
+* 8 bytes, encoding a big-endian uint64: `upload_end`
+* 2 bytes, encoding a big-endian uint16: `ticket_size`
 * `ticket_size` bytes, containing an opaque `ticket` value, described below
 * A sequence of *entry packages*, described below
 
@@ -167,8 +167,7 @@ package `i`, for `0 <= i < num_packages`, MUST be computed from the interval
 
 The package MUST contain the following values, concatenated.
 
-* The log entries in `[start, end)`, each with a big-endian, 16-bit length
-  prefix
+* The log entries in `[start, end)`, each with a big-endian uint16 length prefix
 * 1 byte, encoding an 8-bit unsigned integer, `num_hashes`, which MUST be at
   most 63
 * `num_hashes` [subtree consistency proof][] hash values
