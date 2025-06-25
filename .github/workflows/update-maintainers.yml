@@ -1,0 +1,56 @@
+name: Update Maintainers
+on:
+  schedule:
+    - cron: '0 */4 * * *'  # Every 4 hours
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    paths:
+      - '.github/update-maintainers/**'
+      - '.github/workflows/update-maintainers.yml'
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version-file: .github/go.mod
+          check-latest: true
+      - name: Generate maintainers list
+        env:
+          GITHUB_TOKEN: ${{ secrets.MAINTAINERS_GITHUB_TOKEN }}
+        run: |
+          cd .github/update-maintainers
+          go run .
+      - name: Upload generated file
+        uses: actions/upload-artifact@v4
+        with:
+          name: maintainers-file
+          path: .github/MAINTAINERS.md
+          retention-days: 1
+  
+  commit:
+    needs: generate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated file
+        uses: actions/download-artifact@v4
+        with:
+          name: maintainers-file
+          path: .github/
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          if git diff --quiet .github/MAINTAINERS.md; then
+            echo "No changes to commit"
+          else
+            git add .github/MAINTAINERS.md
+            git commit -m ".github: update MAINTAINERS.md"
+            git push
+          fi
