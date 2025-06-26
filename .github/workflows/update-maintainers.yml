@@ -10,8 +10,6 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
@@ -34,10 +32,10 @@ jobs:
   commit:
     needs: generate
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.MAINTAINERS_DEPLOY_KEY }}
       - name: Download generated file
         uses: actions/download-artifact@v4
         with:
