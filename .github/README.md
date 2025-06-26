@@ -52,6 +52,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | [`c2sp.org/age-plugin`](https://c2sp.org/age-plugin) | The age plugin stdio protocol | [Maintainers](MAINTAINERS.md#age-plugin) |
 | [`c2sp.org/BLAKE3`](https://c2sp.org/BLAKE3) | A fast cryptographic hash function (and PRF, MAC, KDF, and XOF) | [Maintainers](MAINTAINERS.md#BLAKE3) |
 | [`c2sp.org/chacha8rand`](https://c2sp.org/chacha8rand) | Fast cryptographic random number generator | [Maintainers](MAINTAINERS.md#chacha8rand) |
+| [`c2sp.org/det-keygen`](https://c2sp.org/det-keygen) | Deterministic key pair generation from seed | [Maintainers](MAINTAINERS.md#det-keygen) |
 | [`c2sp.org/https-bastion`](https://c2sp.org/https-bastion) | Bastion (reverse proxy) protocol for exposing HTTPS services | [Maintainers](MAINTAINERS.md#https-bastion) |
 | [`c2sp.org/jq255`](https://c2sp.org/jq255) | Prime order groups, key exchange, and signatures | [Maintainers](MAINTAINERS.md#jq255) |
 | [`c2sp.org/signed-note`](https://c2sp.org/signed-note) | Cleartext signed messages | [Maintainers](MAINTAINERS.md#signed-note) |

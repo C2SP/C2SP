@@ -18,6 +18,9 @@ policy:
           - the chacha8rand maintainers have authored relevant changes
           - the chacha8rand maintainers have approved relevant changes
         - or:
+          - the det-keygen maintainers have authored relevant changes
+          - the det-keygen maintainers have approved relevant changes
+        - or:
           - the https-bastion maintainers have authored relevant changes
           - the https-bastion maintainers have approved relevant changes
         - or:
@@ -168,6 +171,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/chacha8rand"
+    requires:
+      count: 0
+
+  - name: the det-keygen maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^det-keygen\\.md$"
+          - "^det-keygen/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/det-keygen"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the det-keygen maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^det-keygen\\.md$"
+          - "^det-keygen/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/det-keygen"
     requires:
       count: 0
 
