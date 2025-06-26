@@ -206,30 +206,40 @@ does not change the structure of the tree or the identity of the log. This means
 all existing proofs remain valid, and existing log clients remain compatible
 with the pruned log.
 
-This document defines *how* to prune a log, but not policies around *when* or *if*
-a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
-policies for how long entries must be available. For example, an ecosystem might
-require that entries remain accessible for 6 months after they expire. Retention
-policies MUST only permit pruning entries after they will no longer relevant to
-the log application. For example, expired X.509 certificates will no longer be
-accepted by relying parties. Retention policies SHOULD be set so that there is
-ample time for monitors to stay ahead of the minimum index.
-
-Without a policy for when pruning is permitted, logs MUST NOT be pruned. That
-is, the minimum index value MUST be set to zero.
-
-If a log is subject to pruning, log clients SHOULD be periodically updated with
-a lower bound on which entries to accept. This lower bound MUST be at least the
-log's minimum index and MAY be higher, such as the index of the first available,
-currently unexpired log entry. This mitigates the possibility of a log being
-pruned outside its retention policy, and historical data is not available to
-determine this. Monitors MAY disregard entries below the lower bound accepted by
-up-to-date log clients.
-
 TODO: Some HTTP endpoint for fetching the minimum index? The semantics would be
 something like: serving a minimum index equivalent to returning 404 from the
 tiles that would be deleted by the pruning criteria, including when evaluating a
 log client's availability policies.
+
+#### Retention Policies
+
+This document defines *how* to prune a log, but not policies around *when* or *if*
+a log may be pruned. Log ecosystems that permit pruning SHOULD define retention
+policies for how long entries must be available. Retention policies MUST only
+permit pruning an entry sometime after it will no longer relevant to the log
+application. Retention policies SHOULD also be set so that there is ample time
+for monitors to stay ahead of the minimum index. For example, a
+[Certificate Transparency][] retention policy might require that entries remain
+accessible for 6 months after certificate expiry.
+
+Without a policy for when pruning is permitted, logs MUST NOT be pruned. That
+is, the minimum index value MUST be set to zero.
+
+Log applications that support pruning SHOULD additionally define mechanisms for
+applicable log clients to reject entries below some per-log lower bound. This
+lower bound MUST be set to at least the log's current minimum index and SHOULD
+be periodically updated. It MAY be set higher, based on the entries that remain
+relevant to the log application.
+
+For example, in [Certificate Transparency][], relying parties that support
+prunable logs would set their minimum index to the first unpruned, unexpired,
+unrevoked log entry at a given time, and periodically update it. This ensures
+that, if a log's minimum index is consistent with the lower bounds of up-to-date
+relying parties, those relying parties won't accept pruned entries even if the
+log violated the retention policy. Monitors can use these lower bounds to
+determine whether pruned entries are safe to disregard. However, unupdated
+relying parties with sufficiently stale lower bounds are dependent on retention
+policies to ensure that all pruned entries have already expired.
 
 ## Acknowledgements
 
