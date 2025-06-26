@@ -25,6 +25,10 @@
 
 - [@FiloSottile](https://github.com/FiloSottile)
 
+### det-keygen
+
+- [@FiloSottile](https://github.com/FiloSottile)
+
 ### https-bastion
 
 - [@AlCutter](https://github.com/AlCutter)
@@ -42,6 +46,7 @@
 ### static-ct-api
 
 - [@FiloSottile](https://github.com/FiloSottile)
+- [@mcpherrinm](https://github.com/mcpherrinm)
 
 ### tlog-checkpoint
 
