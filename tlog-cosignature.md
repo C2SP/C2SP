@@ -3,7 +3,7 @@
 A cosignature is a statement by some party in a transparency log ecosystem,
 such as a [witness][], that it verified the consistency of a [checkpoint][],
 along with other properties specified by that cosigner. Log clients can verify a
-quorum of cosignatures to provide split-view attacks and also obtain assurance
+quorum of cosignatures to prevent split-view attacks and also obtain assurance
 of other properties of some log entry.
 
 ```
