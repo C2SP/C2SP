@@ -15,6 +15,9 @@ policy:
           - the BLAKE3 maintainers have authored relevant changes
           - the BLAKE3 maintainers have approved relevant changes
         - or:
+          - the chacha20-poly1305-siv maintainers have authored relevant changes
+          - the chacha20-poly1305-siv maintainers have approved relevant changes
+        - or:
           - the chacha8rand maintainers have authored relevant changes
           - the chacha8rand maintainers have approved relevant changes
         - or:
@@ -144,6 +147,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/BLAKE3"
+    requires:
+      count: 0
+
+  - name: the chacha20-poly1305-siv maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^chacha20-poly1305-siv\\.md$"
+          - "^chacha20-poly1305-siv/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/chacha20-poly1305-siv"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the chacha20-poly1305-siv maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^chacha20-poly1305-siv\\.md$"
+          - "^chacha20-poly1305-siv/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/chacha20-poly1305-siv"
     requires:
       count: 0
 
