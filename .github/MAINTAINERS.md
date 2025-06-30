@@ -21,6 +21,9 @@
 - [@veorq](https://github.com/veorq)
 - [@zooko](https://github.com/zooko)
 
+### chacha20-poly1305-siv
+
+
 ### chacha8rand
 
 - [@FiloSottile](https://github.com/FiloSottile)
@@ -45,6 +48,7 @@
 
 ### static-ct-api
 
+- [@AGWA](https://github.com/AGWA)
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@mcpherrinm](https://github.com/mcpherrinm)
 
