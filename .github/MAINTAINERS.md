@@ -23,6 +23,7 @@
 
 ### chacha20-poly1305-siv
 
+- [@samuel-lucas6](https://github.com/samuel-lucas6)
 
 ### chacha8rand
 
