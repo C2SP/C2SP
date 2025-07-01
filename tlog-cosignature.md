@@ -3,6 +3,10 @@
 A cosignature is a statement by a transparency log [witness][] that it verified
 the consistency of a [checkpoint][]. Log clients can verify a quorum of
 cosignatures to prevent split-view attacks before trusting an inclusion proof.
+A witness may make additional statements relating to a checkpoint.  Log clients
+that know about this can then be assured of additional cosigning properties.
+
+Below is an example of a checkpoint that contains a cosignature.
 
 ```
 example.com/behind-the-sofa
@@ -95,10 +99,20 @@ log identified by the origin line has the specified root hash.
 Extension lines MAY be included in the checkpoint by the log, and if present
 MUST be included in the cosigned message. However, it's important to understand
 that the witness is asserting observation of correct append-only operation of
-the log based on the first three lines of the checkpoint; no semantic statement
-is made about any extension lines, and consensus between witnesses on the
-extension lines SHALL NOT be assumed.
+the log based on the first three lines of the checkpoint; consensus between
+witnesses on the extension lines SHALL NOT be assumed, and no semantic statement
+is made about any extension lines unless the witness operator says otherwise.
+
+A witness operator MAY make additional statements about a checkpoint.  These
+additional statements need to be communicated out of band to those defining
+trust policies based on tuples of (public key, supported cosignature version).
+A given tuple MUST imply a single set of statements.  These statements MUST
+include the cosignature/v1 semantics, and MAY include other statements that
+are non-conflicting.  Examples of non-conflicting statements include "I also
+mirrored the log up until the checkpoint size" and "I also reproduced the sparse
+Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
 
 [note signature]: https://c2sp.org/signed-note
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [witness]: https://c2sp.org/tlog-witness
+[tlog-mirror]: https://github.com/C2SP/C2SP/pull/140/
