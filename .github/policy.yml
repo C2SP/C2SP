@@ -15,8 +15,14 @@ policy:
           - the BLAKE3 maintainers have authored relevant changes
           - the BLAKE3 maintainers have approved relevant changes
         - or:
+          - the chacha20-poly1305-siv maintainers have authored relevant changes
+          - the chacha20-poly1305-siv maintainers have approved relevant changes
+        - or:
           - the chacha8rand maintainers have authored relevant changes
           - the chacha8rand maintainers have approved relevant changes
+        - or:
+          - the det-keygen maintainers have authored relevant changes
+          - the det-keygen maintainers have approved relevant changes
         - or:
           - the https-bastion maintainers have authored relevant changes
           - the https-bastion maintainers have approved relevant changes
@@ -35,6 +41,9 @@ policy:
         - or:
           - the tlog-cosignature maintainers have authored relevant changes
           - the tlog-cosignature maintainers have approved relevant changes
+        - or:
+          - the tlog-mirror maintainers have authored relevant changes
+          - the tlog-mirror maintainers have approved relevant changes
         - or:
           - the tlog-tiles maintainers have authored relevant changes
           - the tlog-tiles maintainers have approved relevant changes
@@ -141,6 +150,33 @@ approval_rules:
     requires:
       count: 0
 
+  - name: the chacha20-poly1305-siv maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^chacha20-poly1305-siv\\.md$"
+          - "^chacha20-poly1305-siv/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/chacha20-poly1305-siv"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the chacha20-poly1305-siv maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^chacha20-poly1305-siv\\.md$"
+          - "^chacha20-poly1305-siv/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/chacha20-poly1305-siv"
+    requires:
+      count: 0
+
   - name: the chacha8rand maintainers have approved relevant changes
     if:
       changed_files:
@@ -165,6 +201,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/chacha8rand"
+    requires:
+      count: 0
+
+  - name: the det-keygen maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^det-keygen\\.md$"
+          - "^det-keygen/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/det-keygen"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the det-keygen maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^det-keygen\\.md$"
+          - "^det-keygen/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/det-keygen"
     requires:
       count: 0
 
@@ -327,6 +390,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/tlog-cosignature"
+    requires:
+      count: 0
+
+  - name: the tlog-mirror maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-mirror\\.md$"
+          - "^tlog-mirror/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/tlog-mirror"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the tlog-mirror maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-mirror\\.md$"
+          - "^tlog-mirror/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/tlog-mirror"
     requires:
       count: 0
 
