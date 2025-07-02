@@ -1,9 +1,9 @@
 # Transparency Log Cosignatures
 
-A cosignature is a statement by a transparency log [witness][] that it verified
+A cosignature is a statement by a *cosigner* that it verified
 the consistency of a [checkpoint][]. Log clients can verify a quorum of
 cosignatures to prevent split-view attacks before trusting an inclusion proof.
-A witness may make additional statements relating to a checkpoint.  Log clients
+A cosigner may make additional statements relating to a checkpoint.  Log clients
 that know about this can then be assured of additional cosigning properties.
 
 Below is an example of a checkpoint that contains a cosignature.
@@ -45,19 +45,19 @@ Per the signed note format, a note signature line is
 
     — <key name> base64(32-bit key ID || signature)
 
-The key name SHOULD be a schema-less URL that identifies the witness. Like the
+The key name SHOULD be a schema-less URL that identifies the cosigner. Like the
 checkpoint origin line, this is for disambiguation, and MAY match a publicly
 reachable endpoint or not.
 
 The key ID MUST be
 
-    SHA-256(<name> || "\n" || 0x04 || 32-byte Ed25519 witness public key)[:4]
+    SHA-256(<name> || "\n" || 0x04 || 32-byte Ed25519 cosigner public key)[:4]
 
-Clients are configured with tuples of (witness name, public key, supported
+Clients are configured with tuples of (cosigner name, public key, supported
 cosignature version) and based on that they can compute the expected name and
 key ID, and ignore any signature lines that don't match the name and key ID.
 
-Future cosignature formats MAY reuse the same witness public key with a
+Future cosignature formats MAY reuse the same cosigner public key with a
 different key ID algorithm byte (and a different signed message header line).
 
 The signature MUST be a 72-byte `timestamped_signature` structure.
@@ -70,7 +70,7 @@ The signature MUST be a 72-byte `timestamped_signature` structure.
 "timestamp" is the time at which the cosignature was generated, as seconds since
 the UNIX epoch (January 1, 1970 00:00 UTC).
 
-"signature" is an Ed25519 ([RFC 8032][]) signature from the witness public key
+"signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
 
 ## Signed message
@@ -93,17 +93,17 @@ leading zeroes. This value MUST match the `timestamped_signature.timestamp`.
     CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
 Semantically, a v1 cosignature is a statement that, as of the specified time,
-the consistent tree head with the largest size the witness has observed for the
+the consistent tree head with the largest size the cosigner has observed for the
 log identified by the origin line has the specified root hash.
 
 Extension lines MAY be included in the checkpoint by the log, and if present
 MUST be included in the cosigned message. However, it's important to understand
-that the witness is asserting observation of correct append-only operation of
+that the cosigner is asserting observation of correct append-only operation of
 the log based on the first three lines of the checkpoint; consensus between
-witnesses on the extension lines SHALL NOT be assumed, and no semantic statement
-is made about any extension lines unless the witness operator says otherwise.
+cosigners on the extension lines SHALL NOT be assumed, and no semantic statement
+is made about any extension lines unless the cosigner's operator says otherwise.
 
-A witness operator MAY make additional statements about a checkpoint.  These
+A cosigner MAY make additional statements about a checkpoint.  These
 additional statements need to be communicated out of band to those defining
 trust policies based on tuples of (public key, supported cosignature version).
 A given tuple MUST imply a single set of statements.  These statements MUST
