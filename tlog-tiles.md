@@ -191,12 +191,11 @@ deleting the resources from storage. This means:
 This pruning criteria allows a log client to obtain:
 
 * Any entry whose index is greater or equal to the minimum index
-* The root hash for any checkpoint whose tree size is greater than the minimum
-  index
-* An inclusion proof between any entry and any containing checkpoint, if the
-  entry's index is greater or equal to the minimum index
-* A consistency proof between any two checkpoints whose tree sizes are both
-  greater than the minimum index
+* The root hash for any tree whose size is greater than the minimum index
+* An inclusion proof between any entry and any containing tree, if the entry's
+  index is greater or equal to the minimum index
+* A consistency proof between any two trees whose sizes are both greater than
+  the minimum index
 
 Tiles and bundles necessary to obtain other entries, root hashes, or proofs may
 not be available.
