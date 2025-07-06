@@ -173,7 +173,7 @@ tree size of the log's current checkpoint. In an unpruned log, the minimum index
 is zero.
 
 In response to a request for a full tile `<prefix>/tile/<L>/<N>`, or an entry
-bundle `<prefix>/tile/entries/<N>`, the log MAY return a 410 or 404 response if the
+bundle `<prefix>/tile/entries/<N>`, the log MAY return an error response if the
 resource's end index, defined above, is below or equal to the minimum index.
 
 Logs are RECOMMENDED to implement pruning by denying HTTP requests, rather than
