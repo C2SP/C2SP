@@ -129,7 +129,9 @@ Inputs:
 
 Outputs:
 - `plaintext`: the decrypted message, which has the same length as the ciphertext.
+
 or
+
 - `"tag verification failed" error`: an error if the authentication tag is invalid for the given inputs, with the decrypted message and incorrect authentication tag not returned/exposed to the user.
 
 Steps:
