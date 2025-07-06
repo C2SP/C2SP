@@ -358,14 +358,14 @@ ciphertext: 10287f0d994ca8b920dcede7ce86a29a055ac8e1c0ca14fe651bb363a2af7e03
 tag: 9283515c1a67bf9234494025356684abae8325ad5a2f7ce275ac7fa49d88d735
 ```
 
-## Acknowledgments
+## Acknowledgements
 ChaCha20 and Poly1305 were designed by Daniel J. Bernstein before being combined to form ChaCha20-Poly1305 by Adam Langley and Yoav Nir.
 
 HChaCha20, XChaCha20, and XChaCha20-Poly1305 were specified by Scott Arciszewski, with HSalsa20 and XSalsa20 being designed by Daniel J. Bernstein.
 
 SIV was proposed by Phillip Rogaway and Thomas Shrimpton.
 
-Thank you to the authors of all the algorithms and constructions referenced in this document. Our design was heavily inspired by such prior work.
+Thank you to the authors of all the algorithms and constructions referenced in this document. Our design was heavily inspired and motivated by such prior work.
 
 Thank you to Loup Vaillant for the idea to use the second half of the Poly1305 key derivation block as a commitment string (an optimised version of the padding fix) and for discussion about key derivation with HChaCha20 vs ChaCha20.
 
