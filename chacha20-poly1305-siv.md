@@ -1,4 +1,5 @@
 # ChaCha20-Poly1305-SIV
+
 [https://c2sp.org/chacha20-poly1305-siv](https://c2sp.org/chacha20-poly1305-siv)
 
 - **Version**: v0.0.1
@@ -7,6 +8,7 @@
 This document specifies the misuse-resistant, key-committing ChaCha20-Poly1305-SIV (CCP-SIV) authenticated encryption with associated data (AEAD) scheme. It is built from ChaCha20 and Poly1305 without modifying their designs, making it compatible with existing APIs from cryptographic libraries. Furthermore, the overhead is just two ChaCha20 blocks over ChaCha20-Poly1305 whilst supporting a larger nonce.
 
 ## Introduction
+
 At the time of writing, [ChaCha20-Poly1305](https://datatracker.ietf.org/doc/html/rfc8439) is one of the [most popular](https://ianix.com/pub/chacha-deployment.html) AEAD schemes in practice. For example, it is supported in TLS, SSH, IPsec, WireGuard, and so on. However, it has four major limitations that affect its generic security, namely, it is not [misuse-resistant](https://eprint.iacr.org/2006/221), [committing](https://eprint.iacr.org/2022/268), [context unforgeability secure](https://eprint.iacr.org/2024/733), or [context discoverability secure](https://eprint.iacr.org/2023/526). The latter three stemming from the definition of a secure AEAD being flawed, failing to account for collision resistance, second-preimage resistance, and preimage resistance. This means:
 
 1. Nonce reuse reveals the XOR of the plaintexts, affecting confidentiality, and recovery of the authentication key allows [forgery](https://eprint.iacr.org/2017/239), affecting integrity.
@@ -37,6 +39,7 @@ With that said, it has the following disadvantages:
 Further design rationale can be found towards the end of this document.
 
 ### Comparison to Other Designs
+
 [AES-SIV](https://eprint.iacr.org/2006/221) originated in 2006 to address the key-wrap problem and became an [RFC](https://datatracker.ietf.org/doc/html/rfc5297) in 2008. It uses AES-CMAC with the novel S2V construction for authenticating a vector of strings (rather than concatenating them with length encoding to become a single string) and an AES-CTR variant for encryption. It takes a larger key that is split in half, uses the tag as the counter, clears certain bits in the counter for optimisation reasons, prepends the tag, and S2V enables inputs to be processed in parallel and cached whilst helping with efficiency in the case of CMAC. However, AES-SIV [lacks committing security](https://eprint.iacr.org/2023/526), is limited to 2<sup>48</sup> invocations with the same key, has multiple variants, has no nonce parameter despite use being recommended (and mandatory in the RFC), and S2V is more error prone to implement than concatenation or constructions [like NMAC](https://neilmadden.blog/2021/10/27/multiple-input-macs/).
 
 [AES-GCM-SIV](https://eprint.iacr.org/2017/168) was published in 2017 to improve upon [GCM-SIV](https://eprint.iacr.org/2015/102) from 2015 and became an [RFC](https://datatracker.ietf.org/doc/html/rfc8452) in 2019. Compared to AES-GCM, it allows more plaintexts to be encrypted under the same key by deriving subkeys based on the nonce, enforces a 96-bit nonce and 128-bit tag, switches to little-endian encoding for performance, encrypts the authenticator output, and uses the tag (modified for domain separation) as the counter. However, it has slower encryption than decryption ([up to 50% slower encryption](https://eprint.iacr.org/2025/222) than AES-GCM), a [suboptimal](https://eprint.iacr.org/2018/136) truncation-based key derivation function (KDF) that introduces four or six additional AES calls, cannot precompute associated data, is meant to be used with random nonces, and still has quite stringent usage limits (e.g., 64 GiB of plaintext). Moreover, like AES-GCM, it [lacks committing security](https://www.usenix.org/conference/usenixsecurity21/presentation/len), works best with hardware support, has multiple variants, and cannot be implemented with existing APIs like ChaCha20-Poly1305 and co can.
@@ -52,11 +55,13 @@ Further design rationale can be found towards the end of this document.
 [ChaCha20-Poly1305-PSIV](https://eprint.iacr.org/2025/222) was proposed in 2025. It only computes one additional ChaCha20 block over ChaCha20-Poly1305 whilst being misuse-resistant and key committing. The Poly1305 key can also be cached to make the number of ChaCha20 blocks equivalent and to allow static associated data pre-processing. Then the usage limits are more relaxed than AES-GCM-SIV. However, it requires modifying the ChaCha20 state, meaning existing APIs cannot be used. Furthermore, the constant in the state is reduced from 128 bits to 32 bits, meaning security analyses of ChaCha20 no longer directly apply. The tag size is also only 128 bits, offering 64-bit key-committing security, which is below the [minimum recommended amount](https://eprint.iacr.org/2022/1260) due to the potential of an [offline attack](https://eprint.iacr.org/2024/875). Whilst the tag size could be increased, this would decrease the nonce size, which is already smaller than ideal, when trying to use more of the tag for encryption. Then the Poly1305 key caching cannot be used with a one-shot API.
 
 ## Conventions and Definitions
+
 The key words “**MUST**”, “**MUST NOT**”, “**REQUIRED**”, “**SHALL**”, “**SHALL NOT**”, “**SHOULD**”, “**SHOULD NOT**”, “**RECOMMENDED**”, “**NOT RECOMMENDED**”, “**MAY**”, and “**OPTIONAL**” in this document are to be interpreted as described in BCP 14 [[RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)] [[RFC 8174](https://datatracker.ietf.org/doc/html/rfc8174)] when, and only when, they appear in all capitals, as shown here.
 
 Throughout this document, “byte” refers to the same unit as “octet”, namely an 8-bit sequence.
 
 Operations:
+
 - `a || b`: the concatenation of byte arrays `a` and `b`.
 - `a[i..j]`: the slice of byte array `a` from index `i` (inclusive) to index `j` (exclusive).
 - `ByteArray(l)`: the creation of a new, all-zero byte array with length `l`.
@@ -67,6 +72,7 @@ Operations:
 - `Poly1305(key, associatedData, plaintext)`: the Poly1305 algorithm with the message inputs ordered, padded, and length encoded following ChaCha20-Poly1305 (replacing the ciphertext with the plaintext), as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439).
 
 Constants:
+
 - `K_LEN`: the length of the encryption key, which is 32 bytes.
 - `N_LEN`: the length of the nonce, which is 16 bytes.
 - `A_MAX`: the maximum associated data length, which is 2<sup>38</sup> bytes (256 GiB).
@@ -75,6 +81,7 @@ Constants:
 - `C_MAX`: the maximum ciphertext length, which is `P_MAX` + `T_LEN` bytes.
 
 ## The ChaCha20-Poly1305-SIV Algorithm
+
 ChaCha20-Poly1305-SIV can be broken down into the following steps:
 
 1. **Subkey derivation**: derive independent subkeys from the key and nonce for Poly1305 and the tag computation/encryption.
@@ -84,23 +91,27 @@ ChaCha20-Poly1305-SIV can be broken down into the following steps:
 For decryption, steps 2 and 3 are reversed because computing the tag requires the plaintext.
 
 ### Encrypt
+
 ```
 Encrypt(key, nonce, associatedData, plaintext)
 ```
 
 Inputs:
+
 - `key`: the encryption key, which **MUST** be `K_LEN` bytes long.
 - `nonce`: the nonce, which **MUST** be `N_LEN` bytes long.
 - `associatedData`: optional associated data to authenticate, which **MUST NOT** be greater than `A_MAX` bytes long.
 - `plaintext`: the message to encrypt, which **MUST NOT** be greater than `P_MAX` bytes long.
 
 Outputs:
+
 - `ciphertext`: the encrypted message, which has the same length as the plaintext.
 - `tag`: the authentication tag, which **MUST** be `T_LEN` bytes long.
 
 These **MUST** either be returned separately as a `(ciphertext, tag)` tuple or concatenated together as `ciphertext || tag`.
 
 Steps:
+
 ```
 allZeros = ByteArray(64)
 subkeys = ChaCha20(key, ReadLE32(nonce[0..4]), nonce[4..16], allZeros)
@@ -116,11 +127,13 @@ return ciphertext and tag
 ```
 
 ### Decrypt
+
 ```
 Decrypt(key, nonce, associatedData, ciphertext, tag)
 ```
 
 Inputs:
+
 - `key`: the encryption key, which **MUST** be `K_LEN` bytes long.
 - `nonce`: the nonce, which **MUST** be `N_LEN` bytes long.
 - `associatedData`: optional associated data to authenticate, which **MUST NOT** be greater than `A_MAX` bytes long.
@@ -128,6 +141,7 @@ Inputs:
 - `tag`: the authentication tag, which **MUST** be `T_LEN` bytes long.
 
 Outputs:
+
 - `plaintext`: the decrypted message, which has the same length as the ciphertext.
 
 or
@@ -135,6 +149,7 @@ or
 - `"tag verification failed" error`: an error if the authentication tag is invalid for the given inputs, with the decrypted message and incorrect authentication tag not returned/exposed to the user.
 
 Steps:
+
 ```
 allZeros = ByteArray(64)
 subkeys = ChaCha20(key, ReadLE32(nonce[0..4]), nonce[4..16], allZeros)
@@ -155,7 +170,9 @@ else
 ```
 
 ## Security Considerations
+
 ### Usage Guidelines
+
 Every key **MUST** be randomly chosen from a uniform distribution. For example, randomly generated using a cryptographically secure pseudorandom number generator (CSPRNG) or the output of a collision-resistant KDF.
 
 The nonce **MAY** be public and predictable. It **SHOULD** be unique for every encryption with the same key. Whilst the algorithm is misuse-resistant, one **MUST NOT** deliberately reuse nonces with the same key outside the context of key wrapping. Misuse-resistance is merely a fail-safe and only protects you to an extent (security degrades with nonce reuse).
@@ -177,6 +194,7 @@ When encrypting large plaintexts, it is advisable to break them into chunks (e.g
 The length of the ciphertext (excluding the tag) is equal to the length of the plaintext. This can leak information about the message content and is unsuitable for creating encrypted blobs that are indistinguishable from random data (e.g., encrypted files with no readable headers). If this is a concern, one can [pad](https://en.wikipedia.org/wiki/Padding_(cryptography)#ISO/IEC_7816-4) the plaintext prior to encryption using a scheme like [PADMÉ](https://arxiv.org/abs/1806.03160) or [Covert padding](https://github.com/covert-encryption/covert/blob/main/docs/Specification.md#padding). This padding is then removed after successful decryption. Note that there are security/overhead differences between deterministic and randomised padding that are beyond the scope of this document.
 
 ### Implementation Guidelines
+
 Tag verification **MUST** be done in constant time. Otherwise, a timing attack can be used to produce a MAC forgery.
 
 If tag verification fails, the decrypted message and computed authentication tag **MUST NOT** be returned/exposed to the user.
@@ -190,6 +208,7 @@ It is **RECOMMENDED** to use a well-known, existing cryptographic library for im
 In the context of key wrapping with a fixed (e.g., all-zero) nonce, one can cache the Poly1305 and tag subkeys for the same key. However, this is **NOT RECOMMENDED** for a general-purpose API to discourage nonce reuse.
 
 ### Security Guarantees
+
 ChaCha20-Poly1305-SIV targets the same [security level](https://eprint.iacr.org/2023/085) as ChaCha20-Poly1305, namely 256-bit security against plaintext recovery and 103-bit security against forgery. The latter is an oversimplification, however, and depends on the [size and number of messages](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-aead-limits) sent by an adversary.
 
 When the same parameters are not reused for encryption, the entire output is indistinguishable from random. When they are reused, this is not the case, as that is impossible with a deterministic algorithm. However, authenticity is provided in both scenarios.
@@ -211,7 +230,9 @@ When the `r` part of the `(r, s)` Poly1305 key is all-zero ([a weak key](https:/
 A formal security analysis is left as future work.
 
 ## Design Rationale
+
 ### Design Goals
+
 The following goals were used when developing this scheme:
 
 - **Nonce misuse-resistance**: the tag must depend on the key, nonce, associated data, and plaintext. Then encryption must depend on either (part of) the tag or the nonce and tag.
@@ -227,6 +248,7 @@ The following goals were used when developing this scheme:
 Note that some of these goals limit performance and security. For example, using two Poly1305 instances, like in ChaCha-Daence, improves the security level but harms performance compared to ChaCha20-Poly1305.
 
 ### Larger Nonce
+
 A 96-bit nonce is [too small](https://soatok.blog/2024/07/01/blowing-out-the-candles-on-the-birthday-bound/) to randomly generate without frequently rotating the key. More random nonces can be [tolerated](https://eprint.iacr.org/2025/222) with a misuse-resistant scheme, but there can be security implications due to the deterministic encryption when all the parameters are repeated. Thus, a larger nonce is sensible.
 
 Replicating [XChaCha20](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xchacha) would work but incurs some performance overhead, increases the size of the key derivation cascade, and possibly introduces another primitive. In contrast, utilising the counter portion of the state is virtually free (converting bytes to an integer).
@@ -234,6 +256,7 @@ Replicating [XChaCha20](https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-xc
 If adjusting the counter produced identical keystream outputs, ChaCha20 would not be a secure stream cipher. Furthermore, HChaCha20 does the same but with truncation instead of the feed-forward.
 
 ### Key Derivation
+
 Poly1305 needs its own key, the nonce needs to be incorporated into the tag computation, and it is best practice to use different keys for different purposes.
 
 The key derivation in ChaCha20-Poly1305 leaves 256 bits [unused](https://datatracker.ietf.org/doc/html/rfc8439#section-2.6), meaning you can get a second key for free. That covers both tag computations.
@@ -245,6 +268,7 @@ This counter overflow checking is also problematic for using the tag as the nonc
 As this results in a new key, it is unnecessary to derive another key just for the nonce extension as long as there is domain separation. Taking a different part of the output from the tag computation achieves this, even if the ChaCha20 inputs for tag computation and nonce extension are identical.
 
 ### Domain Separation
+
 With a pseudorandom function (PRF), domain separation can be achieved by using a different key and/or message or by using different parts of the output.
 
 The above section explains that different keys and parts of the output are used. The user's nonce, the Poly1305 tag, and the final tag are also likely to be different because each one influences the next.
@@ -256,6 +280,7 @@ For the tag to be equivalent to part of a keystream block used during another en
 Then the key derivation/nonce extension calls produce secret, internal values, so a collision with a keystream block used for encryption does not matter.
 
 ### Commitment
+
 There is [debate](https://eprint.iacr.org/2025/377) among cryptographers as to whether 64-bit committing security is [sufficient](https://www.usenix.org/conference/usenixsecurity22/presentation/albertini). However, commitment is related to [collision resistance](https://eprint.iacr.org/2023/526) and an [offline attack](https://eprint.iacr.org/2024/875). Few people would argue a 64-bit security level is collision resistant since that is an [achievable attack](https://eprint.iacr.org/2019/1492), with collision-resistant hash functions targeting at least 112-bit collision resistance. Furthermore, as a designer, you do not know how the algorithm will be used, so you must assume the worst (e.g., long-lived ciphertexts).
 
 Obtaining good committing security requires using a larger tag due to the birthday bound. This larger tag can be condensed into a 120-bit tag with 112-bit collision resistance (or more if operating on bits) via the [succinctly-committing](https://eprint.iacr.org/2024/875) approach. However, this is less efficient, more complicated to implement, not trivial to understand, and still inflates the ciphertext expansion and has weak security for very small messages.
@@ -263,6 +288,7 @@ Obtaining good committing security requires using a larger tag due to the birthd
 In terms of tag length, [Chan and Rogaway](https://eprint.iacr.org/2022/1260) have suggested a minimum of 160 bits for 80-bit committing security, which [Bellare and Hoang](https://eprint.iacr.org/2024/875) seem to agree is strong enough. But this is an atypical tag size, still a weak security level, and short for nonce extension (e.g., it requires padding). 192 and 224 bits are also odd sizes, and you may as well go to 256 bits at that point for a 128-bit security level.
 
 ## Test Vectors
+
 These test vectors are for two types of tests:
 
 1. Successful encryption and decryption.
@@ -271,6 +297,7 @@ These test vectors are for two types of tests:
 In the latter case, one **MUST** check that an error is returned and that the plaintext is not returned.
 
 ### Test Vector 1
+
 ```
 key: 1a1ea9537ef6e0587ac4d36d4c73e07b1526e18bf5bb008f63e4a49b2178a8d2
 
@@ -286,6 +313,7 @@ tag: 85ebd6b3a2dbad07d4811283aaf9777acff58bdab40939a13237be73d3ddd73a
 ```
 
 ### Test Vector 2
+
 ```
 key: 1a1ea9537ef6e0587ac4d36d4c73e07b1526e18bf5bb008f63e4a49b2178a8d2
 
@@ -301,6 +329,7 @@ tag: cb0ff82acbd025c9db100311c6628f41ad9ba81a960b8ccd7fdb19c51252e902
 ```
 
 ### Test Vector 3
+
 ```
 key: 1a1ea9537ef6e0587ac4d36d4c73e07b1526e18bf5bb008f63e4a49b2178a8d2
 
@@ -316,6 +345,7 @@ tag: 4417acff4230861c1ee555cc839fe8b9ccb122fda85b3970d677dc71e8515276
 ```
 
 ### Test Vector 4
+
 ```
 key: 3ef4832df6f83cd761539792c7c34b90fde64ca02d31151fdf924bf2206e37cb
 
@@ -331,6 +361,7 @@ tag: 1d54d3476529356000f20919ac9de59d8ed4f39a62225bc689822916b748cab0
 ```
 
 ### Test Vector 5
+
 ```
 key: 1a1ea9537ef6e0587ac4d36d4c73e07b1526e18bf5bb008f63e4a49b2178a8d2
 
@@ -346,6 +377,7 @@ tag: e85b5e838e89c84d2f544f40cd65bcccfe6f4438ed6325a06d301881ec2e90d2
 ```
 
 ### Test Vector 6
+
 ```
 key: 1a1ea9537ef6e0587ac4d36d4c73e07b1526e18bf5bb008f63e4a49b2178a8d2
 
@@ -361,6 +393,7 @@ tag: 9283515c1a67bf9234494025356684abae8325ad5a2f7ce275ac7fa49d88d735
 ```
 
 ## Acknowledgements
+
 ChaCha20 and Poly1305 were designed by Daniel J. Bernstein before being combined to form ChaCha20-Poly1305 by Adam Langley and Yoav Nir.
 
 HChaCha20, XChaCha20, and XChaCha20-Poly1305 were specified by Scott Arciszewski, with HSalsa20 and XSalsa20 being designed by Daniel J. Bernstein.
