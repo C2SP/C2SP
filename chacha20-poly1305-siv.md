@@ -52,7 +52,7 @@ Further design rationale can be found towards the end of this document.
 [ChaCha20-Poly1305-PSIV](https://eprint.iacr.org/2025/222) was proposed in 2025. It only computes one additional ChaCha20 block over ChaCha20-Poly1305 whilst being misuse-resistant and key committing. The Poly1305 key can also be cached to make the number of ChaCha20 blocks equivalent and to allow static associated data pre-processing. Then the usage limits are more relaxed than AES-GCM-SIV. However, it requires modifying the ChaCha20 state, meaning existing APIs cannot be used. Furthermore, the constant in the state is reduced from 128 bits to 32 bits, meaning security analyses of ChaCha20 no longer directly apply. The tag size is also only 128 bits, offering 64-bit key-committing security, which is below the [minimum recommended amount](https://eprint.iacr.org/2022/1260) due to the potential of an [offline attack](https://eprint.iacr.org/2024/875). Whilst the tag size could be increased, this would decrease the nonce size, which is already smaller than ideal. Then the Poly1305 key caching cannot be used with a one-shot API.
 
 ## Conventions and Definitions
-The key words “**MUST**”, “**MUST NOT**”, “**REQUIRED**”, “**SHALL**”, “**SHALL NOT**”, “**SHOULD**”, “**SHOULD NOT**”, “**RECOMMENDED**”, “**NOT RECOMMENDED**”, “**MAY**”, and “**OPTIONAL**” in this document are to be interpreted as described in BCP 14 [[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)] [[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)] when, and only when, they appear in all capitals, as shown here.
+The key words “**MUST**”, “**MUST NOT**”, “**REQUIRED**”, “**SHALL**”, “**SHALL NOT**”, “**SHOULD**”, “**SHOULD NOT**”, “**RECOMMENDED**”, “**NOT RECOMMENDED**”, “**MAY**”, and “**OPTIONAL**” in this document are to be interpreted as described in BCP 14 [[RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119)] [[RFC 8174](https://datatracker.ietf.org/doc/html/rfc8174)] when, and only when, they appear in all capitals, as shown here.
 
 Throughout this document, “byte” refers to the same unit as “octet”, namely an 8-bit sequence.
 
@@ -63,14 +63,14 @@ Operations:
 - `ReadLE32(a)`: the little-endian conversion of byte array `a` into an unsigned 32-bit integer (uint32).
 - `ConstantTimeEquals(a, b)`: the constant-time comparison of byte arrays `a` and `b`, which returns `true` if the two arrays are equal and `false` otherwise.
 - `Wipe(a)`: the zeroing of byte array `a` in a way that cannot be optimised away by the compiler.
-- `ChaCha20(key, counter, nonce, plaintext)`: the ChaCha20 encryption algorithm, as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439). Note that this is not the same as Bernstein's [original ChaCha20](https://cr.yp.to/chacha/chacha-20080128.pdf).
+- `ChaCha20(key, counter, nonce, plaintext)`: the ChaCha20 encryption algorithm, as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439). Note that this is not the same as Bernstein's [original ChaCha20](https://cr.yp.to/chacha/chacha-20080128.pdf), which has a different counter/nonce size.
 - `Poly1305(key, associatedData, plaintext)`: the Poly1305 algorithm with the message inputs ordered, padded, and length encoded following ChaCha20-Poly1305 (replacing the ciphertext with the plaintext), as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439).
 
 Constants:
 - `K_LEN`: the length of the encryption key, which is 32 bytes.
 - `N_LEN`: the length of the nonce, which is 16 bytes.
-- `P_MAX`: the maximum plaintext length, which is 2<sup>38</sup> bytes (256 GiB).
 - `A_MAX`: the maximum associated data length, which is 2<sup>38</sup> bytes (256 GiB).
+- `P_MAX`: the maximum plaintext length, which is 2<sup>38</sup> bytes (256 GiB).
 - `T_LEN`: the length of the authentication tag, which is 32 bytes.
 - `C_MAX`: the maximum ciphertext length, which is `P_MAX` + `T_LEN` bytes.
 
