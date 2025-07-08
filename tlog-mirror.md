@@ -37,9 +37,9 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 ## Introduction
 
-A mirror is a [cosigner][] that stores a copy of a log and, when signing a
-[checkpoint][], provides the additional guarantee that the mirror has
-durably logged and made accessible the contents of the checkpoint.
+A mirror is a [cosigner][] that stores a copy of a log. A mirror's
+[cosignature][] makes the additional statement that the mirror has
+durably logged the contents of the [checkpoint][] and made them accessible.
 
 A mirror is defined by a name, a public key, and by two URL prefixes:
 the *submission prefix* for write APIs and the *monitoring prefix* for read
