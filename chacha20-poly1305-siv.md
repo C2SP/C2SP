@@ -235,13 +235,13 @@ A formal security analysis is left as future work.
 
 The following goals were used when developing this scheme:
 
-- **Nonce misuse-resistance**: the tag must depend on the key, nonce, associated data, and plaintext. Then encryption must depend on either (part of) the tag or the nonce and tag.
+- **Nonce-misuse resistance**: the tag must depend on the key, nonce, associated data, and plaintext. Then encryption must depend on either (part of) the tag or the nonce and tag.
 - **Key commitment**: the tag must be collision resistant and a commitment of the key (and ideally, the nonce too). This still allows context commitment through the key parameter.
 - **Context discoverability secure**: the tag must be preimage resistant (one-way).
 - **Performant**: performance should be as close to (X)ChaCha20-Poly1305 as possible. Anything significantly slower is unlikely to get used.
 - **Existing APIs**: the algorithm should be possible to implement using existing cryptographic library APIs. There should also be compatibility with as many existing APIs as possible. This considerably improves the potential speed and likelihood of adoption.
 - **Simplicity**: the design should be intuitive, familiar, and easy to implement. This reduces mistakes, increases adoption, and aids analysis. For example, the Poly1305 inputs can be processed the same way as in ChaCha20-Poly1305. Ideally, only ChaCha20 and Poly1305 should be used due to their wider availability than HChaCha20 and ChaCha8/ChaCha12.
-- **Security analyses**: the design should be based on existing security analyses of ChaCha20/Poly1305. The ChaCha20 state (e.g., constants) should not be modified if possible so security analyses maximally apply. There should also be a comfortable security margin (e.g., ChaCha8 should be avoided).
+- **Security analyses**: the design should be based on existing security analyses of ChaCha20/Poly1305. The ChaCha20 state (e.g., constants) should not be modified if possible to ensure that security analyses remain applicable. There should also be a comfortable security margin (e.g., ChaCha8 should be avoided).
 - **Not worried about fancy features**: for example, nonce hiding, key caching/pre-processing static associated data, the best possible security against the release of unverified plaintext, etc. These types of features do not align with existing AEAD schemes, complicate a design, and generally worsen performance.
 - **No variants**: there should not be separate key, nonce, tag, or counter sizes. Variants mean user confusion, worse interoperability, more implementation/documentation burden, etc.
 
@@ -275,13 +275,13 @@ The above section explains that different keys and parts of the output are used.
 
 While it would be ideal to provide separate counters for each ChaCha20 call so the initial state cannot collide, this is not possible when processing the full Poly1305 tag and would require reducing the nonce and nonce extension size. Alternatively, the key size could potentially be reduced.
 
-For the tag to be equivalent to part of a keystream block used during another encryption call, the initial state would need to match or there would need to be an output collision.
+For the tag to be equivalent to part of a keystream block used during another encryption call, the initial state would need to match, or there would need to be an output collision.
 
 Then the key derivation/nonce extension calls produce secret, internal values, so a collision with a keystream block used for encryption does not matter.
 
 ### Commitment
 
-There is [debate](https://eprint.iacr.org/2025/377) among cryptographers as to whether 64-bit committing security is [sufficient](https://www.usenix.org/conference/usenixsecurity22/presentation/albertini). However, commitment is related to [collision resistance](https://eprint.iacr.org/2023/526) and an [offline attack](https://eprint.iacr.org/2024/875). Few people would argue a 64-bit security level is collision resistant since that is an [achievable attack](https://eprint.iacr.org/2019/1492), with collision-resistant hash functions targeting at least 112-bit collision resistance. Furthermore, as a designer, you do not know how the algorithm will be used, so you must assume the worst (e.g., long-lived ciphertexts).
+There is [debate](https://eprint.iacr.org/2025/377) among cryptographers as to whether 64-bit committing security is [sufficient](https://www.usenix.org/conference/usenixsecurity22/presentation/albertini). However, commitment is related to [collision resistance](https://eprint.iacr.org/2023/526) and an [offline attack](https://eprint.iacr.org/2024/875). Few people would argue that a 64-bit security level is collision resistant, since that is an [achievable attack](https://eprint.iacr.org/2019/1492), with collision-resistant hash functions targeting at least 112-bit collision resistance. Furthermore, as a designer, you do not know how the algorithm will be used, so you must assume the worst (e.g., long-lived ciphertexts).
 
 Obtaining good committing security requires using a larger tag due to the birthday bound. This larger tag can be condensed into a 120-bit tag with 112-bit collision resistance (or more if operating on bits) via the [succinctly-committing](https://eprint.iacr.org/2024/875) approach. However, this is less efficient, more complicated to implement, not trivial to understand, and still inflates the ciphertext expansion and has weak security for very small messages.
 
