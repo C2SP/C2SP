@@ -67,7 +67,7 @@ Operations:
 - `ByteArray(l)`: the creation of a new, all-zero byte array with length `l`.
 - `ReadLE32(a)`: the little-endian conversion of byte array `a` into an unsigned 32-bit integer (uint32).
 - `ConstantTimeEquals(a, b)`: the constant-time comparison of byte arrays `a` and `b`, which returns `true` if the two arrays are equal and `false` otherwise.
-- `Wipe(a)`: the zeroing of byte array `a` in a way that cannot be optimised away by the compiler.
+- `Wipe(a)`: the zeroing of byte array `a` in a manner that cannot be optimised away by the compiler.
 - `ChaCha20(key, counter, nonce, plaintext)`: the ChaCha20 encryption algorithm, as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439). Note that this is not the same as Bernstein's [original ChaCha20](https://cr.yp.to/chacha/chacha-20080128.pdf), which has a different counter/nonce size.
 - `Poly1305(key, associatedData, plaintext)`: the Poly1305 algorithm with the message inputs ordered, padded, and length encoded following ChaCha20-Poly1305 (replacing the ciphertext with the plaintext), as defined in [RFC 8439](https://datatracker.ietf.org/doc/html/rfc8439).
 
