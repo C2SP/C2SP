@@ -115,4 +115,4 @@ Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
 [note signature]: https://c2sp.org/signed-note
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [witness]: https://c2sp.org/tlog-witness
-[tlog-mirror]: https://github.com/C2SP/C2SP/pull/140/
+[tlog-mirror]: https://c2sp.org/tlog-mirror
