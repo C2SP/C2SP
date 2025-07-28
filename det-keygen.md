@@ -111,8 +111,13 @@ hash function SHA-256.
 
 12. If *d* = 0 or *d* ≥ *n*, return a fatal error.
 
-    This occurrence has cryptographically negligible chance, and if encountered
-    it suggests implementation error or hardware failure.
+    For P-224, P-384, and P-521, this occurrence has cryptographically
+    negligible chance, and if encountered it suggests implementation error
+    or hardware failure.
+
+    For P-256, this occurrence has an overall chance of less than 2⁻³² if
+    computing fewer than 2³² keys. Computing a seed for this occurrence would
+    require hundreds of GPU years, so it is not supported as untestable.
 
 13. *Q* = [*d*]*G*
 
