@@ -112,6 +112,10 @@ are non-conflicting.  Examples of non-conflicting statements include "I also
 mirrored the log up until the checkpoint size" and "I also reproduced the sparse
 Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
 
+A cosigner operator that operates multiple cosigners with distinct additional
+statements MUST use distinct public keys for each cosigner. In cosignature/v1,
+it is not sufficient to use a distinct cosigner name.
+
 [note signature]: https://c2sp.org/signed-note
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [witness]: https://c2sp.org/tlog-witness
