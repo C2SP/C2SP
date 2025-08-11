@@ -63,15 +63,18 @@ different key ID algorithm byte (and a different signed message header line).
 The signature MUST be a 72-byte `timestamped_signature` structure.
 
     struct timestamped_signature {
-        u8 timestamp[8];
+        u64 timestamp;
         u8 signature[64];
     }
 
 "timestamp" is the time at which the cosignature was generated, as seconds since
-the UNIX epoch (January 1, 1970 00:00 UTC), encoded in big-endian.
+the UNIX epoch (January 1, 1970 00:00 UTC).
 
 "signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
+
+Per [RFC 8446][], these are serialized in sequence, with the timestamp encoded
+in big-endian order.
 
 ## Signed message
 
