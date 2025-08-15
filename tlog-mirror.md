@@ -50,6 +50,7 @@ For each supported origin log, the mirror is configured with:
 
 * The log's public key
 * The log's URL prefix
+* A minimum index to start mirroring (see below for how this is configured)
 * An optional list of monitoring prefixes for other mirrors for the log
 
 The mirror maintains a copy of each origin log and serves it publicly via the
@@ -63,16 +64,17 @@ a [cosignature][] from the mirror.
 The mirror update process is designed to be safely interruptible, while avoding
 large atomic operations. For each origin log, a mirror maintains the following:
 
-* A copy of the log. The latest checkpoint of this log copy is known as the
-  *mirror checkpoint*.
+* A copy of the log, [pruned][tiled transparency log] to its minimum index. The
+  latest checkpoint of this log copy is known as the *mirror checkpoint*.
 
 * A *pending checkpoint*, which is at or ahead of the mirror checkpoint. If
   ahead of the mirror checkpoint, the pending checkpoint describes entries that
   have yet to be incorporated into the mirror.
 
 * A list of *pending entries* that have yet to be incorporated into the mirror
-  checkpoint. The mirror's *next entry* is the log index of the first entry that
-  is not in either the log or pending entry list.
+  checkpoint. The mirror's *next entry* is the log index of the first entry,
+  greater or equal to the minimum index, that is not in either the log or
+  pending entry list.
 
 The update process ensures that all current and past pending checkpoints are
 consistent, and all pending entries are contained in the current pending
@@ -295,3 +297,31 @@ committed. Mirror clients will then reupload the subsequent entries.
 A mirror MAY additionally implement other update processes, provided it continues
 to correctly operate `add-entries` and never violates its cosigner requirements
 on mirror checkpoints.
+
+## Pruning and Retention Policies
+
+As with a [tiled transparency log][], a mirror maintains a *minimum index*
+value, which determines which entries it mirrors. The discussion for origin logs
+additionally applies to mirrors. In particular, without a policy for when
+pruning is permitted, mirrors MUST NOT be pruned. That is, the minimum index
+value MUST be set to zero.
+
+Given a retention policy, minimum indices for mirrors MAY be maintained
+independently from that of the origin log. A retention policy MAY require that
+mirrors retain data for longer than the origin log, in which case the mirror's
+minimum index will be kept at a lower value than the origin log's. However, for
+a new mirror to be initialized at a lower minimum index than the origin log, the
+missing entries MUST be available from some other source, e.g. another mirror.
+
+Conversely, a retention policy MAY permit mirrors to retain less data than the
+origin log and set a higher minimum index. For example, a log ecosystem MAY
+permit new mirrors to start from some recent index, to reduce the initial
+bandwidth cost of bootstrapping the mirror. However, in this case, log clients
+MUST NOT treat the mirror as contributing to a quorum for entries below its
+minimum index.
+
+A mirror that is already mirroring a log at some minimum index MAY lower its
+minimum index, provided the newly-mirrored entries can be obtained, e.g., via
+another mirror. Before committing these entries, the mirror MUST authenticate
+them against its mirror or pending checkpoint by checking a
+[subtree consistency proof][].
