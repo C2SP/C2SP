@@ -66,8 +66,8 @@ a [cosignature][] from the mirror.
 The mirror update process is designed to be safely interruptible, while avoding
 large atomic operations. For each origin log, a mirror maintains the following:
 
-* A copy of the log, [pruned][tiled transparency log] to its minimum index. The
-  latest checkpoint of this log copy is known as the *mirror checkpoint*.
+* A copy of the log, [pruned][pruning] to its minimum index. The latest
+  checkpoint of this log copy is known as the *mirror checkpoint*.
 
 * A *pending checkpoint*, which is at or ahead of the mirror checkpoint. If
   ahead of the mirror checkpoint, the pending checkpoint describes entries that
