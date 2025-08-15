@@ -7,6 +7,8 @@ signatures asserting that a mirror has done so.
 [cosignature]: https://c2sp.org/tlog-cosignature
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [tiled transparency log]: https://c2sp.org/tlog-tiles
+[pruning]: https://c2sp.org/tlog-tiles#pruning
+[retention policy]: https://c2sp.org/tlog-tiles#retention-policies
 [witness]: https://c2sp.org/tlog-witness
 [percent-encoded]: https://www.rfc-editor.org/rfc/rfc3986.html#section-2.1
 [subtree]: https://www.ietf.org/archive/id/draft-davidben-tls-merkle-tree-certs-05.html#name-subtrees
@@ -300,11 +302,11 @@ on mirror checkpoints.
 
 ## Pruning and Retention Policies
 
-As with a [tiled transparency log][], a mirror maintains a *minimum index*
-value, which determines which entries it mirrors. The discussion for origin logs
-additionally applies to mirrors. In particular, without a policy for when
-pruning is permitted, mirrors MUST NOT be pruned. That is, the minimum index
-value MUST be set to zero.
+As with a tiled transparency log, a mirror maintains a *minimum index*
+value to support [pruning][]. The discussion for origin logs also applies to
+mirrors. In particular, without a [retention policy][] for when pruning is
+permitted, mirrors MUST NOT be pruned. That is, the minimum index value MUST be
+set to zero.
 
 Given a retention policy, minimum indices for mirrors MAY be maintained
 independently from that of the origin log. A retention policy MAY require that
