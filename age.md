@@ -167,9 +167,9 @@ fresh nonce.
 
 ## Native recipient types
 
-This document specifies three core age recipient types: an asymmetric encryption
-type based on X25519, a passphrase encryption type based on scrypt, and a tagged
-recipient type based on P-256 ECDH for hardware keys.
+This document specifies four native age recipient types: an asymmetric
+encryption type based on X25519, a passphrase encryption type based on scrypt,
+and two tagged recipient types based on P-256 ECDH and ML-KEM for hardware keys.
 
 ### The X25519 recipient type
 
@@ -275,30 +275,38 @@ other types. This is to uphold an expectation of authentication that is
 implicit in password-based encryption. The identity implementation MUST reject
 headers where an scrypt stanza is present alongside any other stanza.
 
-### The tagged P-256 recipient type
+### The tagged recipient types
 
-The tagged P-256 recipient type is designed for hardware keys, where decryption
+The tagged recipient types are designed for hardware keys, where decryption
 potentially requires user presence. With knowledge of the public key, it is
 possible to check if a stanza was addressed to a specific recipient before
 attempting decryption. (This offers less privacy than the default recipient
-types.) The tagged P-256 recipient type is based on HPKE, and uses P-256 ECDH
-for compatiblity with existing hardware.
+types.) The tagged recipient types are based on HPKE, and use P-256 ECDH for
+compatiblity with existing hardware, optionally hybridized with ML-KEM-786
+for quantum resistance.
 
-This document only defines the recipient encoding, and does not define how the
-corresponding identity is generated or encoded. In particular, we expect it to
+This document only defines the recipient encodings, and does not define how the
+corresponding identities are generated or encoded. We expect these recipients to
 be used as the public side of hardware-specific plugin identities.
 
-The recipient is a P-256 curve point serialized with the *compressed*
-Elliptic-Curve-Point-to-Octet-String conversion from [SEC 1, Ver. 2][] and
-encoded as Bech32 with HRP `age1tag`.
+The non-hybrid recipient is a P-256 curve point serialized as 33 bytes with the
+*compressed* Elliptic-Curve-Point-to-Octet-String conversion from [SEC 1, Ver.
+2][] and encoded as Bech32 with HRP `age1tag`.
 
     age1tag1TODO
 
-Note that the recipient is encoded as a compressed point, unlike the HPKE
+The hybrid recipient is a compressed P-256 curve point concatenated with a
+ML-KEM-768 encapsulation key, for a total of 1217 bytes, and encoded as Bech32
+with HRP `age1tagpq`.
+
+    age1tagpq1TODO
+
+Note that the P-256 recipient is encoded as a compressed point, unlike the HPKE
 SerializePublicKey and DeserializePublicKey functions from [RFC 9180][].
 
-The recipient encoding can be interpreted as a plugin recipient with name `tag`,
-allowing for backwards compatibility with existing clients through a tag plugin.
+The recipient encodings can be interpreted as plugin recipients with names `tag`
+or `tagpq`, allowing for backwards compatibility with existing clients through
+plugins.
 
 #### p256tag recipient stanza
 
@@ -331,6 +339,42 @@ less than three arguments, or where the second argument is not a canonical
 encoding of a 65-byte value or the third argument is not a canonical encoding of
 a 4-byte value. It MUST check that the body length is exactly 32 bytes before
 attempting to decrypt it.
+
+#### p256mlkem768tag recipient stanza
+
+To produce a p256mlkem768tag recipient stanza, the file key is encrypted with
+the HPKE SealBase function from [RFC 9180, Section 6.1][] with the following
+parameters:
+
+  * KEM: QSF-P256-MLKEM768-SHAKE256-SHA3256 from [draft-ietf-hpke-pq-01][] with
+    the changes to draft-irtf-cfrg-hybrid-kems in cfrg/draft-irtf-cfrg-hybrid-kems#70
+  * KDF: HKDF-SHA256
+  * AEAD: ChaCha20Poly1305
+  * `info = "age-encryption.org/p256mlkem768tag"`
+  * `aad = ""` (empty)
+
+It is then encoded as a recipient stanza with three arguments: the first is the
+fixed string `p256mlkem768tag`, the second is the base64-encoded tag, and the
+third is the base64-encoded encapsulated key *enc* from SealBase.
+
+    tag = HKDF-Extract-SHA-256(ikm = enc[:65] || pkRm[:65], salt = "age-encryption.org/p256mlkem768tag")[:4]
+
+Note that the ikm of the tag computation only includes the P-256 component of
+the encapsulated key and recipient (since the ML-KEM encapsulation key might not
+be available without user presence, depending on how it is stored on the
+hardware).
+
+The body of the recipient stanza is the HPKE ciphertext from SealBase.
+
+    -> p256mlkem768tag ...
+    ...
+
+The identity implementation MUST ignore any stanza that does not have
+`p256mlkem768tag` as the first argument, and MUST otherwise reject any stanza
+that has more or less than three arguments, or where the second argument is not
+a canonical encoding of a 1153-byte value or the third argument is not a
+canonical encoding of a 4-byte value. It MUST check that the body length is
+exactly 32 bytes before attempting to decrypt it.
 
 ## ASCII armor
 
@@ -368,4 +412,5 @@ https://age-encryption.org/testkit.
 [RFC 7468]: https://www.rfc-editor.org/rfc/rfc7468.html
 [RFC 9180]: https://www.rfc-editor.org/rfc/rfc9180.html
 [RFC 9180, Section 6.1]: https://www.rfc-editor.org/rfc/rfc9180.html#section-6.1
-[SEC 1, Ver. 2][]: https://www.secg.org/sec1-v2.pdf
+[SEC 1, Ver. 2]: https://www.secg.org/sec1-v2.pdf
+[draft-ietf-hpke-pq-01]: https://datatracker.ietf.org/doc/html/draft-ietf-hpke-pq-01
