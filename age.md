@@ -25,7 +25,8 @@ The length of the output keying material is always 32 bytes.
 ChaCha20-Poly1305 is the AEAD encryption function from [RFC 7539][].
 
 `||` denotes concatenation. `0x` followed by two hexadecimal characters denotes
-a byte value in the 0-255 range.
+a byte value in the 0-255 range. `[:N]` denotes truncation to the first N
+bytes of a byte string.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this
@@ -166,8 +167,9 @@ fresh nonce.
 
 ## Native recipient types
 
-This document specifies two core age recipient types: an asymmetric encryption
-type based on X25519, and a passphrase encryption type based on scrypt.
+This document specifies three core age recipient types: an asymmetric encryption
+type based on X25519, a passphrase encryption type based on scrypt, and a tagged
+recipient type based on P-256 ECDH for hardware keys.
 
 ### The X25519 recipient type
 
@@ -273,6 +275,63 @@ other types. This is to uphold an expectation of authentication that is
 implicit in password-based encryption. The identity implementation MUST reject
 headers where an scrypt stanza is present alongside any other stanza.
 
+### The tagged P-256 recipient type
+
+The tagged P-256 recipient type is designed for hardware keys, where decryption
+potentially requires user presence. With knowledge of the public key, it is
+possible to check if a stanza was addressed to a specific recipient before
+attempting decryption. (This offers less privacy than the default recipient
+types.) The tagged P-256 recipient type is based on HPKE, and uses P-256 ECDH
+for compatiblity with existing hardware.
+
+This document only defines the recipient encoding, and does not define how the
+corresponding identity is generated or encoded. In particular, we expect it to
+be used as the public side of hardware-specific plugin identities.
+
+The recipient is a P-256 curve point serialized with the *compressed*
+Elliptic-Curve-Point-to-Octet-String conversion from [SEC 1, Ver. 2][] and
+encoded as Bech32 with HRP `age1tag`.
+
+    age1tag1TODO
+
+Note that the recipient is encoded as a compressed point, unlike the HPKE
+SerializePublicKey and DeserializePublicKey functions from [RFC 9180][].
+
+The recipient encoding can be interpreted as a plugin recipient with name `tag`,
+allowing for backwards compatibility with existing clients through a tag plugin.
+
+#### p256tag recipient stanza
+
+To produce a p256tag recipient stanza, the file key is encrypted with the HPKE
+SealBase function from [RFC 9180, Section 6.1][], with the following parameters:
+
+  * KEM: DHKEM(P-256, HKDF-SHA256)
+  * KDF: HKDF-SHA256
+  * AEAD: ChaCha20Poly1305
+  * `info = "age-encryption.org/p256tag"`
+  * `aad = ""` (empty)
+
+It is then encoded as a recipient stanza with three arguments: the first is the
+fixed string `p256tag`, the second is the base64-encoded tag, and the third is
+the base64-encoded encapsulated key *enc* from SealBase.
+
+    tag = HKDF-Extract-SHA-256(ikm = enc || pkRm, salt = "age-encryption.org/p256tag")[:4]
+
+Note that the ikm of the tag computation matches the kem_context of the HPKE
+Encap and Decap functions.
+
+The body of the recipient stanza is the HPKE ciphertext from SealBase.
+
+    -> p256tag TODO
+    TODO
+
+The identity implementation MUST ignore any stanza that does not have `p256tag`
+as the first argument, and MUST otherwise reject any stanza that has more or
+less than three arguments, or where the second argument is not a canonical
+encoding of a 65-byte value or the third argument is not a canonical encoding of
+a 4-byte value. It MUST check that the body length is exactly 32 bytes before
+attempting to decrypt it.
+
 ## ASCII armor
 
 age files that need to be transmitted as 7-bit ASCII SHOULD be encoded according
@@ -307,3 +366,6 @@ https://age-encryption.org/testkit.
 [RFC 7748]: https://www.rfc-editor.org/rfc/rfc7748.html
 [RFC 7914]: https://www.rfc-editor.org/rfc/rfc7914.html
 [RFC 7468]: https://www.rfc-editor.org/rfc/rfc7468.html
+[RFC 9180]: https://www.rfc-editor.org/rfc/rfc9180.html
+[RFC 9180, Section 6.1]: https://www.rfc-editor.org/rfc/rfc9180.html#section-6.1
+[SEC 1, Ver. 2][]: https://www.secg.org/sec1-v2.pdf
