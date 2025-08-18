@@ -164,13 +164,13 @@ entry bundle URL.
 In some log applications, such as [Certificate Transparency][], entries expire
 and are replaced with renewed versions. As this happens, the total size of the
 log grows, even if the unexpired subset remains fixed. To mitigate this, this
-section defines procedures to *prune* log. Pruning makes some prefix of the log
-unavailable, without changing the tree structure.
+section defines procedures to *prune* a log. Pruning makes some prefix of the
+log unavailable, without changing the tree structure.
 
-Logs maintain a *minimum index* value. The minimum index is the index of the
-first log entry that the log publishes. It MUST be less than or equal to the
-tree size of the log's current checkpoint. In an unpruned log, the minimum index
-is zero.
+Logs maintain a *minimum index* value. The minimum index is a lower bound on
+log entry indices that the log publishes. It MUST be less than or equal to the
+tree size of the log's current checkpoint. In an unpruned log, the minimum
+index is zero.
 
 In response to a request for a full tile `<prefix>/tile/<L>/<N>`, or an entry
 bundle `<prefix>/tile/entries/<N>`, the log MAY return an error response if the
@@ -190,12 +190,13 @@ deleting the resources from storage. This means:
 
 This pruning criteria allows a log client to obtain:
 
-* Any entry whose index is greater or equal to the minimum index
-* The root hash for any tree whose size is greater than the minimum index
+* Any entry whose index is greater than or equal to the minimum index
+* The root hash for any tree whose size is greater than or equal to the minimum
+  index
 * An inclusion proof between any entry and any containing tree, if the entry's
-  index is greater or equal to the minimum index
+  index is greater than or equal to the minimum index
 * A consistency proof between any two trees whose sizes are both greater than
-  the minimum index
+  or equal to the minimum index
 
 Tiles and bundles necessary to obtain other entries, root hashes, or proofs may
 not be available.
