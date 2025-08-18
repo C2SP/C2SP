@@ -222,9 +222,9 @@ where the ChaCha20-Poly1305 nonce is fixed as 12 0x00 bytes.
 
 The identity implementation MUST ignore any stanza that does not have `X25519`
 as the first argument, and MUST otherwise reject any stanza that has more or
-less than two arguments, or where the second argument is not a canonical
+less than two arguments, or where the second argument is not a canonical base64
 encoding of a 32-byte value. It MUST check that the body length is exactly 32
-bytes before attempting to decrypt it.
+bytes before attempting to decrypt it, to mitigate partitioning oracle attacks.
 
 The identity implementation computes the shared secret as follows:
 
@@ -262,12 +262,12 @@ where the ChaCha20-Poly1305 nonce is fixed as 12 0x00 bytes and scrypt is from
 [RFC 7914][].
 
 The identity implementation MUST reject any scrypt stanza that has more or less
-than three arguments, where the second argument is not a canonical encoding of a
+than three arguments, where the second argument is not a canonical base64 encoding of a
 16-byte value, or where the third argument is not a decimal number composed of
 only digits with no leading zeroes (`%x31-39 *DIGIT` in ABNF or `^[1-9][0-9]*$`
 in regular expression). The identity implementation SHOULD apply an upper limit
 to the work factor, and it MUST check that the body length is exactly 32 bytes
-before attempting to decrypt it.
+before attempting to decrypt it, to mitigate partitioning oracle attacks.
 
 An scrypt stanza, if present, MUST be the only stanza in the header. In other
 words, scrypt stanzas MAY NOT be mixed with other scrypt stanzas or stanzas of
@@ -295,14 +295,15 @@ The non-hybrid recipient is a P-256 curve point serialized as 33 bytes with the
 
     age1tag1TODO
 
-The hybrid recipient is a compressed P-256 curve point concatenated with a
-ML-KEM-768 encapsulation key, for a total of 1217 bytes, and encoded as Bech32
-with HRP `age1tagpq`.
+The hybrid recipient is an ML-KEM-768 encapsulation key concatenated with an
+*uncompressed* P-256 curve point (unlike the non-hybrid recipient), for a total
+of 1249 bytes, and encoded as Bech32 with HRP `age1tagpq`.
 
     age1tagpq1TODO
 
-Note that the P-256 recipient is encoded as a compressed point, unlike the HPKE
-SerializePublicKey and DeserializePublicKey functions from [RFC 9180][].
+The hybrid recipient is secure against future cryptographically-relevant quantum
+computers, so the same file SHOULD NOT be encrypted to both a hybrid recipient
+and to other non-quantum-resistant recipient types.
 
 The recipient encodings can be interpreted as plugin recipients with names `tag`
 or `tagpq`, allowing for backwards compatibility with existing clients through
@@ -316,14 +317,18 @@ SealBase function from [RFC 9180, Section 6.1][], with the following parameters:
   * KEM: DHKEM(P-256, HKDF-SHA256)
   * KDF: HKDF-SHA256
   * AEAD: ChaCha20Poly1305
+  * `pkR = decompress(recipient)` (the uncompressed P-256 point)
   * `info = "age-encryption.org/p256tag"`
   * `aad = ""` (empty)
 
-It is then encoded as a recipient stanza with three arguments: the first is the
-fixed string `p256tag`, the second is the base64-encoded tag, and the third is
-the base64-encoded encapsulated key *enc* from SealBase.
+The recipient MUST be converted from its compressed form to uncompressed form
+before being used with HPKE's DeserializePublicKey function.
 
-    tag = HKDF-Extract-SHA-256(ikm = enc || pkRm, salt = "age-encryption.org/p256tag")[:4]
+The result is then encoded as a recipient stanza with three arguments: the first
+is the fixed string `p256tag`, the second is the base64-encoded tag, and the
+third is the base64-encoded encapsulated key *enc* from SealBase.
+
+    tag = HKDF-Extract-SHA-256(ikm = enc || recipient, salt = "age-encryption.org/p256tag")[:4]
 
 Note that the ikm of the tag computation matches the kem_context of the HPKE
 Encap and Decap functions.
@@ -336,28 +341,28 @@ The body of the recipient stanza is the HPKE ciphertext from SealBase.
 The identity implementations MUST ignore any stanza that does not have `p256tag`
 as the first argument, and MUST otherwise reject any stanza that has more or
 less than three arguments, or where the second argument is not a canonical
-encoding of a 65-byte value or the third argument is not a canonical encoding of
-a 4-byte value. It MUST check that the body length is exactly 32 bytes before
-attempting to decrypt it.
+base64 encoding of a 4-byte value or the third argument is not a canonical
+base64 encoding of a 65-byte value. It MUST check that the body length is exactly
+32 bytes before attempting to decrypt it, to mitigate partitioning oracle attacks.
 
-#### p256mlkem768tag recipient stanza
+#### mlkem768p256tag recipient stanza
 
-To produce a p256mlkem768tag recipient stanza, the file key is encrypted with
+To produce a mlkem768p256tag recipient stanza, the file key is encrypted with
 the HPKE SealBase function from [RFC 9180, Section 6.1][] with the following
 parameters:
 
-  * KEM: QSF-P256-MLKEM768-SHAKE256-SHA3256 from [draft-ietf-hpke-pq-01][] with
-    the changes to draft-irtf-cfrg-hybrid-kems in cfrg/draft-irtf-cfrg-hybrid-kems#70
+  * KEM: MLKEM768-P256 from [draft-ietf-hpke-pq-03][]/[filippo.io/hpke-pq][]
   * KDF: HKDF-SHA256
   * AEAD: ChaCha20Poly1305
-  * `info = "age-encryption.org/p256mlkem768tag"`
+  * `pkR = recipient`
+  * `info = "age-encryption.org/mlkem768p256tag"`
   * `aad = ""` (empty)
 
-It is then encoded as a recipient stanza with three arguments: the first is the
-fixed string `p256mlkem768tag`, the second is the base64-encoded tag, and the
-third is the base64-encoded encapsulated key *enc* from SealBase.
+The result is then encoded as a recipient stanza with three arguments: the first
+is the fixed string `mlkem768p256tag`, the second is the base64-encoded tag, and
+the third is the base64-encoded encapsulated key *enc* from SealBase.
 
-    tag = HKDF-Extract-SHA-256(ikm = enc[:65] || pkRm[:65], salt = "age-encryption.org/p256mlkem768tag")[:4]
+    tag = HKDF-Extract-SHA-256(ikm = enc[1088:] || recipient[1184:], salt = "age-encryption.org/mlkem768p256tag")[:4]
 
 Note that the ikm of the tag computation only includes the P-256 component of
 the encapsulated key and recipient (since the ML-KEM encapsulation key might not
@@ -366,15 +371,16 @@ hardware).
 
 The body of the recipient stanza is the HPKE ciphertext from SealBase.
 
-    -> p256mlkem768tag ...
-    ...
+    -> mlkem768p256tag TODO
+    TODO
 
 The identity implementations MUST ignore any stanza that does not have
-`p256mlkem768tag` as the first argument, and MUST otherwise reject any stanza
+`mlkem768p256tag` as the first argument, and MUST otherwise reject any stanza
 that has more or less than three arguments, or where the second argument is not
-a canonical encoding of a 1153-byte value or the third argument is not a
-canonical encoding of a 4-byte value. It MUST check that the body length is
-exactly 32 bytes before attempting to decrypt it.
+a canonical base64 encoding of a 4-byte value or the third argument is not a
+canonical base64 encoding of a 1153-byte value. It MUST check that the body length is
+exactly 32 bytes before attempting to decrypt it, to mitigate partitioning oracle
+attacks.
 
 ## ASCII armor
 
@@ -413,4 +419,5 @@ https://age-encryption.org/testkit.
 [RFC 9180]: https://www.rfc-editor.org/rfc/rfc9180.html
 [RFC 9180, Section 6.1]: https://www.rfc-editor.org/rfc/rfc9180.html#section-6.1
 [SEC 1, Ver. 2]: https://www.secg.org/sec1-v2.pdf
-[draft-ietf-hpke-pq-01]: https://datatracker.ietf.org/doc/html/draft-ietf-hpke-pq-01
+[draft-ietf-hpke-pq-03]: https://datatracker.ietf.org/doc/html/draft-ietf-hpke-pq-03
+[filippo.io/hpke-pq]: https://filippo.io/hpke-pq
