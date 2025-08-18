@@ -190,11 +190,11 @@ deleting the resources from storage. This means:
 
 This pruning criteria allows a log client to obtain:
 
-* Any entry whose index is greater or equal to the minimum index
+* Any entry whose index is greater than or equal to the minimum index
 * The root hash for any tree whose size is greater than or equal to the minimum
   index
 * An inclusion proof between any entry and any containing tree, if the entry's
-  index is greater or equal to the minimum index
+  index is greater than or equal to the minimum index
 * A consistency proof between any two trees whose sizes are both greater than
   or equal to the minimum index
 
