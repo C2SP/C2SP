@@ -299,6 +299,17 @@ as `timestamped_entry.signed_entry`, which is a PreCert containing a TBSCertific
 in the submitted chain, corresponding to the `certificate_chain` or
 `precertificate_chain` specified in RFC 6962, Section 3.1.
 
+> [!TIP]
+> Some Static CT logs implement [an optional
+> extension](https://github.com/FiloSottile/sunlight/blob/main/names-tiles.md)
+> that exposes the names on the certificates as compact, unauthenticathed JSON
+> lines files.
+>
+> This extension is **not** suitable for security-minded clients that verify
+> inclusion in signed tree heads, and should not be replicated by other
+> transparency systems. It is meant to reduce the bandwidth burden from clients
+> that are only interested in Certificate Transparency as a source of names.
+
 ### Issuers
 
 The issuers are served at
