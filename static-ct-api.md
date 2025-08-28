@@ -302,7 +302,7 @@ in the submitted chain, corresponding to the `certificate_chain` or
 > [!TIP]
 > Some Static CT logs implement [an optional
 > extension](https://github.com/FiloSottile/sunlight/blob/main/names-tiles.md)
-> that exposes the names on the certificates as compact, unauthenticathed JSON
+> that exposes the names on the certificates as compact, unauthenticated JSON
 > lines files.
 >
 > This extension is **not** suitable for security-minded clients that verify
