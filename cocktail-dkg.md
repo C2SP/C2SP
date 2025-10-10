@@ -128,7 +128,7 @@ This message contains the participant's VSS commitment, their Proof-of-Possessio
 encrypted shares for all other participants.
 
 * $C_i$: The VSS commitment, which is a list of $t$ elliptic curve points.
-    * Format: $C_{i,0} || C_{i,1} || \cdots || C_{i,t-1}$
+  * Format: $C_{i,0} || C_{i,1} || \cdots || C_{i,t-1}$
 * $PoP_i$: The Proof of Possession, which is a signature. The size depends on the signature scheme used by the
   ciphersuite.
 * $E_i$: The ephemeral public key, an elliptic curve point. 
@@ -148,7 +148,7 @@ This message aggregates the public information from all participants.
 * $C_{j,0}$: The zero-coefficient commitment from participant $j$, an elliptic curve point.
 * $PoP_j$: The Proof of Possession from participant $j$.
 * $C_{agg}$: The aggregated commitment for non-zero coefficients. This is a list of $t-1$ points.
-    * Format: $C_{agg,1} || \cdots || C_{agg,t-1}$
+  * Format: $C_{agg,1} || \cdots || C_{agg,t-1}$
 * $E_j$: The ephemeral public key from participant $j$.
 * $c_{j,i}$: The ciphertext from participant $j$ intended for participant $i$.
 
@@ -182,7 +182,6 @@ aggregated_sigs = sig_1 || sig_2 || \cdots || sig_n
 As COCKTAIL-DKG is intended to be used in conjunction with [RFC 9591](https://www.rfc-editor.org/rfc/rfc9591.html), we
 begin our enumeration of named hash functions with "H6".
 
-
 ## Protocol Definition
 
 This section describes the COCKTAIL-DKG protocol in detail.
@@ -195,7 +194,11 @@ Each participant $i$ is assumed to have:
 - A long-term static key pair $(d_i, P_i)$.
 - A list of the static public keys of all other participants, ${P_1, ..., P_n}$.
 - A ciphersuite defining the elliptic curve group, hash function, and AEAD scheme.
-- A $context$ string, which should be unique to the DKG session to prevent replay attacks.
+- A `context` string, which **MUST** be unique to the DKG session to prevent replay attacks. It is RECOMMENDED that this
+  string be constructed by hashing a domain separation tag, the session ID, and the list of participant public keys,
+  for example: `context = H("COCKTAIL-DKG-CONTEXT" || session_id || P_1 || P_2 || ... || P_n)`. The `session_id` should
+  be a value that is unique to the session, such as a high-entropy random byte string or a timestamp. All participants
+  **MUST** validate that they agree on the `context` string before proceeding.
 
 ### Round 1: Commitment and Encryption
 
@@ -205,23 +208,24 @@ Each participant $i$ is assumed to have:
 2. **Compute VSS Commitment:** Participant $i$ computes a VSS commitment $C_i$ to their polynomial by creating a public
    commitment for each coefficient:
    $C_i = (C_{i,0}, C_{i,1}, \cdots, C_{i,t-1})$, where $C_{i,k} = [a_{i,k}] G$.
-3. **Compute Proof of Possession (PoP):** Participant $i$ computes a digital signature $PoP_i$ over the $context$ string
-   using the secret $a_{i,0}$ as the private key and $C_{i,0}$ as the public key. The specific signature algorithm is
-   defined by the ciphersuite.
-4. **Generate Ephemeral Key:** Participant $i$ generates a fresh ephemeral key pair $(e_i, E_i)$ for this session.
+3. **Generate Ephemeral Key:** Participant $i$ generates a fresh ephemeral key pair $(e_i, E_i)$ for this session.
+4. **Compute Proof of Possession (PoP):** Participant $i$ computes a digital signature $PoP_i$ over a concatenation of
+   the `context` string, their VSS commitment $C_i$, and their ephemeral public key $E_i$. The signature is created
+   using the secret $a_{i,0}$ as the private key and $C_{i,0}$ as the public key. The message to be signed is
+   `context || C_i || E_i`. The specific signature algorithm is defined by the ciphersuite.
 5. **Compute and Encrypt Shares:** For each participant $j$ from $1$ to $n$:
     1. **Compute Share:** Participant `i` computes the secret share $s_{i,j} = f_i(j)$.
     2. **Derive Key:** Participant `i` computes an ECDH shared secret with participant $j$'s static public key:
        $S_{i,j} = e_i * P_j$. It then derives a symmetric key and nonce for the AEAD.
-       * If the hash function has an output length at least 480 bits long:
-         * $tmp = H6(S_{i,j}, E_i, P_j, context)$.
-         * $k_{i,j} = tmp[0:32]$
-         * $iv_{i,j} = tmp[32:56]$
-       * Otherwise:
-         * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
-         * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
-         * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
-         * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
+        * If the hash function has an output length at least 480 bits long:
+            * $tmp = H6(S_{i,j}, E_i, P_j, context)$.
+            * $k_{i,j} = tmp[0:32]$
+            * $iv_{i,j} = tmp[32:56]$
+        * Otherwise:
+            * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
+            * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
+            * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
+            * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     3. **Encrypt Share:** Participant $i$ encrypts the share for participant $j$:
        $c_{i,j} = Enc(s_{i,j}, k_{i,j}, iv_{i,j})$.
 6. **Broadcast:** Participant $i$ sends their $msg_{1|i}$ to the coordinator.
@@ -233,9 +237,9 @@ to every participant. Upon receiving the list of all $msg_{1|i}$ messages, each 
 steps:
 
 1. **Verify All PoPs:** For each other participant $j$ from $1$ to $n$:
-    - Participant $i$ verifies the proof of possession $PoP_j$ using participant $j$'s public commitment $C_{j,0}$ and
-      the $context$ string.
-    - If any $PoP_j$ is invalid, participant $i$ aborts, identifying participant $j$ as malicious.
+    - Participant $i$ verifies the proof of possession $PoP_j$. The signature is checked against the message
+      `context || C_j || E_j`, using participant $j$'s public commitment $C_{j,0}$ as the public key.
+    - If any $PoP_j$ is invalid, participant $i$ **MUST** abort, identifying participant $j$ as malicious.
 2. **Decrypt and Verify Shares:** For each other participant $j$ from $1$ to $n$:
     1. **Derive Key:** Participant $i$ computes the ECDH shared secret with participant $j$'s ephemeral public key:
        $S_{j,i} = d_i * E_j$. They then derive the symmetric key and nonce:
@@ -250,10 +254,10 @@ steps:
             * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     2. **Decrypt Share:** Participant $i$ decrypts the share sent to them from participant $j$:
        $s_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
-       If decryption fails, participant $i$ aborts, identifying $j$ as malicious.
+       If decryption fails, participant $i$ **MUST** abort, identifying $j$ as malicious.
     3. **Verify Share:** Participant $i$ verifies the decrypted share $s_{j,i}$ against $j$'s VSS commitment:
        $s_{j,i} * B = \sum_{k=0}^{t-1} i^k * C_{j,k}$
-       If the check fails, participant $i$ aborts, identifying $j$ as malicious.
+       If the check fails, participant $i$ **MUST** abort, identifying $j$ as malicious.
 3.  **Compute Final Keys:** If all shares are successfully decrypted and verified:
     1. **Secret Share:** Participant $i$ computes their final long-lived secret share by summing all received shares:
        $x_i = \sum_{j=1}^{n} s_{j,i}$.
@@ -306,8 +310,8 @@ The following categories cover the most common errors:
       other structural defects.
     * **Action**: An honest participant should never produce a malformed message. If a participant receives such a
       message, it should be treated as evidence of a bug in the sender's implementation or a deliberate protocol
-      violation. The protocol should be aborted. If the sender can be identified (e.g., in $msg_{1|i}$), they should be
-      flagged as faulty.
+      violation. The protocol **MUST** be aborted. If the sender can be identified (e.g., in $msg_{1|i}$), they should
+      be flagged as faulty.
 2. **Cryptographic Verification Failures**:
     * **Description**: These errors occur when a cryptographic check fails. This category includes:
         * An invalid Proof-of-Possession ($PoP_j$).
@@ -321,23 +325,41 @@ The following categories cover the most common errors:
     * **Description**: These errors relate to violations of the protocol's state machine or rules, such as:
         * A participant sending a message at the wrong time.
         * The coordinator broadcasting an inconsistent `msg2` (e.g., omitting a participant's data).
-    * **Action**: These errors indicate a faulty participant or coordinator. The protocol should be aborted. If the error
-      can be traced to a specific participant, they should be blamed.
+    * **Action**: These errors indicate a faulty participant or coordinator. The protocol **MUST** be aborted.
+      If the error can be traced to a specific participant, they should be blamed.
 
 ### Blame-Finding and Reporting
 
 A key feature of a secure DKG protocol is the ability to identify malicious participants. When an error occurs, the
-protocol should not only terminate but also output information about who caused the failure.
+protocol **MUST** not only terminate but also output information about who caused the failure. This is crucial for
+accountability in decentralized systems.
 
 * **Coordinator's Role**: The coordinator is in a unique position to detect errors in $msg_{1|i}$ messages. If the
-  coordinator receives a malformed message or one with an invalid PoP from participant $i$, it should immediately abort
-  the protocol and broadcast a blame message identifying participant $i$ as faulty.
-* **Participant's Role**: Participants must validate all data they receive. If a participant $i$ receives an invalid
-  $msg2$ from the coordinator, or if it fails to verify a share $s_{j,i}$ from participant $j$, it must abort. In the
-  case of an invalid share, participant $i$ can prove that $j$ is cheating by revealing $s_{j,i}$ and showing that it
-  does not match the public commitment $C_j$.
-* **Error Types**: To facilitate blame, it is recommended that error types carry information about the faulty party.
-  For example, an error could be `FaultyParticipantError(participant_index, reason)`.
+  coordinator receives a malformed message or one with an invalid PoP from participant $i$, it **MUST** immediately abort
+  the protocol and broadcast a blame message identifying participant $i$ as faulty, including the malformed message as
+  evidence.
+* **Participant's Role and Public Proofs**: Participants **MUST** validate all data they receive.
+  * If participant $i$ fails to verify a share $s_{j,i}$ from participant $j$, it **MUST** abort. To prove that $j$
+    is cheating, participant $i$ can broadcast a blame message containing $j$'s index and the invalid share $s_{j,i}$.
+    Any third party can then verify this claim by checking the VSS equation 
+    ($s_{j,i} \cdot B = \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$)
+    using the public commitment $C_j$. A failure of this equation is a public and undeniable proof of $j$'s misbehavior.
+  * Similarly, if a PoP from participant $j$ is invalid, this is also a publicly verifiable proof of misbehavior,
+    since the PoP, the message it signs, and the public key $C_{j,0}$ are all public.
+* **Resolving Disputes and Coordinator Malice**: The final certification round is essential for detecting a malicious
+  coordinator and resolving disputes.
+  * **Split-View Attack**: If a coordinator sends different messages to different participants, their final
+    transcripts $T$ will differ. In Round 3, when participants exchange signatures, these signatures will not verify
+    on the inconsistent transcripts.
+    An honest participant $i$ who fails to verify $sig_j$ can initiate a dispute by broadcasting their $T_i$ and $sig_i$.
+    * If participant $j$ responds with a different $T_j$ and a valid $sig_j$ over it, the discrepancy between $T_i$ and
+      $T_j$ serves as undeniable proof of a split-view attack by the coordinator.
+  * **Framing a Participant**: If a coordinator attempts to frame participant $j$ by modifying their $msg_{1|j}$ before
+    broadcasting it, the PoP will fail for all other participants, who will blame $j$. However, in Round 3,
+    participant $j$ will construct a transcript based on their *original*, valid $msg_{1|j}$. Their signature $sig_j$
+    will be valid for their transcript but not for the altered transcript held by others. When this signature
+    mismatch is detected, participant $j$ can reveal their original $msg_{1|j}$ (with its valid PoP) and their 
+    transcript signature. This evidence proves their honesty and definitively identifies the coordinator as malicious.
 
 ## Ciphersuites
 
@@ -346,6 +368,16 @@ This section describes the ciphersuites that are specified for use with COCKTAIL
 
 Each ciphersuite defines a key derivation function $H6(x, pk1, pk2, extra)$, an encryption method $Enc(plain, key, iv)$,
 and a decryption method $Dec(cipher, key, iv)$. Ciphersuites **SHOULD** use an AEAD mode for $Enc()$ and $Dec()$.
+
+The choice of AEAD is guided by the principle of preventing nonce reuse. For ciphersuites where the underlying hash
+function provides a large enough output (at least 480 bits; e.g., SHA-512), we can derive both the 256-bit key and a 
+24-byte (192-bit) nonce (which is long enough to be generated randomly with a negligible chance of collision).
+
+For ciphersuites based on SHA-256, where the output is smaller than 480 bits, we use $H6()$ to derive an Input Keying
+Material (IKM), which is then used with the underlying hash function with two different prefixes. For the key, we use
+$Sha256("COCKTAIL-derive-key" || ikm)$. For the nonce, we use the most significant 192 bits of 
+$Sha256("COCKTAIL-derive-nonce" || ikm)$. The AEAD of choice for the SHA-256 based ciphersuites we specify here is
+[XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md).
 
 The $H6$ function is used to derive a symmetric key and nonce from an ECDH shared secret. Unless otherwise specified,
 it is defined as:
@@ -385,7 +417,7 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
   - **`H6` Prefix**: `COCKTAIL-DKG-P256-SHA256-H6`
   - **Key/Nonce**: The output of `H6` is used as an input key material.
     - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
-    - The nonce shall the first 32 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+    - The nonce shall the first 24 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(secp256k1, SHA-256)**
@@ -394,7 +426,7 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
     The message is $x || pk1 || pk2 || extra$.
   - **Key/Nonce**: The output of `H6` is used as an input key material.
       - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
-      - The nonce shall the first 32 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+      - The nonce shall the first 24 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(JubJub, BLAKE2b-512)**
@@ -435,6 +467,12 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
   section, curves like Ed25519 and Ed448 have small cofactors. It is critical that implementations use prime-order group
   abstractions like Ristretto255 and Decaf448 to prevent small subgroup attacks, where an attacker could submit a 
   low-order point to leak information.
+- **Participant Authentication**: Throughout the protocol, participants are authenticated to each other via their
+  long-term static key pairs. The pairwise ECDH key agreement used to encrypt shares in Round 1 provides deniable
+  authentication; only the owner of the corresponding static private key can derive the correct symmetric key to decrypt
+  and verify the secret share. This ensures that participants are communicating with the intended parties. The final
+  signature on the transcript in Round 3 provides explicit, non-repudiable authentication of each participant's agreement
+  on the final public state.
 - **Transcript Certification**: The final round where all participants sign the public transcript is vital. It ensures
   that all honest participants have a consistent view of the entire public state of the DKG. If a malicious coordinator
   tried to give different participants different sets of messages, the transcript signatures would not match, and the
