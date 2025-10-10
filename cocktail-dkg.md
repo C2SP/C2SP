@@ -212,8 +212,16 @@ Each participant $i$ is assumed to have:
 5. **Compute and Encrypt Shares:** For each participant $j$ from $1$ to $n$:
     1. **Compute Share:** Participant `i` computes the secret share $s_{i,j} = f_i(j)$.
     2. **Derive Key:** Participant `i` computes an ECDH shared secret with participant $j$'s static public key:
-       $S_{i,j} = e_i * P_j$. It then derives a symmetric key and nonce for the AEAD:
-       $(k_{i,j}, iv_{i,j}) = H6(S_{i,j}, E_i, P_j, context)$.
+       $S_{i,j} = e_i * P_j$. It then derives a symmetric key and nonce for the AEAD.
+       * If the hash function has an output length at least 480 bits long:
+         * $tmp = H6(S_{i,j}, E_i, P_j, context)$.
+         * $k_{i,j} = tmp[0:32]$
+         * $iv_{i,j} = tmp[32:56]$
+       * Otherwise:
+         * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
+         * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
+         * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
+         * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     3. **Encrypt Share:** Participant $i$ encrypts the share for participant $j$:
        $c_{i,j} = Enc(s_{i,j}, k_{i,j}, iv_{i,j})$.
 6. **Broadcast:** Participant $i$ sends their $msg_{1|i}$ to the coordinator.
@@ -231,7 +239,15 @@ steps:
 2. **Decrypt and Verify Shares:** For each other participant $j$ from $1$ to $n$:
     1. **Derive Key:** Participant $i$ computes the ECDH shared secret with participant $j$'s ephemeral public key:
        $S_{j,i} = d_i * E_j$. They then derive the symmetric key and nonce:
-       $(k_{j,i}, iv_{j,i}) = H6(S_{j,i}, E_j, P_i, context)$.
+        * If the hash function has an output length at least 480 bits long:
+            * $tmp = H6(S_{i,j}, E_i, P_j, context)$.
+            * $k_{i,j} = tmp[0:32]$
+            * $iv_{i,j} = tmp[32:56]$
+        * Otherwise:
+            * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
+            * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
+            * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
+            * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     2. **Decrypt Share:** Participant $i$ decrypts the share sent to them from participant $j$:
        $s_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
        If decryption fails, participant $i$ aborts, identifying $j$ as malicious.
@@ -367,15 +383,19 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
 - **COCKTAIL(P-256, SHA-256)**
   - **`H6` Hash**: SHA-256
   - **`H6` Prefix**: `COCKTAIL-DKG-P256-SHA256-H6`
-  - **Key/Nonce**: The 32-byte `H6` output is the key. The nonce is a 12-byte array of all zeros.
-  - **AEAD**: AES-256-GCM
+  - **Key/Nonce**: The output of `H6` is used as an input key material.
+    - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
+    - The nonce shall the first 32 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+  - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(secp256k1, SHA-256)**
   - **Note**: This ciphersuite **MUST** be backwards-compatible with ChillDKG.
   - **`H6` Definition**: A BIP-340-style tagged hash with the tag `ChillDKG/H`.
     The message is $x || pk1 || pk2 || extra$.
-  - **Key/Nonce**: The 32-byte hash output is the key. The nonce is a 12-byte array of all zeros.
-  - **AEAD**: AES-256-GCM
+  - **Key/Nonce**: The output of `H6` is used as an input key material.
+      - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
+      - The nonce shall the first 32 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+  - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(JubJub, BLAKE2b-512)**
   - **Note**: Compatible with [ZIP-0312](https://zips.z.cash/zip-0312#ciphersuites).
@@ -593,7 +613,16 @@ function VerifyShare(s_ji, i, C_j, G, t):
         1. s_i_j = Algorithm2(f_i, j).
         2. Derive ECDH key:
             - ecdh_secret = e_i * P_j
-            - (key, nonce) = H6(ecdh_secret, E_i, P_j, context)
+            - If the hash function used has an output size fewer than 480 bits, use the output
+              of H6 as an Input Keying Material to two more hash function calls, which will be used
+              to derive a nonce and key. (Here, H() refers to, e.g., sha256):
+              - ikm = H6(ecdh_secret, E_i, P_j, context)
+              - key = H("COCKTAIL-derive-key" || ikm)
+              - nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+            - If the hash function used has an output size greater than equal to 480 bits, just split them:  
+              - tmp = H6(ecdh_secret, E_i, P_j, context)
+              - key = tmp[0:32] (32 bytes)
+              - nonce = tmp[32:46] (24 bytes)
         3. Encrypt share:
             - c_i_j = Encrypt(key, nonce, plaintext=s_i_j)
         4. Append c_i_j to encrypted_shares.
@@ -626,7 +655,14 @@ function Round1(i, t, n, cs, context, d_i, AllPublicKeys):
         # Derive and encrypt
         P_j = AllPublicKeys[j]
         ecdh_secret = e_i * P_j
-        (key, nonce) = H6(ecdh_secret, E_i, P_j, context)
+        if cs.HashFunction.OutputSizeInBytes() < 56:
+            ikm = H6(ecdh_secret, E_i, P_j, context)
+            key = H("COCKTAIL-derive-key" || ikm)
+            nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+        else:
+            tmp = H6(ecdh_secret, E_i, P_j, context)
+            key = tmp[0:32]
+            nonce = tmp[32:56]
         c_ij = Encrypt(key, nonce, plaintext=s_ij)
         encrypted_shares.append(c_ij)
 
@@ -667,7 +703,16 @@ function Round1(i, t, n, cs, context, d_i, AllPublicKeys):
             - Let c_j_i be the encrypted share from j for i.
             - Derive ECDH key:
                 - ecdh_secret = d_i * E_j
-                - (key, nonce) = H6(ecdh_secret, E_j, P_i, context)
+                - If the hash function used has an output size fewer than 480 bits, use the output
+                  of H6 as an Input Keying Material to two more hash function calls, which will be used
+                  to derive a nonce and key. (Here, H() refers to, e.g., sha256):
+                  - ikm = H6(ecdh_secret, E_i, P_j, context)
+                  - key = H("COCKTAIL-derive-key" || ikm)
+                  - nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+                - If the hash function used has an output size greater than equal to 480 bits, just split them:
+                  - tmp = H6(ecdh_secret, E_i, P_j, context)
+                  - key = tmp[0:32] (32 bytes)
+                  - nonce = tmp[32:46] (24 bytes)
             - Decrypt:
                 - s_j_i = Decrypt(key, nonce, ciphertext=c_j_i)
                 - If decryption fails, abort and blame participant j.
@@ -707,7 +752,14 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, cs, context):
         # Decrypt Share
         c_ji = msg1_j.encrypted_shares[i]
         ecdh_secret = d_i * E_j
-        (key, nonce) = H6(ecdh_secret, E_j, P_i, context)
+        if cs.HashFunction.OutputSizeInBytes() < 56:
+            ikm = H6(ecdh_secret, E_i, P_j, context)
+            key = H("COCKTAIL-derive-key" || ikm)
+            nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+        else:
+            tmp = H6(ecdh_secret, E_i, P_j, context)
+            key = tmp[0:32]
+            nonce = tmp[32:56]
         s_ji = Decrypt(key, nonce, ciphertext=c_ji)
         if s_ji is null:
             abort("Failed to decrypt share from participant", j)
