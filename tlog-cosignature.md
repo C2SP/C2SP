@@ -57,6 +57,9 @@ Clients are configured with tuples of (cosigner name, public key, supported
 cosignature version) and based on that they can compute the expected name and
 key ID, and ignore any signature lines that don't match the name and key ID.
 
+Public keys MAY be encoded as [vkeys][] with signature type 0x04 and the 32-byte
+Ed25519 cosigner public key as the public key material.
+
 Future cosignature formats MAY reuse the same cosigner public key with a
 different key ID algorithm byte (and a different signed message header line).
 
@@ -113,6 +116,7 @@ mirrored the log up until the checkpoint size" and "I also reproduced the sparse
 Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
 
 [note signature]: https://c2sp.org/signed-note
+[vkeys]: https://c2sp.org/signed-note#verifier-keys
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [witness]: https://c2sp.org/tlog-witness
 [tlog-mirror]: https://c2sp.org/tlog-mirror
