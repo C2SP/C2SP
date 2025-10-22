@@ -72,6 +72,7 @@ throughout the COCKTAIL-DKG protocol.
 
 ### Notation
 
+- $X \parallel Y$: The concatenation of X followed by Y.
 - $n$: The total number of participants in the DKG ceremony.
 - $t$: The threshold, i.e., the minimum number of participants required to generate a signature.
 - $i, j$: Indices representing participants, where $1 <= i, j <= n$.
@@ -128,7 +129,7 @@ This message contains the participant's VSS commitment, their Proof-of-Possessio
 encrypted shares for all other participants.
 
 * $C_i$: The VSS commitment, which is a list of $t$ elliptic curve points.
-  * Format: $C_{i,0} || C_{i,1} || \cdots || C_{i,t-1}$
+  * Format: $C_{i,0} \parallel C_{i,1} \parallel \cdots \parallel C_{i,t-1}$
 * $PoP_i$: The Proof of Possession, which is a signature. The size depends on the signature scheme used by the
   ciphersuite.
 * $E_i$: The ephemeral public key, an elliptic curve point. 
@@ -138,7 +139,7 @@ encrypted shares for all other participants.
 The full message is the concatenation of these elements:
 
 ```math
-msg_{1|i} = C_i || PoP_i || E_i || c_{i,1} || c_{i,2} || \cdots || c_{i,n}
+msg_{1|i} = C_i \parallel PoP_i \parallel E_i \parallel c_{i,1} \parallel c_{i,2} \parallel \cdots \parallel c_{i,n}
 ```
 
 **2. $msg2$ (Coordinator -> All Participants, Round 2)**
@@ -148,14 +149,14 @@ This message aggregates the public information from all participants.
 * $C_{j,0}$: The zero-coefficient commitment from participant $j$, an elliptic curve point.
 * $PoP_j$: The Proof of Possession from participant $j$.
 * $C_{agg}$: The aggregated commitment for non-zero coefficients. This is a list of $t-1$ points.
-  * Format: $C_{agg,1} || \cdots || C_{agg,t-1}$
+  * Format: $C_{agg,1} \parallel \cdots \parallel C_{agg,t-1}$
 * $E_j$: The ephemeral public key from participant $j$.
 * $c_{j,i}$: The ciphertext from participant $j$ intended for participant $i$.
 
 The message broadcast to participant $i$ is structured as:
 
 ```math
-msg_{2|i} = (C_{1,0} || PoP_1) || \cdots || (C_{n,0} || PoP_n) || C_{agg} || E_1 || \cdots || E_n || c_{1,i} || \cdots || c_{n,i}
+msg_{2|i} = (C_{1,0} \parallel PoP_1) \parallel \cdots \parallel (C_{n,0} \parallel PoP_n) \parallel C_{agg} \parallel E_1 \parallel \cdots \parallel E_n \parallel c_{1,i} \parallel \cdots \parallel c_{n,i}
 ```
 
 **3. $sig_i$ (Participant -> Coordinator, CertEq Phase)**
@@ -174,7 +175,7 @@ This is the final message, containing all signatures on the transcript.
 The message is structured as:
 
 ```math
-aggregated_sigs = sig_1 || sig_2 || \cdots || sig_n
+aggregated_sigs = sig_1 \parallel sig_2 \parallel \cdots \parallel sig_n
 ```
 
 ### Cryptographic Primitives
@@ -223,8 +224,8 @@ Each participant $i$ is assumed to have:
             * $iv_{i,j} = tmp[32:56]$
         * Otherwise:
             * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
-            * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
-            * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
+            * $k_{i,j} = H("COCKTAIL-derive-key" \parallel ikm)$
+            * $iv_{i,j} = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]$
             * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     3. **Encrypt Share:** Participant $i$ encrypts the share for participant $j$:
        $c_{i,j} = Enc(s_{i,j}, k_{i,j}, iv_{i,j})$.
@@ -249,8 +250,8 @@ steps:
             * $iv_{i,j} = tmp[32:56]$
         * Otherwise:
             * $ikm = H6(S_{i,j}, E_i, P_j, context)$.
-            * $k_{i,j} = H("COCKTAIL-derive-key" || ikm)$
-            * $iv_{i,j} = H("COCKTAIL-derive-nonce" || ikm)[0:24]$
+            * $k_{i,j} = H("COCKTAIL-derive-key" \parallel ikm)$
+            * $iv_{i,j} = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]$
             * Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     2. **Decrypt Share:** Participant $i$ decrypts the share sent to them from participant $j$:
        $s_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
@@ -375,14 +376,14 @@ function provides a large enough output (at least 480 bits; e.g., SHA-512), we c
 
 For ciphersuites based on SHA-256, where the output is smaller than 480 bits, we use $H6()$ to derive an Input Keying
 Material (IKM), which is then used with the underlying hash function with two different prefixes. For the key, we use
-$Sha256("COCKTAIL-derive-key" || ikm)$. For the nonce, we use the most significant 192 bits of 
-$Sha256("COCKTAIL-derive-nonce" || ikm)$. The AEAD of choice for the SHA-256 based ciphersuites we specify here is
+$Sha256("COCKTAIL-derive-key" \parallel ikm)$. For the nonce, we use the most significant 192 bits of 
+$Sha256("COCKTAIL-derive-nonce" \parallel ikm)$. The AEAD of choice for the SHA-256 based ciphersuites we specify here is
 [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md).
 
 The $H6$ function is used to derive a symmetric key and nonce from an ECDH shared secret. Unless otherwise specified,
 it is defined as:
 
-$H6(x, pk1, pk2, extra) = CH(prefix || x || pk1 || pk2 || len(extra) || extra)$
+$H6(x, pk1, pk2, extra) = CH(prefix \parallel x \parallel pk1 \parallel pk2 \parallel len(extra) \parallel extra)$
 
 - $CH$: The specified cryptographic hash function (e.g., SHA-512, BLAKE2b-512).
 - $prefix$: A ciphersuite-specific byte string (e.g., `COCKTAIL-DKG-Ed25519-SHA512-H6`).
@@ -423,7 +424,7 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
 - **COCKTAIL(secp256k1, SHA-256)**
   - **Note**: This ciphersuite **MUST** be backwards-compatible with ChillDKG.
   - **`H6` Definition**: A BIP-340-style tagged hash with the tag `ChillDKG/H`.
-    The message is $x || pk1 || pk2 || extra$.
+    The message is $x \parallel pk1 \parallel pk2 \parallel extra$.
   - **Key/Nonce**: The output of `H6` is used as an input key material.
       - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
       - The nonce shall the first 24 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
@@ -655,8 +656,8 @@ function VerifyShare(s_ji, i, C_j, G, t):
               of H6 as an Input Keying Material to two more hash function calls, which will be used
               to derive a nonce and key. (Here, H() refers to, e.g., sha256):
               - ikm = H6(ecdh_secret, E_i, P_j, context)
-              - key = H("COCKTAIL-derive-key" || ikm)
-              - nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+              - key = H("COCKTAIL-derive-key" \parallel ikm)
+              - nonce = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]
             - If the hash function used has an output size greater than equal to 480 bits, just split them:  
               - tmp = H6(ecdh_secret, E_i, P_j, context)
               - key = tmp[0:32] (32 bytes)
@@ -745,8 +746,8 @@ function Round1(i, t, n, cs, context, d_i, AllPublicKeys):
                   of H6 as an Input Keying Material to two more hash function calls, which will be used
                   to derive a nonce and key. (Here, H() refers to, e.g., sha256):
                   - ikm = H6(ecdh_secret, E_i, P_j, context)
-                  - key = H("COCKTAIL-derive-key" || ikm)
-                  - nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+                  - key = H("COCKTAIL-derive-key" \parallel ikm)
+                  - nonce = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]
                 - If the hash function used has an output size greater than equal to 480 bits, just split them:
                   - tmp = H6(ecdh_secret, E_i, P_j, context)
                   - key = tmp[0:32] (32 bytes)
