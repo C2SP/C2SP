@@ -21,6 +21,9 @@ policy:
           - the chacha8rand maintainers have authored relevant changes
           - the chacha8rand maintainers have approved relevant changes
         - or:
+          - the cocktail-dkg maintainers have authored relevant changes
+          - the cocktail-dkg maintainers have approved relevant changes
+        - or:
           - the det-keygen maintainers have authored relevant changes
           - the det-keygen maintainers have approved relevant changes
         - or:
@@ -201,6 +204,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/chacha8rand"
+    requires:
+      count: 0
+
+  - name: the cocktail-dkg maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^cocktail-dkg\\.md$"
+          - "^cocktail-dkg/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/cocktail-dkg"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the cocktail-dkg maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^cocktail-dkg\\.md$"
+          - "^cocktail-dkg/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/cocktail-dkg"
     requires:
       count: 0
 
