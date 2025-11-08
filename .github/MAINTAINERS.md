@@ -29,6 +29,9 @@
 
 - [@FiloSottile](https://github.com/FiloSottile)
 
+### cocktail-dkg
+
+
 ### det-keygen
 
 - [@FiloSottile](https://github.com/FiloSottile)
