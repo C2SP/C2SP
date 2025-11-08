@@ -76,6 +76,9 @@ the UNIX epoch (January 1, 1970 00:00 UTC).
 "signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
 
+Per [RFC 8446][], these are serialized in sequence, with the timestamp encoded
+in big-endian order.
+
 ## Signed message
 
 The signed message MUST be two newline (U+000A) terminated lines (one header
