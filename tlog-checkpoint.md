@@ -12,7 +12,7 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 — example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
 ```
 
-[signed note]: https://c2sp.org/signed-note
+[signed note]: https://c2sp.org/signed-note@v1.0.0
 
 ## Conventions used in this document
 
