@@ -119,8 +119,7 @@ A cosigner operator that operates multiple cosigners with distinct additional
 statements MUST use distinct public keys for each cosigner. In cosignature/v1,
 it is not sufficient to use a distinct cosigner name.
 
-[note signature]: https://c2sp.org/signed-note
-[vkeys]: https://c2sp.org/signed-note#verifier-keys
-[checkpoint]: https://c2sp.org/tlog-checkpoint
-[witness]: https://c2sp.org/tlog-witness
+[note signature]: https://c2sp.org/signed-note@v1.0.0
+[vkeys]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror
