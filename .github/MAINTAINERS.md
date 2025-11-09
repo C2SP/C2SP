@@ -31,6 +31,7 @@
 
 ### cocktail-dkg
 
+- [@soatok](https://github.com/soatok)
 
 ### det-keygen
 
