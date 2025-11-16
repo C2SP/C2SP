@@ -51,7 +51,8 @@ This string is used in three places:
 - Plugin-compatible recipients are encoded using Bech32 with the HRP `age1name`
   (lowercase).
 - Plugin-compatible identities are encoded using Bech32 with the HRP
-  `AGE-PLUGIN-NAME-` (uppercase).
+  `AGE-PLUGIN-NAME-` (uppercase) or alternatively `AGE-SECRET-KEY-NAME-`
+  (uppercase).
 - Plugin binaries (to be started by age clients) are named `age-plugin-name`.
 
 Users interact with age clients by providing either recipients for file
