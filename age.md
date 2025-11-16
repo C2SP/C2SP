@@ -24,6 +24,10 @@ The length of the output keying material is always 32 bytes.
 
 ChaCha20-Poly1305 is the AEAD encryption function from [RFC 7539][].
 
+Bech32 is as specified in [BIP173][], but without length limits on the data
+part. Note that Bech32 strings can only be all uppercase or all lowercase, but
+the checksum is always computed over the lowercase string.
+
 `||` denotes concatenation. `0x` followed by two hexadecimal characters denotes
 a byte value in the 0-255 range. `[:N]` denotes truncation to the first N
 bytes of a byte string.
@@ -167,9 +171,68 @@ fresh nonce.
 
 ## Native recipient types
 
-This document specifies four native age recipient types: an asymmetric
-encryption type based on X25519, a passphrase encryption type based on scrypt,
-and two tagged recipient types based on P-256 ECDH and ML-KEM for hardware keys.
+This document specifies five native age recipient types: a hybrid post-quantum
+asymmetric encryption type based on X-Wing, an asymmetric encryption type based
+on X25519, a passphrase encryption type based on scrypt, and two tagged
+recipient types based on ML-KEM and P-256 ECDH for hardware keys.
+
+### The MLKEM768-X25519 (i.e. X-Wing) hybrid post-quantum recipient type
+
+An MLKEM768-X25519 identity is generated as
+
+    identity = read(CSPRNG, 32)
+
+and encoded as Bech32 with HRP `AGE-SECRET-KEY-PQ-`.
+
+    AGE-SECRET-KEY-PQ-1TODO
+
+The corresponding recipient is computed as
+
+    recipient = PrivateKeyToPublicKey(identity)
+
+where PrivateKeyToPublicKey is specified by [filippo.io/hpke-pq][] for the
+MLKEM768-X25519 hybrid HPKE KEM.
+
+The recipient is encoded as Bech32 with HRP `age1pq`.
+
+    age1pq1TODO
+
+This recipient type is secure against future cryptographically-relevant quantum
+computers, so the same file SHOULD NOT be encrypted to both this recipent type
+and to other non-quantum-resistant recipient types.
+
+#### mlkem768x25519 recipient stanza
+
+To produce a mlkem768x25519 recipient stanza, the file key is encrypted with
+the HPKE SealBase function from [RFC 9180, Section 6.1][] with the following
+parameters:
+
+  * KEM: MLKEM768-X25519 from [draft-ietf-hpke-pq-03][]/[filippo.io/hpke-pq][]
+  * KDF: HKDF-SHA256
+  * AEAD: ChaCha20Poly1305
+  * `pkR = recipient`
+  * `info = "age-encryption.org/mlkem768x25519"`
+  * `aad = ""` (empty)
+
+It is then encoded as a recipient stanza with two arguments: the first is the
+fixed string `mlkem768x25519`, and the second is the base64-encoded encapsulated
+key *enc* from SealBase.
+
+The body of the recipient stanza is the HPKE ciphertext from SealBase.
+
+    -> mlkem768x25519 TODO
+    TODO
+
+The file key can be decrypted with OpenBase from HPKE with the same parameters
+as above, and `skR = identity`.
+
+The identity implementations MUST ignore any stanza that does not have
+`mlkem768x25519` as the first argument, and MUST otherwise reject any stanza
+that has more or less than two arguments, or where the second argument is not a
+canonical base64 encoding of a 4-byte value or the third argument is not a
+canonical base64 encoding of a 1120-byte value. It MUST check that the body
+length is exactly 32 bytes before attempting to decrypt it, to mitigate
+partitioning oracle attacks.
 
 ### The X25519 recipient type
 
@@ -177,7 +240,7 @@ An X25519 identity is generated as
 
     identity = read(CSPRNG, 32)
 
-and encoded as [Bech32][] with HRP `AGE-SECRET-KEY-`.
+and encoded as Bech32 with HRP `AGE-SECRET-KEY-`.
 
     AGE-SECRET-KEY-1GFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPQ4EGAEX
 
@@ -191,9 +254,6 @@ Curve25519 base point from RFC 7748, Section 4.1.
 The recipient is encoded as Bech32 with HRP `age`.
 
     age1zvkyg2lqzraa2lnjvqej32nkuu0ues2s82hzrye869xeexvn73equnujwj
-
-Note that Bech32 strings can only be all uppercase or all lowercase, but the
-checksum is always computed over the lowercase string.
 
 #### X25519 recipient stanza
 
@@ -412,7 +472,7 @@ https://age-encryption.org/testkit.
 [STREAM]: https://eprint.iacr.org/2015/189
 [Tink]: https://github.com/google/tink/blob/59bb34495d1cb8f9d9dbc0f0a52c4f9e21491a14/docs/WIRE-FORMAT.md#streaming-encryption
 [Miscreant]: https://github.com/miscreant/meta/wiki/STREAM
-[Bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+[BIP173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 [RFC 7748]: https://www.rfc-editor.org/rfc/rfc7748.html
 [RFC 7914]: https://www.rfc-editor.org/rfc/rfc7914.html
 [RFC 7468]: https://www.rfc-editor.org/rfc/rfc7468.html
