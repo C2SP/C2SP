@@ -24,6 +24,10 @@ The length of the output keying material is always 32 bytes.
 
 ChaCha20-Poly1305 is the AEAD encryption function from [RFC 7539][].
 
+Bech32 is as specified in [BIP173][], but without length limits on the data
+part. Note that Bech32 strings can only be all uppercase or all lowercase, but
+the checksum is always computed over the lowercase string.
+
 `||` denotes concatenation. `0x` followed by two hexadecimal characters denotes
 a byte value in the 0-255 range. `[:N]` denotes truncation to the first N
 bytes of a byte string.
@@ -167,9 +171,67 @@ fresh nonce.
 
 ## Native recipient types
 
-This document specifies four native age recipient types: an asymmetric
-encryption type based on X25519, a passphrase encryption type based on scrypt,
-and two tagged recipient types based on P-256 ECDH and ML-KEM for hardware keys.
+This document specifies five native age recipient types: a hybrid post-quantum
+asymmetric encryption type based on X-Wing, an asymmetric encryption type based
+on X25519, a passphrase encryption type based on scrypt, and two tagged
+recipient types based on ML-KEM and P-256 ECDH for hardware keys.
+
+### The MLKEM768-X25519 (i.e. X-Wing) hybrid post-quantum recipient type
+
+An MLKEM768-X25519 identity is generated as
+
+    identity = read(CSPRNG, 32)
+
+and encoded as Bech32 with HRP `AGE-SECRET-KEY-PQ-`.
+
+    AGE-SECRET-KEY-PQ-1XX76JRALNLXDMEW0CRK45QMCCH4X06SE84UN3VPM33W6HWDX0H3SK3ZQFR
+
+The corresponding recipient is computed as
+
+    recipient = PrivateKeyToPublicKey(identity)
+
+where PrivateKeyToPublicKey is as specified in [filippo.io/hpke-pq][] for the
+MLKEM768-X25519 hybrid HPKE KEM.
+
+The recipient is encoded as Bech32 with HRP `age1pq`.
+
+    age1pq1x34nzsvr0rxjsgdn8zgyhfe8j7ceq5r9rdelkjuh3y235jzxshfg87pzf5zrqtzdxz95paef6caq5aapdmwjjqpjfdyxnzr2zampc3uxy0dg4z2n2gm9su72p0pc3u0jvev55l694v78snxg3yzvcl7yda0eyytqj6a0ec477lnhcy5hzpz4zq3pxanve4cn62gqj3pjy5lqj9c6kyj4v2z8alktn8zh99970x79gjkv7522hv9kfz35zsnxhsx8wwtmu9cy3ftzjgwcp4sshn3llnylnpdsyz5jm72vefv4x5vfwytrefxg4wq3mv42wcrvkj742479zrxzpvp2p3e9fed9f0739vcu80r7ma28qfhnvlv4gfzel9q654dj3zmuvvz893azhxdvs9fxd0r7jzchzcfcs5mkyyjxhw0n2z6dvp9yn9qfdp29h0azxqyjw6v7fhyuzj7zel0uq6j9rd7wgrpz7mf5dnj43jwsgvrc8qcnhy7tu6dkdujuxzkp9xj43xe8h92ktre2a3u3s8mm5mrp9nr9pwkgtz4mdlq9hgn4fps4k57ff6wddn2fy23t47sm20r8km8sd2pcyyafnet8f0dajsrlyjeah4n3mssr6aseevuuskdvq5lzguyvpgwpta742c6698vgutzqgny8usfg0w2he7kq5vyxjd0f9hqg8xk26y9e4th0gezq92q4cpp5p2y9hf5f2cje5l0c3sa3a2qxmm38pxxvhxh99yzmfz0zk7r2s64nnwjhkfgfr3gf8xnmppcgmaykvh5sh6g7vk9790rf8ws0axmr2t7z8aae5fq2029uvcn2ghgt4fu4wgwdc0k0cz52qkvwmuzj8p8k5jgf3xzk5zmrkavjekjrpeq408xz3zxazwkc6tyfmhayrkfpjhwtz5mp8j8guqe43k2q6m2kte03vrw27y3wmqyu5etmt9dnkwcnnpmu9gz9dekfhdevf42ucshphnrk38ra6hx8w5f8q5ru0xdhrjxmwqf6cused7zc5xvq43r0zscjglpwlptpwydhqw64xz7ptjdyeyzpq2zkxtmzg29gzjpvzva4d3l0cenn9xs297wf4y4ukwrunf57xj6pm7nvrkwvtrt8hwcmgv8x7ajw7258ugf9wvkmk4052ekg87tw5vnx8nq2swyzv77v8yqlwsenvamr0zssknwts8rrhfuwj7ykysnq9jxy0uv3kuyt22djszjdtvpz6d0s0kwh8ryynddzud92emeyvvyqktd0jtj7rvvg5gch25v8smlvny3kvn5gagyz475ze2y6q466xqmz2n3hs77lddeqyta2nch5k2u5yacuk9ywnwfdzvyejnucz724hj77hrrmakm7pr3kxsrxq22ejexlud9fy2kdqmkg5yncz7jm5wv2qjk5w5kvcpqsry2yqffh2la52dxfjkjq5rzhjzeyn6dupn0qwtyv7s4lwg3xdarsdlwe2y3tujy480y7z39q259fzx6jhd2j0f5hagqpcpees7hzc2yrk5cy788uk3s7qvp5cpepx24gvws3m2g433exgwppnkjscec8qu4y9z9r7vccexjcjaen42245lmgmxmuavg9alej92322gvvyy2t6267v09ch64y0m53jff0vjj96s0ypk60hr3jw4myd6m5hpn3xjstx7tl2szhpr5qe8jj08ydjc4wy2rch2fhuy3pdfjax5awe9j99ly5hkntzz9fe5zatgjvzdd0kgtxs25njnajyf6ssekp7gelxquusn4pt25czh3scj68kq79wdn5tgm6yvm9nzavrg043x3msnygf8dweknw5jmqd0uvny6ttsn09508k0c55zfnegrm9efhxpfqdkmhh6gjtqmwze9pyyzk3tlhl53k2ykx3qheyty7saeq0d3fzv49zc0k
+
+This recipient type is secure against future cryptographically-relevant quantum
+computers, so the same file SHOULD NOT be encrypted to both this recipent type
+and to other non-quantum-resistant recipient types.
+
+#### mlkem768x25519 recipient stanza
+
+To produce a mlkem768x25519 recipient stanza, the file key is encrypted with
+the HPKE SealBase function from [RFC 9180, Section 6.1][] with the following
+parameters:
+
+  * KEM: MLKEM768-X25519 from [draft-ietf-hpke-pq-03][]/[filippo.io/hpke-pq][]
+  * KDF: HKDF-SHA256
+  * AEAD: ChaCha20Poly1305
+  * `pkR = recipient`
+  * `info = "age-encryption.org/mlkem768x25519"`
+  * `aad = ""` (empty)
+
+It is then encoded as a recipient stanza with two arguments: the first is the
+fixed string `mlkem768x25519`, and the second is the base64-encoded encapsulated
+key *enc* from SealBase.
+
+The body of the recipient stanza is the HPKE ciphertext from SealBase.
+
+    -> mlkem768x25519 U7E10Aon27j1oDrH7fP3B++SPROSnDVvQpBemzOM+ZcsojxJifUbeeYWejMYKNB+H3rlXNvgtDKfSCkt78oqncr3faY1JtMj0GQPBZ2g6t8o1cMzZgyLMepeVuTQKxLqnM6L48n8dJL2y0N3i7WSOV6csB79r9tcIs88Al9iCwVLpt74OzDXAIwD1QlCAvj75ZEnwtgP6Xr6s+wHg9hLD0OSSQOaTdCqzR5shQWyrjVs7GCqd/5WbNGYNaolPQJBu9wTNhHjP9XGCTv8iKXkYwXDYujInkF5hOjpCHE8Vu+9UeMI+l0GJAEervT51bwaf288GiqgapP5g4HF8V4P0+03B/SwXhvxxZpKjTU2OcFS8I9chtEZ7Ucw5bvPkC1lyjNnqQXZyc4JnAqbFQTlPGnwbEsm0UGE+v0FOxTBznIivHoPHV++5PuYpombiV/lfYy8BFx0Hk1igNI3iLNjlIg4MLXNWjN3VROlXIiSsWNXjr/Frh/OE87PXoaKhsDPWfv6akd9PxSDqJMQ4j8k11kCSOnnU8Rw4TSVnTpt7gfYzBULrMr7qDgyH/TYvp0o7mAq4IaraFJmTqm+LjfAJT4PCQOpnMNRHLyXZn6mtMUujNv7+zR/I9Vqi+bJdQBwNWdJcUQVarqx2zxV2rM7l+j0gsmxjxp5yAPyALzla7XzVvbboLMnHeM+CzN4GoB2PC4neVDSw7Dfs8vbm7f9CeDGvhjWrzcSCOsUCalvH1WkbpE0b9cE/TSJqwXFXEc8npTSQWH58RXDALNF3qCbW5LaboD4wCloClEakgljT0s0mTdqIwzj4xtdlX0S2dCtaV5MHQJiQHGwPvBSCiIsh8ZWJPwZ7Ron7xoWgNI0lXRqhKm7fvFNCzF+Ray2kOyKWHbsMy3a5Zx3yZxCGFwexAxgYfAH9HJ1raHi1XYGpNpBlDXg47U1y4uU7RBeBb4ewETv/B/p8sGW88tIY87dHM2xHjnntGXLvkCIkmjXGNULAVYHxDPJTygxSF7uTVPYCBUk5KeLnDVcgWF8p/wxigza47ptMtpVtm9ZrSEu9vzOnaTN3KO75RkkLuZszhXfmMZ46NQrdS7Y6duCiN501BnR5BUC4dX4iMxchix6aLN3pKv6UOEwwcx2aSF4Ib963MAtTPEjhqe+dt0VcTar/08uLWv1kQQueFaEGet4KQ975ZqaoU3PmZH9gqTOumX1EKf0Pnl0F3NMW+lEOlnCEce99zHBwBf7LV0pLNLDONBxpQySrZUQsNfhAq2Ktf5nG2hcGAMFMWIsEOuOyzEe+l2aHW4/ojOjU1Oqy4TLzVVRlWmPxQde7qKbvBN7CQhDqJHJA2nphQT/4DOdLqkwRiauMmnfx9FI3+hYnX25NpnyvM/Pt94vpsRkhcuttu4/G4xOYTNQd2YWjGwhypZ0oPSiriuTbhj6y2qm33jiwxvegeDz8CmAIhOEY2JoVpjjX9XzuNR2f5KTLmLzEkOcJQ
+    c/k+TjhBA6Je1DF8rxZhe2Jm8CN0zbkV9rre6nA8g98
+
+The file key can be decrypted with OpenBase from HPKE with the same parameters
+as above, and `skR = identity`.
+
+The identity implementation MUST ignore any stanza that does not have
+`mlkem768x25519` as the first argument, and MUST otherwise reject any stanza
+that has more or less than two arguments, or where the second argument is not a
+canonical base64 encoding of a 1120-byte value. It MUST check that the body
+length is exactly 32 bytes before attempting to decrypt it, to mitigate
+partitioning oracle attacks.
 
 ### The X25519 recipient type
 
@@ -177,7 +239,7 @@ An X25519 identity is generated as
 
     identity = read(CSPRNG, 32)
 
-and encoded as [Bech32][] with HRP `AGE-SECRET-KEY-`.
+and encoded as Bech32 with HRP `AGE-SECRET-KEY-`.
 
     AGE-SECRET-KEY-1GFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPYYSJZGFPQ4EGAEX
 
@@ -191,9 +253,6 @@ Curve25519 base point from RFC 7748, Section 4.1.
 The recipient is encoded as Bech32 with HRP `age`.
 
     age1zvkyg2lqzraa2lnjvqej32nkuu0ues2s82hzrye869xeexvn73equnujwj
-
-Note that Bech32 strings can only be all uppercase or all lowercase, but the
-checksum is always computed over the lowercase string.
 
 #### X25519 recipient stanza
 
@@ -412,7 +471,7 @@ https://age-encryption.org/testkit.
 [STREAM]: https://eprint.iacr.org/2015/189
 [Tink]: https://github.com/google/tink/blob/59bb34495d1cb8f9d9dbc0f0a52c4f9e21491a14/docs/WIRE-FORMAT.md#streaming-encryption
 [Miscreant]: https://github.com/miscreant/meta/wiki/STREAM
-[Bech32]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+[BIP173]: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 [RFC 7748]: https://www.rfc-editor.org/rfc/rfc7748.html
 [RFC 7914]: https://www.rfc-editor.org/rfc/rfc7914.html
 [RFC 7468]: https://www.rfc-editor.org/rfc/rfc7468.html
