@@ -18,7 +18,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 A user of streaming encryption wishes to encrypt a _payload_—a sequence bytes that is possibly long and whose full contents or length is possibly not known at the time encryption starts. 
 
-The encryption algorithm is given a 32 byte key `k` and a 16-byte nonce `nonce`. The _payload key_ is computed as follows:
+The encryption algorithm is given a 32-byte key `k` and a 16-byte nonce `nonce`. The _payload key_ is computed as follows:
 
     payload key = HKDF-SHA-256(ikm = k, salt = nonce, info = "payload")
 
