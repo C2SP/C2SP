@@ -387,10 +387,11 @@ The result is then encoded as a recipient stanza with three arguments: the first
 is the fixed string `p256tag`, the second is the base64-encoded tag, and the
 third is the base64-encoded encapsulated key *enc* from SealBase.
 
-    tag = HKDF-Extract-SHA-256(ikm = enc || pkR, salt = "age-encryption.org/p256tag")[:4]
+    tag = HKDF-Extract-SHA-256(ikm = enc || SHA-256(recipient)[:4], salt = "age-encryption.org/p256tag")[:4]
 
-Note that the ikm of the tag computation matches the kem_context of the HPKE
-Encap and Decap functions.
+The recipient is included in the tag as a truncated SHA-256 hash of the
+compressed P-256 point encoding for backwards compatibility with existing
+age-plugin-yubikey identities, which used that truncated hash as the tag.
 
 The body of the recipient stanza is the HPKE ciphertext from SealBase.
 
@@ -421,12 +422,13 @@ The result is then encoded as a recipient stanza with three arguments: the first
 is the fixed string `mlkem768p256tag`, the second is the base64-encoded tag, and
 the third is the base64-encoded encapsulated key *enc* from SealBase.
 
-    tag = HKDF-Extract-SHA-256(ikm = enc[1088:] || recipient[1184:], salt = "age-encryption.org/mlkem768p256tag")[:4]
+    tag = HKDF-Extract-SHA-256(ikm = enc || SHA-256(recipient[1184:])[:4], salt = "age-encryption.org/mlkem768p256tag")[:4]
 
-Note that the ikm of the tag computation only includes the P-256 component of
-the encapsulated key and recipient (since the ML-KEM encapsulation key might not
-be available without user presence, depending on how it is stored on the
-hardware).
+The recipient is included in the tag as a truncated SHA-256 hash of the
+uncompressed P-256 point encoding only, because the ML-KEM encapsulation key
+might not be available without user presence (depending on how it is stored on
+the hardware), and to reduce the size of the identity encoding (which may choose
+to store only the truncated hash).
 
 The body of the recipient stanza is the HPKE ciphertext from SealBase.
 
