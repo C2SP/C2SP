@@ -91,6 +91,10 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@gtank](https://github.com/gtank)
 
+### well-known-ssh-hosts
+
+- [@crawshaw](https://github.com/crawshaw)
+
 ### xaes-256-gcm
 
 - [@FiloSottile](https://github.com/FiloSottile)
