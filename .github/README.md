@@ -65,6 +65,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | [`c2sp.org/tlog-tiles`](https://c2sp.org/tlog-tiles) | Static asset-based transparency log | [Maintainers](MAINTAINERS.md#tlog-tiles) |
 | [`c2sp.org/tlog-witness`](https://c2sp.org/tlog-witness) | HTTP protocol to obtain transparency log witness cosignatures | [Maintainers](MAINTAINERS.md#tlog-witness) |
 | [`c2sp.org/vrf-r255`](https://c2sp.org/vrf-r255) | Simplified ristretto255-based ECVRF ciphersuite | [Maintainers](MAINTAINERS.md#vrf-r255) |
+| [`c2sp.org/well-known-ssh-hosts`](https://c2sp.org/well-known-ssh-hosts) | `.well-known` HTTPS address for SSH known_hosts | [Maintainers](MAINTAINERS.md#well-known-ssh-hosts) |
 | [`c2sp.org/XAES-256-GCM`](https://c2sp.org/XAES-256-GCM) | Extended-nonce AEAD from NIST-approved components | [Maintainers](MAINTAINERS.md#XAES-256-GCM) |
 
 ## Associated projects
