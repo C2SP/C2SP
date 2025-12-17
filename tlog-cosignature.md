@@ -14,7 +14,7 @@ example.com/behind-the-sofa
 CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
 — example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
-— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZ\nqhf5nNo0xUe+mbIUBkBIfZ+qnA==
+— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
 ```
 
 ## Conventions used in this document
@@ -56,6 +56,9 @@ The key ID MUST be
 Clients are configured with tuples of (cosigner name, public key, supported
 cosignature version) and based on that they can compute the expected name and
 key ID, and ignore any signature lines that don't match the name and key ID.
+
+Public keys MAY be encoded as [vkeys][] with signature type 0x04 and the 32-byte
+Ed25519 cosigner public key as the public key material.
 
 Future cosignature formats MAY reuse the same cosigner public key with a
 different key ID algorithm byte (and a different signed message header line).
@@ -112,7 +115,11 @@ are non-conflicting.  Examples of non-conflicting statements include "I also
 mirrored the log up until the checkpoint size" and "I also reproduced the sparse
 Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
 
-[note signature]: https://c2sp.org/signed-note
-[checkpoint]: https://c2sp.org/tlog-checkpoint
-[witness]: https://c2sp.org/tlog-witness
+A cosigner operator that operates multiple cosigners with distinct additional
+statements MUST use distinct public keys for each cosigner. In cosignature/v1,
+it is not sufficient to use a distinct cosigner name.
+
+[note signature]: https://c2sp.org/signed-note@v1.0.0
+[vkeys]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror

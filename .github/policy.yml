@@ -57,6 +57,9 @@ policy:
           - the vrf-r255 maintainers have authored relevant changes
           - the vrf-r255 maintainers have approved relevant changes
         - or:
+          - the well-known-ssh-hosts maintainers have authored relevant changes
+          - the well-known-ssh-hosts maintainers have approved relevant changes
+        - or:
           - the XAES-256-GCM maintainers have authored relevant changes
           - the XAES-256-GCM maintainers have approved relevant changes
   disapproval:
@@ -528,6 +531,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/vrf-r255"
+    requires:
+      count: 0
+
+  - name: the well-known-ssh-hosts maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^well-known-ssh-hosts\\.md$"
+          - "^well-known-ssh-hosts/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/well-known-ssh-hosts"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the well-known-ssh-hosts maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^well-known-ssh-hosts\\.md$"
+          - "^well-known-ssh-hosts/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/well-known-ssh-hosts"
     requires:
       count: 0
 
