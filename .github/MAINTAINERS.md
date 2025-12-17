@@ -31,7 +31,9 @@
 
 ### cocktail-dkg
 
+- [@bytemare](https://github.com/bytemare)
 - [@soatok](https://github.com/soatok)
+- [@tjade273](https://github.com/tjade273)
 
 ### det-keygen
 
