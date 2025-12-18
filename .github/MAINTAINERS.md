@@ -32,6 +32,7 @@
 ### cocktail-dkg
 
 - [@soatok](https://github.com/soatok)
+- [@tjade273](https://github.com/tjade273)
 
 ### det-keygen
 
@@ -74,6 +75,10 @@
 - [@AlCutter](https://github.com/AlCutter)
 - [@davidben](https://github.com/davidben)
 - [@lukevalenta](https://github.com/lukevalenta)
+
+### tlog-proof
+
+- [@FiloSottile](https://github.com/FiloSottile)
 
 ### tlog-tiles
 
