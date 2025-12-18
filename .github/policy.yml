@@ -48,6 +48,9 @@ policy:
           - the tlog-mirror maintainers have authored relevant changes
           - the tlog-mirror maintainers have approved relevant changes
         - or:
+          - the tlog-proof maintainers have authored relevant changes
+          - the tlog-proof maintainers have approved relevant changes
+        - or:
           - the tlog-tiles maintainers have authored relevant changes
           - the tlog-tiles maintainers have approved relevant changes
         - or:
@@ -450,6 +453,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/tlog-mirror"
+    requires:
+      count: 0
+
+  - name: the tlog-proof maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-proof\\.md$"
+          - "^tlog-proof/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/tlog-proof"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the tlog-proof maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-proof\\.md$"
+          - "^tlog-proof/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/tlog-proof"
     requires:
       count: 0
 
