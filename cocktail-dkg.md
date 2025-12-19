@@ -2,7 +2,7 @@
 
 [c2sp.org/cocktail-dkg](https://c2sp.org/cocktail-dkg)
 
-- **Version**: v0.1.0
+- **Version**: v0.2.0
 - **Authors**:
   - [Daniel Bourdrez](https://github.com/bytemare)
   - [Soatok Dreamseeker](https://github.com/soatok)
@@ -312,6 +312,8 @@ This round ensures that all honest participants have arrived at the same public 
     6. For $j$ from $1$ to $n$: $C_j$ (the full VSS commitment of participant $j$: $C_{j,0} \parallel \cdots \parallel C_{j,t-1}$).
     7. For $j$ from $1$ to $n$: $PoP_j$ (the Proof of Possession signature from participant $j$).
     8. For $j$ from $1$ to $n$: $E_j$ (the ephemeral public key from participant $j$).
+    9. $len(ext)$: The length of the application-specific extension as a little-endian 64-bit unsigned integer.
+    10. $ext$: The application-specific extension bytes (may be empty).
 
    All participants **MUST** produce identical transcripts. Any difference indicates a split-view attack or implementation bug.
 2. **Sign Transcript:** Participant $i$ signs the transcript $T$ with their long-term static private key $d_i$,
@@ -322,6 +324,54 @@ This round ensures that all honest participants have arrived at the same public 
 5. **Success:** If all signatures are valid, the DKG is successful. The participant stores their secret share $x_i$ and
    the group public key $Y$. The collection of $T$ and all $n$ signatures on it is called a "success certificate" and
    can be stored for auditing.
+
+### Application-Specific Extensions
+
+COCKTAIL-DKG supports an optional application-specific extension that is appended to the transcript before signing.
+This allows protocols that build atop COCKTAIL-DKG to ensure all parties agree on some application-defined value.
+
+**Extension Format:**
+
+The extension is appended to the transcript as:
+
+- $len(ext)$: The length of the extension as a little-endian 64-bit unsigned integer.
+- $ext$: The extension bytes (may be empty; when empty, $len(ext) = 0$).
+
+**Recommended Use Cases:**
+
+Applications **MAY** use the extension field for different purposes. Two common patterns are:
+
+1. **Consensus on External State:** Ensure all parties commit to some agreed-upon value (e.g., a Merkle tree root,
+   a configuration hash, or a session identifier). The protocol only succeeds if everyone provides the same extension
+   value. This is useful when the DKG must be bound to external application state.
+
+2. **Collective Randomness Derivation:** All participants hash together independently-contributed random data via the
+   extension. If the transcript hashes all match, the participants can derive a shared random value that no single
+   party could have predicted or biased. This is useful for protocols that need distributed randomness as a byproduct
+   of the DKG.
+
+These use cases are not compatible with each other—an application must choose one approach. The extension semantics
+are entirely application-defined; COCKTAIL-DKG simply ensures that all participants agreed on the extension value
+before the protocol completes.
+
+**Deriving Extensions from Payloads:**
+
+When applications use the optional payloads in the encryption step (see [Optional Application Payloads](#optional-application-payloads)),
+they **MAY** derive the extension from those payloads to ensure all participants agree on the exchanged data. A recommended
+approach is to compute a hash of the participant-ordered payloads:
+
+1. For each participant $j$ from $1$ to $n$, collect their payload contributions.
+2. Compute the extension as:
+   $ext = H(n \parallel len(payload_1) \parallel payload_1 \parallel \cdots \parallel len(payload_n) \parallel payload_n)$
+   Where $n$ is encoded as a little-endian 64-bit unsigned integer and each $len(payload_j)$ is a little-endian 64-bit unsigned integer.
+
+This ensures that any disagreement about the payloads will result in different transcripts and failed signature verification.
+
+**Security Note:**
+
+The extension is included in the transcript and thus covered by all participants' signatures. This provides the same
+consensus guarantee as the rest of the transcript: if any participant has a different extension value, the signatures
+will not verify and the protocol will abort safely.
 
 ## Error Handling
 
@@ -1047,6 +1097,14 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
 - `d_i`: The static private key of participant `i`.
 - `P_j`: The static public key of every other participant `j`.
 - `transcript_data`: The public data from Round 2.
+  The transcript includes:
+  - len(context) as uint64_le, context bytes
+  - n as uint32_le, t as uint32_le
+  - All static public keys P_j
+  - All VSS commitments C_j
+  - All PoP signatures PoP_j
+  - All ephemeral public keys E_j
+- `extension`: (Optional) Application-specific extension bytes (defaults to empty).
 
 **Output:**
 
@@ -1055,7 +1113,7 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
 **Steps:**
 
 1. Construct Transcript:
-    1. T = CanonicalEncode(transcript_data)
+    1. T = CanonicalEncode(transcript_data, extension)
 2. Sign Transcript:
     1. sig_i = Sign(private_key=d_i, message=T)
 3. Broadcast and Receive Signatures:
@@ -1073,8 +1131,8 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
 **Pseudocode:**
 
 ```python
-function Round3(i, d_i, AllPublicKeys, transcript_data):
-    T = CanonicalEncode(transcript_data)
+function Round3(i, d_i, AllPublicKeys, transcript_data, extension=empty_bytes):
+    T = CanonicalEncode(transcript_data, extension)
     sig_i = Sign(private_key=d_i, message=T)
     all_signatures = broadcast_and_receive(sig_i)
 
@@ -1083,12 +1141,31 @@ function Round3(i, d_i, AllPublicKeys, transcript_data):
             abort("Invalid transcript signature", j)
 
     return true
+
+
+function CanonicalEncode(transcript_data, extension):
+    T = empty_bytes
+    T = T || uint64_le(len(transcript_data.context))
+    T = T || transcript_data.context
+    T = T || uint32_le(transcript_data.n)
+    T = T || uint32_le(transcript_data.t)
+    for j from 1 to n:
+        T = T || transcript_data.static_public_keys[j]
+    for j from 1 to n:
+        T = T || transcript_data.vss_commitments[j]
+    for j from 1 to n:
+        T = T || transcript_data.pop_signatures[j]
+    for j from 1 to n:
+        T = T || transcript_data.ephemeral_public_keys[j]
+    T = T || uint64_le(len(extension))
+    T = T || extension
+    return T
 ```
 
 ## Appendix B: Test Vectors
 
-This section provides a set of test vectors for a 2-of-3 DKG for various ciphersuites.
-The vectors were generated deterministically using a seed derived from the authors' names:
+This section provides test vectors for various threshold configurations (2-of-3, 3-of-5, and 7-of-14) across all
+supported ciphersuites. The vectors were generated deterministically using a seed derived from the authors' names:
 
 ```
 seed = SHA256("Daniel Bourdrez,Soatok Dreamseeker,Tjaden Hess")
@@ -1097,16 +1174,18 @@ seed = SHA256("Daniel Bourdrez,Soatok Dreamseeker,Tjaden Hess")
 
 ### Transparent Derivation Scheme
 
-All secret values are derived using a labeled hash with ciphersuite domain separation:
+All secret values are derived using a labeled hash with ciphersuite and threshold domain separation:
 
-```
-derived_bytes = H(seed || ciphersuite_id || label)
+```python
+derived_bytes = H(seed || ciphersuite_id || uint32_le(t) || uint32_le(n) || label)
 ```
 
 Where:
 
 - `H` is the ciphersuite's hash function (e.g., SHA-512 for Ristretto255, SHA-256 for P-256)
 - `ciphersuite_id` is the ciphersuite identifier string (e.g., "COCKTAIL(Ristretto255, SHA-512)")
+- `t` is the threshold, encoded as a little-endian 32-bit unsigned integer
+- `n` is the number of participants, encoded as a little-endian 32-bit unsigned integer
 - `label` is a human-readable ASCII string identifying the value being derived
 
 #### Labels
@@ -1115,6 +1194,7 @@ Where:
 |-------|-------------|---------|
 | Static secret key for participant i | `static_secret_key_{i}` | `static_secret_key_1` |
 | Round 1 RNG stream for participant i | `round1_participant_{i}` | `round1_participant_1` |
+| Payload for participant i | `payload_{i}` | `payload_1` |
 
 #### Scalar Reduction
 
@@ -1128,194 +1208,756 @@ For ciphersuites with 64-byte hash output (SHA-512, SHAKE256, BLAKE2b-512):
 
 This allows any developer to independently reproduce the test vectors by:
 
-1. Computing `H(seed || ciphersuite_id || label)` for each value
+1. Computing `H(seed || ciphersuite_id || uint32_le(t) || uint32_le(n) || label)` for each value
 2. Reducing the hash output to a scalar using the appropriate method
 
-The context string for all test vectors is:
+#### Context String Format
+
+The context string for test vectors follows the pattern:
 ```
-"COCKTAIL-DKG-TEST-VECTOR-2-OF-3" (hex: 434f434b5441494c2d444b472d544553542d564543544f522d322d4f462d33)
+"COCKTAIL-DKG-TEST-VECTOR-{t}-OF-{n}"
 ```
 
-Full test vectors in JSON format are available in the [cocktail-dkg/](cocktail-dkg/) directory.
+For example:
+
+- 2-of-3: `"COCKTAIL-DKG-TEST-VECTOR-2-OF-3"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d322d4f462d33`)
+- 3-of-5: `"COCKTAIL-DKG-TEST-VECTOR-3-OF-5"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d332d4f462d35`)
+- 7-of-14: `"COCKTAIL-DKG-TEST-VECTOR-7-OF-14"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d372d4f462d3134`)
+
+### Test Vector Types
+
+Each ciphersuite includes the following test vector types:
+
+1. **Basic vectors** (2-of-3, 3-of-5, 7-of-14): Standard DKG execution with empty extension.
+2. **Payload extension vector** (2-of-3): Each participant includes a seed-derived payload with their encrypted shares.
+   The extension is computed as a hash of the participant-ordered payloads:
+
+   ```text
+   ext = H(uint64_le(n) || uint64_le(len(payload_1)) || payload_1 || ... || uint64_le(len(payload_n)) || payload_n)
+   ```
+
+Full test vectors in JSON format are also available in [CCTV](https://github.com/C2SP/CCTV/tree/main/cocktail-dkg).
+
+The following sections provide test vectors for 2-of-3, 3-of-5, and 7-of-14 threshold configurations for each
+ciphersuite.
 
 ### COCKTAIL(Ristretto255, SHA-512)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `1b0b02a6d05dbeea91c34c09727bc4a86934a0e5b937302a7e06b733cf04aa0d` | `5e10e4f9191dfaebaedad4a8c44611227b23f6b8a1fd90ac2e4c439ad1e0f530` |
-| 2 | `bd88b358ebcb722d1ddb1d22f9f0978896586a2e64a07e5d142440dfde534703` | `60954df80383ef39d1d74a00046df4988f71926a72d7805e6bbce3b02a72ca43` |
-| 3 | `e23339da2f526f32b09853907a6e88b052dfacdb64bd7d6b1a304f0178537a0e` | `f445dbc3514c533f8461c8a590513c71def9db543ecb42cab6c18c9bf2ab1603` |
+| 1 | `8232337dffa583f214e2ead7f19c37b482f77171194ed6984a715353e086d20e` | `e86e416c45160b32c774ebac802906548d94b3327517178c3c743226dd594d32` |
+| 2 | `f7b358f26668f0733363b309c435bc16f7670ec5850e4860c5d25e049e7d060d` | `c003305ceb27d887d9391f85138fc34edae9c963951a4e9c950bed8509ba2b5e` |
+| 3 | `fc2df6b164cac912a8c2d294b528f5e3261f1724d510f9fd1c2bae5e76308d0b` | `e4dad4d96d6e507ac59aa539a42c8185618b51941f4497af246cfaa9d1912b18` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `34e7bfedbf8bb046117fab4814decbeedd7bfa901dd295c504efd7d78f5db304` | `a21204f03b202ce99cb1b0ea5a40fbe0a4602490eec1ddad5ea43eafcb1c374e` |
-| 2 | `fb23d7ce8232460d755858a3749269c0b89a5597d859b3fd2a08ee0e50110d04` | `ec42aa1f69b06578590e89750b70625f193bd97f554dc75be0c05f398ffaad47` |
-| 3 | `c260eeaf45d9dbd3d83105fed446079293b9b09d93e1d0355121044610c56603` | `b0a218b1ee612ab6a541d75d788f57e3156dc144165ecbc85c4c533e2386bd40` |
+| 1 | `09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304` | `5e130c137d31a445d1b8df391b41db0dbf6a9e13649abb40d68d3fa955eca22d` |
+| 2 | `7db7ccef4df8fb157766082728cd2f072c0ec3af6d352a3d0af49919daf9950b` | `2c9a0c7d2a8e3c37c7b1ebb5d40bad2e9127151ad160a8b7d0782482fd790007` |
+| 3 | `04e3c4216570bdbdf8f4006a6f5b279cdefea07997f862e3eb71320ebaccf802` | `b434b345762decb04e5d9937cc5aee03b828808ea8d5500ea7c06c684712e143` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `50dfd8cac7edd751e5aa748d5506949723939e965982d2ca13b56adb6512c6f2c311e5c45fb8c783c02ad6ba8c99233094fbf347711591077e88a798c6b5217f`
+- **Extension**: (empty)
+- **Transcript Hash**: `688801fc10825c8c317a69bf7720f5a1e9deda663658dcd8d49c75fae3c8ff24d0e8cbbee95e3b9d85a48c512863a3d2f484c572ff2229c1e9bb70ab9aea6609`
 
 #### Final Output
 
-- **Group Public Key**: `2635bccd836246119187424486f0943d2dc3f6c88cb4693604496b03fde19511`
+- **Group Public Key**: `0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `0532c882c5e72dc374dd3bf221e641b5634ec4316a5c96a7eb168510d2379a08` | `fc8ff6d9a852fbc3f4b673be37e52d65beb4afbbf86d217572bc2d55dc82c37a` |
+| 2 | `33531cd0046f315ba42e9c451c130bb934773852b5a3227e516f34aaf99d780a` | `4c40c03b25a8029931c33a11d965df4494a6adc126b04f937e1243dde572877e` |
+| 3 | `2628761a926ec29d7b593ccea04cc799a5066d746b07a025436300b580931a07` | `64490433b5b6d3217311bc99d01b84a158f31232fae5545f1058a77632776a4f` |
+| 4 | `c2355a62f365346e9577fd32e436b3fffa22a917a188f576919e86ac65236a09` | `ee106ab40ff4e2cae74a1d0a12b8bcae46b8f85a2285cbcf93357519fc060e44` |
+| 5 | `82eacb16d6b34573e3836b214481e0fc4e885ea8bbbfb6bf80d6d4e37ad9630d` | `a4ebab43a8b6baa1842d7afd5e2354401b7c4caef9a7edab8ad5b4d9ffdb8813` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `653535bf967662ac857d654764a1b9550abe0809f415b378ab7ada025b4c2802` | `be53f58edb38e3ad67964229124f804350ef7b1665a1b2dd6a20eb2b04829160` |
+| 2 | `5d69230ed12c9e7d43e62b58540fff1a951e5a0dfdb119190f86339f3dae6b0c` | `dc3f9543e44f2b1db3ea4506cd5e0bc54162cb9f4e1144e7beaa89f499b3a93e` |
+| 3 | `0f3a902905dfa28f9a303b21ca3729b0c3f533850e8ee4e4848cc411018a5d01` | `d27e7ca67ff733af3048c939cc008841a3ec0c761d415ac842fce072f0cd3126` |
+| 4 | `554f67cb67539592379682e8820ef63e9643967028aa13dc0c8e8d5aa5dffd00` | `de380d0925d9b53277d69e3307053745a7d972ad62a7d76ef6219475053d7f52` |
+| 5 | `2fa9a8f3f88975861a1702ae7e9365c70c0881cf4a06a7fea68a8e792aaf4c0b` | `0e0be364b5ed7e1b454b28ef38be3c8c2de44324df78f764247d4c599584514e` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `c80f280bf75822900ae0db5fa3a5a6802d6d3378f5bd931f1c320d2de2cbac6214e2ed9450c2b4090eca486c369cfd9490d7a184f756dc85fb3cc433f21bb23d`
+
+#### Final Output
+
+- **Group Public Key**: `08ee9bb0fc75a34dabe96f9f808d89234a7456d0563bc0887404fc9c0bb7b406`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `730091092abcd19d49aa1c3277dd36ff2d8bb4e6b91963e467dc9b5429e48401` | `9c75faa367177d035128f26e8953b9ce5cf68bb189edbd6d58f1db2c8dad676b` |
+| 2 | `7952975e46574ee2772d67896829e022332d360cf4966c17b895968b332ca505` | `c46adec5d82f467c8ee56872c75ce12f7ac240a65d50c3fff8c85310634fb32b` |
+| 3 | `50789dbe3bcb2a8cbe41d5f535abfc56a609e6453f5736f66a33bc031864d80f` | `2cae87df6ab209f4c3bfd25cf303aed05944184571de8ac81aa987483d4f8062` |
+| 4 | `50fbcd2cdf1f2998a9b0419bdf7197fd962d3e91e879546acd4241bc369e330d` | `2eebf6f81abbd598e49297f2210e0d2b6133a61ae5fd2f40f0da0e54b146491d` |
+| 5 | `af2a5f2917da0feb73154a7f87cf608ae50b35083d2853ff10ba26e133db180b` | `f2b623ce85be496517df79c447d54dc26a45bbfd2622552c73cf108d8c68786b` |
+| 6 | `d5a659c9640847799436aa51503f31a70319a006b9eea946cf1fe32e99c8bd0c` | `9e5522df34c631caac8e30a4fba13d608420598b02394da9ff7646586e5fb240` |
+| 7 | `778db0ae1a01759bc947d48b0ede7fa805c3bbd51fc2845cf4a9f3a309078a08` | `2a077c782fdcfadcfd569ad965d317cd733c72feaaa3da996ccefac5c4b94b1f` |
+| 8 | `4224093484db587c8e28c372343a1dcfd2b528dc36690211d059b5d67491a908` | `e6204385f19b7f1d2f69feabc033cb416299bab36eba32abf9fc13a54bce6a7b` |
+| 9 | `950d4e827b4155528b4d473baf8543f1a932c0c28e6fc901e14a6287fcb94e06` | `dcc3518ecd3b596c99d849c7670b708b1e7a5601539312fb7625af408a5b2729` |
+| 10 | `233abff49c6f626d63645e0b7e158928a20256e4dbb8c3b00ce0fb1129ead00c` | `ba0d0c4030c2baba4ca96512bce0317d135b3118fa68b43f55bc30ddcc75b602` |
+| 11 | `15452dce3d48fec02cb2edef3f070719cfcd907767bcc63132d1813830e8000b` | `eaf74ed6300e8fdcf04c32ede1cfbc7cd1caaa9243da90a463f3841114dcca4e` |
+| 12 | `70faec6c97ba6e919269bc3cbd296053e2678b246cd6608d2b435ba91d766f09` | `34a1222b4d714f514dcb50ff9a145e961a29462c33f2f04c42fe37bcae90b660` |
+| 13 | `841952d79b7c9e7cf26430ca840dd508620e44efd48f42ad31224c51df246e0c` | `b4afc08660a033b2036b2a0d480fce0f03278b4a74351af6bb6e41b2a06d2363` |
+| 14 | `d63e9f455f758b7946d888402a9790a66b3fe4fce7db3dd04de5c4dc4b9ac903` | `b25ac7ad672ae828780b229ebe0a9ef97626cf5d9f975693ab3aedb5db54846f` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `7fd318c7a71d543ed87e2b8df70d434f3bd4406a0e754069d4317327a02d430a` | `9a8493d78c60dc0caaa2aa294777d9f4db157e4b002de4f1d5e5fdba7750b24b` |
+| 2 | `302e7de8da8bafd705aa75a1dd830603fcf72c0f28e8e6be16cdc7adfc4bf304` | `9aa8f5385334269aca711a4e71f0592483aa2360c3a348cd082b79115739507a` |
+| 3 | `3105eeb75e94d6b40a61a734864367a4bae92d3a61442aec086da74d2fd31e0c` | `b893029dcba9b6613f04a2ad54e526b1e229862bd73ae49c741b1a4e5f232b2a` |
+| 4 | `53b15dad58d84400a99f358b930494dd6169d9023f38c3289b7f4921b638c40c` | `10491f9a381145194bb1c08cb751d4ff83b6af889ec3614c76c99fd4868d8a6c` |
+| 5 | `0e0472f3a660a898a43501fa72fc7f35d9a9a54d489399d0646a98eb9d021e05` | `f0c445435f26fb3ae44196056f8c764cf14f7c4d0a332b0ba2d07c5fdbc8df6e` |
+| 6 | `0b7fd92a2a2f819a672e81d62794a3934e60b30ba4b5b478a86d8b0c25b6cb0d` | `3243e6ad68e9e1eba8225d08736319419d758658127c4e3679cf939018836f00` |
+| 7 | `3106d473ce3ab2485942391420b74a60167b0c1fa5585ed8f568e98c43980d08` | `12ba2e8f7f2606d88eb9067e00b3856ec4402c24da72848d64e2880cfe491e68` |
+| 8 | `f21e42ea136b3c2d23bced61db523fa4238057e343b077866981744118401301` | `f2b087c15d8443e6697d4b5da85ecf8d536c266355dd0aee17a8d3a4ec779173` |
+| 9 | `542e065107d5b39025913c0b008264861693ff5a85e5008b8aa97e053bfb5c0a` | `480451e16cad12724b533d3189323a6d496adb3727396625d424fd66ffecb90b` |
+| 10 | `1e5566d47d520209ce9358b6d2313acee122d100d0e9d2c4c50ae70cf4033007` | `ded3e9b85023d366ad0ba39562a0bf62fe0443c7c574c646435722bab8a2a745` |
+| 11 | `6b3109859b522f902fe0925bc304ff3b083f0b3e2ea38b238750804d58891d0f` | `8cd5e93754f4f7ec37b19e3e8ec0d6a98b4c615a2abf0c20ab9845e2bc56622f` |
+| 12 | `454f6d8e605f989170086b75edf846eb6f94e5847e71acb5f0d4dfff4a899c05` | `084cf1aef59d65efe562275be46805314a9d0820d670fbf425f4130949d71423` |
+| 13 | `5aced299ea6878dfd3ee4bf62733acdecd118b0f910ceb8a2faf9537647cb606` | `600f2bca29f1032979928a8f51062fed90350cb74ff896db952b1767c5e83923` |
+| 14 | `b9b69fecbcc5df9e975fcf76088ef495a733894333bbb46a6ea3cd92bcd3c608` | `6a35d79048f6d9759da160dde1f6597ccdb3f9230a649eca0b07801fa2e33e7e` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `c14900732438c02af052e6e5d4f25b445f45576ae4dd014a4e43e3ca9218fc04bf3d29d54be73ae00799c46d02cf06736819d96853373b7d04b51eb614e58666`
+
+#### Final Output
+
+- **Group Public Key**: `5056c3b4570be4c8afa7301347edea1de395810df72afccf576cc076a46d6a07`
 
 ### COCKTAIL(Ed25519, SHA-512)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `cb7d66d274b9f7c68799bd014e94bffc4ab2370cc37324e6caeea236eb10f608` | `305b7e49602cf880239f73889aca2f02949de5caab7887cf4be7333824dbf4a2` |
-| 2 | `1893c61c506918c7197475a60d17b6e10479c9cbf6976085d06bc8bb7f648d02` | `8a5cce577f2ea7d1a5c3cd177658943dc6f262df0ced60724308aa79045b0a12` |
-| 3 | `3a51c9a4eb2a7a487647d8ec6a2763f415cda6a4d38996a1079819c7c845b300` | `ce7677bcef4ae6b3e0a46db45bdb13997d900b64fb9172781e8935eaa7f0f899` |
+| 1 | `976f8781ac89edb9b14f00b42915f36add6fb01f795ad7048e88a7246ab35304` | `2f35ea108d2b43a27d2dd17f3f0d0e44422514d91d667af850fa206a85cde4f3` |
+| 2 | `b00aff74021d100b0eb587ca406fd4c1af2ffef9146454a4c35f547f709e8403` | `d34665a229edcb3a8b822179868138c097bbf51316cbea636e6626b152742812` |
+| 3 | `5d3df9bdd5e6ff1e43f07d2d81791cda76e44e6fdbba980b1231a9ff39e1ee02` | `e4f58f6834e2315cc79cbb142ffa2ae0700f835ddb581818e10553679c32fafa` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `0f6ac06d86c23448dd09c6c52d3a4ba59970c92e020db4e84d5af6604874eb01` | `ec3252ae4048d562194fad35f732e40e309b02d3f8e75c7a34f87240f2691792` |
-| 2 | `0b1bf10a6f30b320d9479c219f59de30f5066346512369387134c1d626c11904` | `b5897d6024513ef34b2f139e3cab0e601eedd0a1bc50d5314946e8e4ce5d45ba` |
-| 3 | `07cc21a8579e31f9d485727d107971bc509dfc5da0391e88940e8c4c050e4806` | `bb7a42d7a9be00e293acfbf6e84345b1bea1e3fd0e0a35c1f02c82dda28b64a2` |
+| 1 | `c11e69ce202b5f0edb662e870c506269016bf9113f5b66af4cc01fdf1482860c` | `8a45d3e10b89c0937e323c8456b9eae9bf939c3277a653f2c800df70a03fccc2` |
+| 2 | `6723b951f1a81f143f11eea4ec31413e76669d049b962b8946a78a35cf97cf0c` | `0c37616b618d49bc5ce2db1cc0ec4177890bbefa2caed8aeb2cc20aa5e872ecb` |
+| 3 | `0d2809d5c126e019a3bbadc2cc132013eb6141f7f6d1f062408ef58b89ad180d` | `9b992f1e668431df2531c8a29defe7d7a5897862648c8efc92bfd9464dbed5c9` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `e90521cc6e735e921665b6f8aa68e082d49e20432e291867377d8755835c56f7d105fa3f1b10db6a3ff257982afd661ed23595d9bbcd37c72ed87ef272a82196`
+- **Extension**: (empty)
+- **Transcript Hash**: `c271c24bac1aef846815a8c43fc6618bb6d4367edece0c0937be417c3948ed69671629784f0950e43d63b0c2af66a5259ec2fd0b27e70b1d0cf49a127fca1970`
 
 #### Final Output
 
-- **Group Public Key**: `962e7ef6e114c47d3e83914d492f561de12901bd60543066ca0aaf913b4b9866`
+- **Group Public Key**: `ec21f5ee46aa6e11ddc8d3f42af51e6636b86de0243229d848da48c3b604964d`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `72553463294cecf2b05391d0b4697c7e5dd42e6fd8e3e779ab8dbcd762a1c701` | `e38cc6776d91cce01937aa23469caf8c019298136055e2c8f4002f2e0d4b1d30` |
+| 2 | `784418850a415959dcd16f114e96b7e300865107391bc737f39d2e1c3f70420f` | `b89c8543454c361cf07cbb8fb62d29186b2d82b716f642e61e42f45e3fc603d8` |
+| 3 | `82893224a1af1dcf0e1884a15885937af1018ef07b9d70ec6a14dfef21d97203` | `5f3e9f0f8deb3160261d5534431375ff66d5c305aa734801d6ea3c78a393af31` |
+| 4 | `2e102fbfe8593ae24446eca8635a81f91e16a53d8deedb73ec8b1e473f6f8f0b` | `6c4ce9698663429e3327c203937d509f00ebd8cf889f5af090d7a4762bcd31c9` |
+| 5 | `37bb7ef244c9f1d5ccac85fd9a01c881b44b50049652a7f50082e6c59aa80c0f` | `1535febfa522cc03fc9c2d67cd731263b93fe0d0795cbb6c599f922e9bf0319c` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `089205ddc8931a7778eb588b836756bc5f10a650bb9c3c6f23646c6303426f05` | `279636be807557633c8acd8161d452e8a9542f280463a643703184ef0bc88c22` |
+| 2 | `e8d9ed60a8df0d5f99459a1fe71ace6bc84c81773b25f84da8e6743816ad040f` | `20381dd73762ae08cce6f825178ad70a08636426c4caa4e797d06eec28f8c821` |
+| 3 | `b4d8f5ab9fa5ab1ff885e83885f37ffa59a540a3c09b1be8a6fb011736a77603` | `fa64620863ba443af3ac17968b550e221b7914b11892f831824839c036960925` |
+| 4 | `46360978e3ab186941e6321d1be52992141ae4d34a00a73d1fa313ff6230c502` | `42a70b7244644cd6acff8a2ccd9c105767dae4fc5a69f93ac588dabf2cf82e77` |
+| 5 | `9ef227c573f2543b756679cca8efcb32f8aa6b09da529a4e11dda9f09c48f00c` | `bb3e7a3a1a08d17197d41cbb3fb247380c5e6b2c85d92208d281896c1cc958e8` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `f8309b2d74d773466af7263f6341e05993171e7a05a405fed9d4bf890199a881805641a89396da1f868f14b4e73b5952ff854b8a5c5c7c45061c77e5ac77f2cf`
+
+#### Final Output
+
+- **Group Public Key**: `334d3d0229f6c32ae6b77e9bfd13bb72f565a1fead8aab11e06ecc55f0c4d4a4`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `b6090806188eb1cd2222c9f180561e3b8bac09fb672f5b0de705170929048b09` | `421a26a59527dcc8db396279fea139514903d6632872c6bd25592c94ae5eb191` |
+| 2 | `a1128fa24af9852c08790928825ab0845892a9b2d3133f7058e9d7706d70100d` | `164d1d596b00488600758f2d591d6682ebbc548d6c0ac91cd5ca6810afcb50a6` |
+| 3 | `6dafbb3e7cad284a0f8510c6736dc0b0aede00ebad9f265eaad2837dfe4d2c03` | `9f5a2c1959d25a72fe2275b8a8d9ddb4232e31bf81f99073241dd739cdbbdb5f` |
+| 4 | `a4396d6729b6e19331d4e58e43e278907858c7c7f2cd9fcb1bb84495b95d2f04` | `95b2ca39493be7974327815009509820f88323250ae5206735d35dec1626c8dc` |
+| 5 | `a606911a4a0de0376efa44fd072a6fad150d056dde32ba4115a2804e5077440e` | `e0a805b8cc81e67002acbc41046b1e069a9143c64f7d4bd77cf5845a6c3fe81d` |
+| 6 | `56d529262e1d6fa4e6a7db8bb9f61bcea14833cc88040b5fea23a7cd6fba6404` | `dce5dfc8c734a2edae38c4c2e6fda4e096eb3d544ec8d6619a895f9fd3ca9b61` |
+| 7 | `f4e3554295a31835c68f81479877c90cf4c1340961ce1f3d3f07ab4ec5737404` | `60177138f0d98f7e7083b718339daeab4fc44c370bba05cb946bb2de62ce2f13` |
+| 8 | `97559b3d6c9a433e9bcbc29b6c747b170d1e50865a875913f514ea96f77d050e` | `a18e2c39bed98bfbe05eb5ef8a629b48ecf45eaabda7e55501b7c3c4966fff77` |
+| 9 | `b67bcab764b7900ad51c912ef6e6ffe8799fec6032a045401c15102eda158d06` | `24c2f04cf1a9e81e0ea3f5701c3dc76df93ce872fd04aa1b1293c368bbddee6b` |
+| 10 | `55ed81fa6989d8b8c36edad9ff6c86166ec156c1cbcf9edc739ff9367599ff0e` | `2656186197fa97728aba52c27e9ed50384e996ed9c8e491906ed2ab64db456a9` |
+| 11 | `738a92c61738eff1c6657144213655448d4ed176bcdc898a89422189c932580c` | `08ea6307aafb5ef6b20f023eb4edf2a5fb912661855e3b6dde327dc58bad5049` |
+| 12 | `a48375bdd1e9fada7f72648458dbf46c2c9b4f885c072203c25f52c8f371dd02` | `f69dbdee18af719ac59dff612e28043a19476b164574d24bb908ba201a8ebe90` |
+| 13 | `fdbcc18d4bde352980ae363ee736f014d54dafbf8b63fa95fd0e9df673fe180a` | `4fa1de61f77b0a1a796506680fd14a1d25d9890a56a34e164af8fc102e71ee1d` |
+| 14 | `d9947c89c8a60154e690f679a17037ae7529e00557061dcbd20d04f9a3615604` | `d31f8c2e0d22455a40cfe819737605223f1add340a442fde18e4c2071a9b5d4d` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `5ae8e4e94395ba0838c4ba4a8849130645206e71aee6c9bdc12fb56edbfcfe0c` | `fa590716e0023453938b48e08717ba09446c3619431c69c777c20988fcacc619` |
+| 2 | `c69d4ac4d26e43318de29812ca720a5140e3bb7469105ef4e4d841ac987e3202` | `3889ff3155acdd6d481605ddd4ee63e1b080956186c055b19534ca97c8d42405` |
+| 3 | `52d315dcd6af952d6859db1bd796f90ad21117a4fc0c775d30810d2ef9ef9300` | `722e79c780637a20bfa188c09dab21ac2495c78927b768aa08e57557b3b708f4` |
+| 4 | `900b3bb6eef0c1b9a21196153b93431fcf4154a24c7fbafcf766eee40782de00` | `3b41c48d577cd28a2953ea1c1933c63e91f05317f15d21d21b2b19df84142f8f` |
+| 5 | `5aedb52a15bf785ba6b7b3c8cea04614162f1b1c2460c7d8e003986628d7de0b` | `205c0151dcd7d9bf04c75938ed0cd1342ab1f3ad35e61e81d62e5740c112a4ed` |
+| 6 | `4473e33ddb76fa45376158f2c6d28763a8ee43ffa75bfabd38c5639fef67b902` | `07d279f5bb2427088e56ca772e155c9f81e68e81a4d598756b73ce876f059717` |
+| 7 | `db1e9d5f393aea86ac4535ee3596b774c9b958525ec4b14d8632aad83e347c0a` | `28f08574232f539352bb1fbddcc667531b3792621ac32f34e9f5eaf25839a208` |
+| 8 | `8c7d13fc645338e2a6379f4642cbc83121513cacc71b115a5182ac13a1c0fb0a` | `b498cd2daff4fd916e84526bc308dbf0e5d248bae30ae72543c880d7e40aa28f` |
+| 9 | `1f2d4b898cdb26ffb7077dfd6bcc7d7ce4f7f44b8b30448e239d0eb9ea5ffb00` | `35231bef16e2991f532a42bd50f50e237be8c58ad4f0b25e704a43d26425d058` |
+| 10 | `1c79f3879fad1db5e7c8a41839d2bd0d02079cd035d24163c18ee19c1bc9a003` | `939c672f7382b03ce0826d6fecbfc8abe0e540a72b51aecbc5c8d5e1bd93a8d2` |
+| 11 | `07658cd43c0860d0ed939f1428ad91d3531872918a1a0e619b653e5783f9320d` | `022583f552659100e1b7bad7cc8aba80227a1b73d3fb646a83004275376fe37f` |
+| 12 | `dbc28a309af7360fd3af9055dda4bf74d5c91796674c7cac778071f127632407` | `b9ed1bfb7844a158685780659e2c018884b76a35387289914f849acb8750114b` |
+| 13 | `d78184a64a247eff228348f3ac8227e5df18eb2e3c4870e1534ab6e76e676809` | `cf098dad4e88dae95a64c6b3a2cc057134df15251d6ad09783bd68fcfafc419f` |
+| 14 | `8146df6da761b69ba2f3e73c11116b106955892d12969f397f64837f081e140d` | `058b5bdeb82562287d086a103007a7524cd778613d1fcf574b9970d45f6cfada` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `42d65bfd93ad920dfcb048b90ff5a4b45d7e4d48e559c7aa89573d18d50758ad24bf3242bd87f445623aea08aee37edff4b45d2ddf2e6431d170b8a80caeb7c7`
+
+#### Final Output
+
+- **Group Public Key**: `d3bd4888ca21d85a346d97ff7a95f07a22f2060f8566ce4228e61f214de7730d`
 
 ### COCKTAIL(P-256, SHA-256)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `9719123dd1cabebb1e0d118b493a34ebb053110d387f64919925104780ff8505` | `03346abbfc2e415732058c80744307268c2451cd13fa2a3360c131dfecdc9fa737` |
-| 2 | `7a89b37b07ab1cb3d0f179c3b9c83408dfea7e8c9428487b4e7a3235e5d41821` | `0325446b10d584a916cbd9b72f0732c28972747ee67778373b2ae533ba063f55db` |
-| 3 | `89b0c366ffe3ebee1c2b4a3c5001e902bc207248facc0f73f9d059d1a1e5f572` | `02a5b832527d99bb24d9a5255e3ded9dee6c73c2b98250d41f81f9d1a1668156fe` |
+| 1 | `fd69cd069d3ececc5e003e20ce25dd968c7da87e017bdf6afeffbae9a3b3f943` | `0312a3ddd4c2f5d497e0ef6865495e6ee0076a1afc367b6a8f66ce889d8ecbfb8d` |
+| 2 | `6d29dd621960b35d24d0091634fae965c424acd714907dbbcb26d7f4515bd3bf` | `0311dea5e8bff958621b81640579565e19cf457ae4d4dfcc4f22d1273f7f482de6` |
+| 3 | `56fbd9a1e45d2a3563a97f3618b1d8f71d5bf4974a44a49da41f13080c006ee0` | `0312236aa188f8c9f51f58cf70c2add13d9fce8f8bddcc8f330eadcb3ec48e7373` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `e8db39168cff00ec7dc47ec0be33bc0aa7790301d75eb7891487887e67991ad6` | `02ea020dd7fac2a3801e82641cf0fb559943ff0563f8b3d3cd0f7c9961abd722ab` |
-| 2 | `5a8e0dfc7a11ed83fd4b875886f6683b55adfa39a68e602bafdba70112bf930b` | `024d90ca889bc79aeea44e9115e2aa5acdacab58b2cfad249412da018fa1efb7a7` |
-| 3 | `cc40e2e16724da1c7cd28ff04fb9146bc0c9ec1f1cd5a7533ee99046ba493091` | `02bdb57fc926e05ced2b0421ab88511f0732ecbb6e1bb8fa976a978abc825004bb` |
+| 1 | `112ffc75c88657968c290f46bea1573996cd4825c79d1422b2a430dcde0863af` | `0314bd10010bd552adee76a83db3042a17021244f0871cb2abdd1648686f55f662` |
+| 2 | `2a3da9df516e7993acf0e14b2174e4eb88a6b7c7f0e2ee700905462d7f3b6629` | `02ccce2880c58feebbbb42ab5a665402854792a59c5e38989c14277c621dd40d52` |
+| 3 | `434b5748da569b90cdb8b34f8448729d7a80276a1a28c8bd5f665b7e206e68a3` | `03b58d6f976b6481b808674b1ff6e424d38d74f6e37d8654a7c8847b0406fce7c8` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `7bee57f3ce91eb7d13752a25aa017a54a65fc0803f753143e25bc8112043bec7`
+- **Extension**: (empty)
+- **Transcript Hash**: `9f20db533b5adefda4da156725577441ed2b5f51f8ebce23b5558e79012cde69`
 
 #### Final Output
 
-- **Group Public Key**: `03c1afa53ef809dfe48bd233a90c60410d0cc782fd34dd516ce47440bbb6c3e166`
+- **Group Public Key**: `02a8b67f71bffd8c6c2e529027aad586c1f544ad42f7ea7048b0eaebf233c4352a`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `ff3a16d8079a4c5d7b7c268dbf918587b90aaa0074fbec26d042edde12c3ef67` | `0244cca0af554f634808afeda2fdd375edda81d81d4b3e43c016da72516fed41bb` |
+| 2 | `ff174ec7b2df3e78c93bbcb3ec926d7e5b4d824b08c2d2278dfff476218f0d1a` | `02a831ce1345699bc92f0e3bb250dfdee4657099bf523da3174ca2477665a34b3e` |
+| 3 | `78eae1231856e7fd3e869ac2b1a9dc69f265c6b65d7a5399ee4cfd27a8e15d0f` | `03b4d14158d498a0f33d6b7802ff22c9d2a14aa9333cca62f0b40bba6af8a3ca55` |
+| 4 | `a2f97ccb15ebf279044192add4089b036fdd33e518c65a2f7878faa2bf7a5090` | `035b542715e257ff2aacee6690a48dcf9906ed3d2db09cc6f928da3bd326a430fc` |
+| 5 | `c76e9f4fd52c3e7861efd3c265128c0cc4c46549c1dcfe8cdd9c29397e15a998` | `035bea0735d839da9f31b7b7649d1acac8d48de90761c2066339aa1d28ad23111e` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `4c6edebc35fd4aa03539772a17da1ad68f5d06b8bbba01f83e07b64c9c95e459` | `02406a1e0295b29540fdf7b396644cbcc8a7657d71bc4d7f3be5f397c932f250fd` |
+| 2 | `0f638f2789fa3b213fc791be45149594c088c85224bc44480fdcb14b760bfc3a` | `03a22d5a5e78f9bdadeaa752efd1ae6d7202e61df71a17759fc3fe2ff46c2d8784` |
+| 3 | `72772b3e270cf1b8a6b9289fe63f045f47ddd563181dc659b29491c479d09243` | `03352939ce70ee57b46a3ecf84a0e202ddaf3b1f71ea028b00b5afcf3f386d8ed2` |
+| 4 | `75a9b3010d356e656a0e3bcefb5967366875333deec6e9a832758cf4ab808123` | `02aaebd062bc2459c8d0528decc284afb7cf39e3ae3e62f6dd41a1c5e17f79def5` |
+| 5 | `18fb26703c73b12789c6cb4b8463be1a224ee1e2a8b7ae338f7fa2dc0b1bc8da` | `028915eb785b5c2029df6b8e3e12ae41f608ecb47c92fdcdf3e5ced34cbe72d0c3` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `e07bc2dd3667865e862ebe9534174f6f33af5dee113e1dd835185cdae66aaa70`
+
+#### Final Output
+
+- **Group Public Key**: `0323686a5185b926ffcdb4e90f51687749950aa6f8af76af4141a7a479e0ae9aa7`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `df48ddb52302967fcf09be676f4bbf2bcaada6e4fc1a841bb63314257a04aebb` | `03aa807eb96d36c62ca0a8a0cf97e6ae58902c2a6fce7710881437b8640c6e7907` |
+| 2 | `b2988923fe64d4a74bc5c7cb730027209d3d7e6ee373a770515ff6ebc3ca3d8d` | `0390edb86b74ccc4ac605f823b30402bfb56ec10f27e5d48f6b9a731bc2da31750` |
+| 3 | `b2e73e2da7393c0d96617d9e8bc5d89218370cfd401f7847e01d842aa28214f1` | `0291e3c19583945b7ffa6b73c625ce09d735a59b28381cba5bdf00fa70108406a4` |
+| 4 | `67f60bedac58c66f05af7446dea7a4caf07e6c6c6a30155977fd8782c795717b` | `0267c9ee0cafb6bf7a9f8c12d6e82c0aef07ce1521ea171e3c4dd5e907be62a849` |
+| 5 | `8fa2d058c720b7384d63ac9e6b98092e557f3112ed96b765c05b68dd784b99eb` | `034d15886c597fdddb828705d46d759312f6fcf9eed94fa48c356c5f8032e00243` |
+| 6 | `67c5dd6768f647cfe3424011d6f5e7ac606de3cb5090100c2e3b7cd07ed6e496` | `033c1b886d18143fd8d7192c3e195c31d467ee452fd4b9a02356a7d79d37e53a8a` |
+| 7 | `1fb31a964290539a99761e9f8c3e2e08286b5d256276165927b472bb908cb0cc` | `03bd658ec0a51bf89a2a3784d0a0311d27671cbc4c351570c41ac9a0e8c1f2aa5f` |
+| 8 | `f8685bd161b207d2c530a7617142d6bbcca46678cbcb377e5cdc99b09a0ad5a0` | `02b716027e710c060569e51e03a26cc763aca86a3aaf984fd5a6e6178e98da9622` |
+| 9 | `35cc8256fdabf74599f4f561a71f28b66f06b090584fb290935f39ca3646c66a` | `021cb3fcfe812ba265863244de1edcb7a617ac09ed6efee5c281d5b9833b9823d6` |
+| 10 | `fe3ab4deb2b950d5160dc8aa7d2eb3b017278c6cb7ec860875a602c4b5edd22a` | `022b2cb52b89d45bb2a51d2171114f460a9aa7f17689f6ff99a44511935abd0156` |
+| 11 | `e186e254cb5050d4feeaa3dadcde6ec1f4f2c6fe55a86db21fb78d4e44619b29` | `021b4e3652f13cea01fc1d62ca2b107f1426ca34cdb888facc8c98a40e1dc788a9` |
+| 12 | `7700ce7190c7e11a503c61a12b9e5a654a80bfc06e1833f6189b494dc374fccb` | `022e2c1907f6d02414dacd44dab319784f885ba81708c90dd2e5b6b590f8c9cc13` |
+| 13 | `3ccfbd93113b6ede8ac364365b9a473536ca8044b09c7ea48ec0e8316dc09d2f` | `033e91c0980404de321e8f808122306f963379f3d2ed521ebf4d4ccbca2bc16625` |
+| 14 | `1d0a65973e579e1f9b6a2c480a7d1051ed17565762cd64f64d8c5782621bd38f` | `02ff683668d034da255ff562cbb28b513ccf54f6df4f28c0ab412979ce95467cf4` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `31c11e7b3303511ae5b70236717ee6c996a7d36e32a07e5c7adeca6fb836ed27` | `025b18b60bcb8458af427fe61b52f1dd41a6f22fb1ace7aa5a1c3e22b2a80aa81a` |
+| 2 | `1b8b4d0aa4228283dfa14d07ffefc24a2764f83a69b1cfc7bec04aef7047b791` | `0311fd0213d232f3547188694dbb24793cdfc45da5dfcb19549bad97bd3c69b455` |
+| 3 | `5d7049854b0ec0b266a89d8477d2ce4e189fbeab01304e41d4684b13c027e21b` | `034b45d16c9a72d80f9505fb73b65ba8f4411f4430a21c5b5a5f8f0fba87da05cf` |
+| 4 | `093a2e063c3781459f9ba763bf2da8a338ef0ffc5f9ccb971c97c2e4fdd1bc45` | `02884c654b4f6d19df7c76e5d405d3e028522f7fb1ab35bdde13e2997acf31e113` |
+| 5 | `bffadeef6bdf4af4a78c3407e4f2be2a6466c1f2244ed5a27edf50abb561a92e` | `022e153ba09111011e3339abcd241f32501016a80bc02255a2fb3952c4c5e697e3` |
+| 6 | `4f6f1b2bdbacdad1d0af87ae2b073a4d9cb11bbffdd513827a6a7df8eaa588b3` | `03e4dcb617f646309a202619320639218a62c945cd5d1971955237ff02f0144ca9` |
+| 7 | `1ba7edf31d41da1d968cb1ab914869be47a3b994ca7d9da4f076ee96388a4a65` | `03efaac5e6e29b0ec212dafc12122b45e4bf77ece89483b3c9d75dc5ec656e00ce` |
+| 8 | `54fa822829d7248f4978c7b4e190908264da59250aa03728e798e1902c55e01c` | `02d7ab84edccfc432a43e0876dd86e0f3f8830220c478339c77b3336f0f8c8b6a0` |
+| 9 | `fa3657418ede9f2571610c323cbb334c02952f6a64538def6add46109ba62fd9` | `03988c658d2c966e685b357489654120dc1a6375f0d3eb2ac7f47c306f4444face` |
+| 10 | `a721d7c2efaa9f75e7e2ff9e28a8d41d0aa2f22affd08d33e6fb0df1121bda6f` | `02d1e05274bc9e97100b83806e4a2d7e6a54de0ad10ead869754e03c1580cb6fd3` |
+| 11 | `2f3d5140dc1ae384a9b25cf01f42223591a770084e29184eafa8495a3d66dc2a` | `02e8480ddf1b43092188b4e12c36f9003bdb278ac6dd07f81f1c869d743a4cd81e` |
+| 12 | `04cc4df9fc4f1a165f4d01129e7a9d4f8ad1f19f0c4e5deb3417550f7f726cf9` | `038c041ad40b98aa5ddeb30e7f0c8e88a7c7a5a614c53f3bbed39d7efb79fd6ddc` |
+| 13 | `6c254ffc915efb879cfcbd64b952ac25842233d3623b565e74243c41862c6ff4` | `03915d3038e25f2c08e367b120f3120548a616d0217bad578a459af68968e653ec` |
+| 14 | `7b47eddc4b17f324da27154729d9264577a0109281e4f309e74b22dbf75bdcfa` | `0361dc5bf691cf59bc00db0cd2801d740b8e00cba4404b8daee4ecc6ba3b142282` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `dac02f58675a0646e6d72c46683231f30fb49eb44739b829bbc1c18f70f72b8e`
+
+#### Final Output
+
+- **Group Public Key**: `030354ea2ae5e1eda262283b474f553683dba47f9060275452cd137d2a2c2d4992`
 
 ### COCKTAIL(secp256k1, SHA-256)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `9b4dcb06ba195df2ebde865f907283e3260f3b7a1ef3d848d9cd373cb905bd4c` | `0349feb6371f5e59cd0ab4de76a529d1f406d12b31a51ba99a8c0aa6f2f8c9816c` |
-| 2 | `a4f81dbe8f48fb1762080504007bfa438e93b65b5d6cc89585d6ec3296d19e98` | `03e5466e45ab0379298586bdb53a389bd699c099d0aabbefcabec61d3efaf64518` |
-| 3 | `8fdb2a0957f21e5ef1df206379db8d2d55d6c36e1af5ad9babd5715843b40388` | `02c89ad54b3b89714645839036094d8e400ab90d745b63cadcf7b299bd224a688c` |
+| 1 | `b6d8938c60ba5cfbf0ba97ae1c3f99c7a58485344ed7d6f387dc35bc76cacea1` | `02610897b193f5d9ae8c6b6527dfb89481aa9440577b24a96a9378a756542ae20a` |
+| 2 | `ad371a449f8f2734c1d98f4f92dabeab6189953e7f9258a2657743adf4b49fde` | `0325c9e642a8967b6069db110ddb5588d701b89ccebea4b15c277acab087c59129` |
+| 3 | `344ae0d3d664507f90d5cb534c77af20d61e83dfaaa500bc8d27428af3ac1573` | `02fe2400b831d7dc120d4f1f49ede75956782e77ca92aa24f7d1cb88bc584dd1f6` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `ca1c5789d2107aa67b21977c5e354ac08526fdc59f0fefd8b96141d3d1f4d00b` | `03dd3b021a9af82a7e8b0a09a794ffa0bd73dc2f867a95199337242ce738031151` |
-| 2 | `84714fdacb02565f52c560f269613a6c8519dd792df04abab72b73eac91f99cd` | `030e352fb6318e7381d3849905122a3db6ed523754b6b3c1ba296b2bc2a444ab83` |
-| 3 | `3ec6482bc3f432182a692a68748d2a18850cbd2cbcd0a59cb4f5a601c04a638f` | `0256e021448f64209b5146d0dbc0a7e23bc0598bc0a442645d3275e60895b1aafc` |
+| 1 | `78402404ae73ea8795a8af5d5fe1caae5a71abdb62b52bd4be279a05df62bb26` | `02f6c8494a0e242d73696a1635b3839a54a55dc471d3465e719fedcc8bf8f07f11` |
+| 2 | `8e18ea88b0dae913f89c42b21be5f87ebeb801fff8f62a1cdd420d5725b5d7e0` | `0309e433bbcd6cf70a7c3dfdc5e3d44ab629f79568ac8bfa51c4dc118f4507ea20` |
+| 3 | `a3f1b10cb341e7a05b8fd606d7ea264f22fe58248f372864fc5c80a86c08f49a` | `02a91306f8390af207d697260df455bbe89328b1488ad5338271cc2a2019a394cd` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `b1f4815c4d06bc82006436f831c1b95eb45c575e298b93b34a41f37b763e1d63`
+- **Extension**: (empty)
+- **Transcript Hash**: `0d785c00ecb6bde350ea1800ca69121c82be87ace2d7b691cb3d4c91566994b2`
 
 #### Final Output
 
-- **Group Public Key**: `03680a2bab113654989b6a1ca2aea61806c2ed10a005457f7501deb35a4f5756df`
+- **Group Public Key**: `0317763ca657a4d5e1c661b395aa9454ee2d9bdbbe8f2ea57ea0ec5cc0723ed9d9`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `97b9f7468d461d768bfc89ffff0c41efa43d63e915db3b1e9558d0e7d0120b7c` | `021bd81630d7864d25fba41cc05a5e635c7a08e8b190d996a554691ae246062764` |
+| 2 | `917ea30b036b92edd821e7cab12e2d80fdbfaceb994dbf7d864aa4448f54c6b3` | `02d2796cc622bc6cf3a720c78934b9b38d18a3ee5458c499f85d940606413673b8` |
+| 3 | `3fbede422d6df3631340b208e2653c1cbbdab0312745c3f4ad68c387175eaf5b` | `02401aa2db05d19149dd680c4c1638be7b1a2f25b8f990d24029b9b8ef4eaa069f` |
+| 4 | `f06789105aa658a8f8d774242d748e805d429f07e4ba096ffa491ad2b3bd7c62` | `034dd29d0db956fd5330fd68e951f063e42a85dcc0e78c4fd0c5752c3e5154eec8` |
+| 5 | `d3a9721ec87abdc04903dcce30cc56132118a773cc326afff752ed406f3cdc17` | `024f80b54f11083d0462753f835ecb38e34cdb6d695f9213459f54af60bd9bcc1d` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `2aa84b0e28cf945fab50a04b0493026be4a8aac17bdd980915a50830a897cbe7` | `03ffd0727fdb797a7ede721674aeec6080d67dd5667d0b7f11635bd27411eb8955` |
+| 2 | `ff866e4b77f019362eba9b7a7fe51b8fbd89f7c840acd54bfc102340c4dbbdaa` | `02642eb38167a3fb5db09fa1147bacaed15385a1d5288288f3f8300e19676e2235` |
+| 3 | `e8c1b142dcf6f97b12366fcb260179c8564f9938659dc92857afae56ef7d214c` | `03682119ba6fff3195d441ae3a615973bccaae35002319a030c6be0edc56e7d08f` |
+| 4 | `e65a13f457e4352e55c41d3cf6e81d1469a86bf899f913d9e85607fff8b2380e` | `02fea0e231fc509f7984cb568acabee1f489498889b4a7c32f30abf9dfae9ef922` |
+| 5 | `f84f965fe8b7cc4ff963a3cff2990573f7947008ddbeb560ae03303be07b01f0` | `029bb02d4434208c458b2968c0457993403bcbb7c23581831b3386f79639508989` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `7dba0528c2bf18da7afe4a1de2e9283f70f4812569711f18eba3af92dab2469d`
+
+#### Final Output
+
+- **Group Public Key**: `02c4d6153a66c590f2bc546d51cf411b2522ee6b447ed0b0e51275dac238e666f1`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `8f26fe486e7d36a291970961906a799433633e3fbae1ebc0d4f9a07ff6be6539` | `022141199b4c48c897927b0c0fcb4067b4ab33a6fc8f7397a0279293a49440857b` |
+| 2 | `4b256597fee2e04590612eb7d249251a5b75606d503586cae0da143f5ca1fff6` | `033011dcdaf5a066952c31a17816735788ff11f6ddbeedcda7fc70b4eae293f534` |
+| 3 | `c5c499d28c2d66d7cf856cf03bafa15744284f4f11b353ee180a3c0a44eeda22` | `03360bd6cab9f15eba62f9dfe9445c159c7dc84e2b26b0be032de03de9601d0542` |
+| 4 | `326dfe8d3872834414cb082e41e0fd1d6c8baea7eb486c4054451e9f088ae020` | `03f6ec749ca5414704b72d898cf4e86ae272dd8e85070762218f3980df33b878eb` |
+| 5 | `faf07fc615242d7ec53cf92761adf7d5623765ddbe7b62a1a0b43933f41fc309` | `03bca7e4af0c86c440fea15781c50047619d47c24865d9d486428d55152742bfd0` |
+| 6 | `e67645b5eb4394cee403a5a96ff3690f3470cb319590be5bd57bf593e2ad4b3e` | `03d99c3d44fe456d45acf50142ff7f944adbe15b5fa91cf5117663ac9824b849f7` |
+| 7 | `8d7a1d95687dddf48d5d0293d849f6ae4d7d2f9069df47a1c9caf72a4b30ec89` | `0393c4a4f48427921fee93746d8b3179b9597f0aab53d5a7f3a6913c87ca9e4627` |
+| 8 | `49d7506273ba41dd097000aa72a0b16812e2577e00f69f6a5f43ff54699eaa63` | `023ad713c160f31debb869fbc42e5131906e2cae0182bcf2e5d48a7dc963af4852` |
+| 9 | `9bf7cf72481d1ca181f1e75a3f3d672a2382a218070e33e57f5b8b43bdfefff0` | `037aea9a5051b033abda7236a2fd0f95e1c5fe1911b48d134a64f06faf8bcf7493` |
+| 10 | `05055c065e84f445c62351b13b91942a0c25487c1a6b458da56e56a1bb8693ea` | `02dd920888f6d1e32484533926301c3a2f663b84a219bee92069a3dc90b77c6096` |
+| 11 | `ac37617850deb54aa05e83e54c14b6623f222318f340efb5f811f71e34a19128` | `03fa2f35b6360c71b3ccc6963b4e58607ee300b936119c492c58fc24c281cd7c81` |
+| 12 | `d068df395240d2661a52a55f172fb6c28d3ef611a7683e62e4e434842a43fcbb` | `03aa2cceeb92c4f6913e7de89daae148ebda6e89a988f34c548419be16157632f6` |
+| 13 | `d3f38a4e9cffc9a9f3d6298fbc2680e60f7a058392d0c95de5bbfa2a6b2a9f97` | `03a0fd661277b103b25ad0cc38c58dd3e8a990209f854a62831994504ff97efdd4` |
+| 14 | `a1c677dc760dd5161eb9f27c8b02a5e23bf522a0c4483b1244c65b7938b0e256` | `02612f2d257488980286424bef8bf17ecb609651e436a97de7b86a9b2faaf38bc3` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `6a230a7c1d0d83e59c6e26fbcc4be24c4a691b5f2f14a049154f88883faade9a` | `0201e0c204e450fa1025f793493a1f79260b5956cd73edd47883d8b15782e47ef6` |
+| 2 | `f434eae0441f2811fba757573e6fa501f30ab7bf41f053738dabe687b2e8e0bb` | `03e8959c4848cdb2334d3e2b55193426cd5cbfbbccea83c2191b2e0514ae3e3f9e` |
+| 3 | `9d07cd0257aa43f68bfe0bb4349cf4242c89aeb9740eae6455b871f1ba25645f` | `021f3ccd0152c2a8303182de160765c6b79e4fb1e3a14d8c163462b01ae6007cfa` |
+| 4 | `029c60851c9c6dd97ed01d0891f0cd7f3bd2b3af3b4b3aef3f7031836572b7be` | `032923d3bef3794e465103cf2767e48e8fb963efd28aaa7df250339ac24c6baf42` |
+| 5 | `6b1433204335301fd445350114a3fd80dd66ed6470f8be8157389cb5f2a828c1` | `036f8bd525ca06d851e583882a64ee145abec9283101aedb24a228ec9e4aff62e3` |
+| 6 | `d18fae79826e3ca7bb0430f2e7af084490f71edfdbd205861937848457e2a205` | `027d5fc00c377d577eda447c6fb8c137b72f2c39d79a4c5becaa40c1263c8c7a92` |
+| 7 | `9ffaf3b0425d77995329688056636e854eed32db738698c3b14fdd77f60ba4de` | `02892867c93d10b3585724fe178c98adf2e4a1dbf39a0bd1240300c56bac17356c` |
+| 8 | `15c9949bd590d9add47dd7f0a1fa4e7ed26d428ee39e5ad047327695f1b49652` | `0205baaf66a14e7aea3cb4820885c0abc88b8956a8ae7a5778a031e637a03494ba` |
+| 9 | `5ba12abc416429ed17ef2e3af91860bbed2bd1a1ac454e17d6275a46d2b2e18e` | `02fb1323b9354783c75316603042ee5b6d721a01eaae1d151cc4ce57f74919ece4` |
+| 10 | `43f2cbdd95508ee18448bec4914750d5b50ca890d325a2bf5118bd91f9da2c12` | `03ce0d8ed6c0321301d9f33e1b4e80eb9c8e3ac59f7d245b98b7440681ac0aae78` |
+| 11 | `b8835c6dd135f7425e2d56d1e2647215910dcb71ac6eeef650e98db9df29695f` | `026932e96c0da497f90430740aaaa9a99631cd15849c8a669b34bc313404204123` |
+| 12 | `d4e2bf855a9e5a147b51f6ab0404d00e7a90bea6c7808dfb4ff1b36c1506ba17` | `03419ef7927e8e6dc2df9b21b99bd5ad413c1b917dd9bd9b491fc543b1509406ae` |
+| 13 | `add1e4a200face4158f96e732cce9b1a63410b0b44788952aff395c543b7e95e` | `0290953b5eead2cb548ebbb0bee6cdc6af6a889d08b7cdc1c871f60662acb06597` |
+| 14 | `c597b31490da79a495b0deb353c7f0c874c36091b9d0c9db0c532ba8faf8fbf2` | `02b5a7cdd2e6e9dcb68645244a9319ed946fe600a22ec5242a6f8950c4ba363178` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `87196836c538f03a5c1528134793a916da9adad6c03003d39b062b38597616fe`
+
+#### Final Output
+
+- **Group Public Key**: `0359d5d1ab443cda953b002b6dc12a11ba96e6f3aca7b8fe8d3e159ae1d56cde4b`
 
 ### COCKTAIL(Ed448, SHAKE256)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `dfeea4c3d11ef8c2444ddc057ca43403ea12caf511869efe5151e2884d72ee665e839958cf9cfe236a343f3c4d607448f6ca9ac371558536` | `87aa3c8fbcd56eff0ebe252cd138aa884804267063c11415271755752c1c63ddc4741b06765d0e1263d333e6d7560ceac067b9fa22b1bc9100` |
-| 2 | `548d9e40f9e0ea96c89bc4d3bcffaff60f9dcafdc2ea6048032843528b40b831d9ca78c0f0fb217cf7288026029ee7139d2b296c80fd1a32` | `d10e67cf3d2a5006f10e212fa57b146c2cf86d7617b0e75d89886b0abb1c62ac598dcce49fbd80749724a67176256ddd52c230f6af8104ac80` |
-| 3 | `167755328c64543ed54be524aebc03f34a165195409d41898f4bc662c034f0632bd5bd73ff6a1081090b3be092df46313017c3bc42757931` | `7212742b479b33414876268f29bbcc762b22cf121fd3572c1d3d83420d8a8a5d9a0167389e0789f059727e1f1f6382861230d27faf0c149400` |
+| 1 | `8f9a9270561d0dbaafbc08828f30d41c342a8d4fcc5c364d7768ba75b168e4460e0a353d8fd189a3c4a6b22ece601173026a888cd4c46c28` | `9950bc0b58b1933452f595b8eb6de04a7d4dd7fc2301bbdb05c0ff440d38928153df7d7c400e19378b11571b4e1bf96c769e35d3866ac32c00` |
+| 2 | `e0354d9c7ae7016aa2de07c9eb0b6075205ce553ecdb01d3c1d89e7ec38642dfa2fa60159d76cfba79b3027f56b21a72dd082a37fa7a3a0d` | `cf1a179b82836ecd0d4d5c539128cc2cf5db9b3bd2a519a5524a522cee47ff454881ba5db9d4047857b0de096e83dc22b8132833a4edf5da00` |
+| 3 | `b6ff6734be4d67532c34aaad94cae9b6451cb45130a5240c66d5261ac322de02e41397eeb05011793e5a97a43eee6ba767b453725fa90a16` | `a8f4d91d754e65a13cb2ac8fb824647d04c4b8fb644455d1aef16fe81ebb7d1f0a3d85ae60ddb1dcdb04c37feb2fddcc400803eed7ee4fa780` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `b058d02a832556dd69b9f6529e8080ddde4143d50e7c123b65b8e29d623ea70058bf7b81af7a7f2281b5d1d0316a7f2d3f6079d8faca9810` | `dda57a2b122bdae9805ef99f0c4ed00ae2b5041f5dc21fc5568084549b22d26065804d19ea8c1639a82f8c9665443ec0fbe94333c34618c880` |
-| 2 | `9fb442bb68519f6c1b099e790ffd792260cbeb74fe4dd58ce01788a02d8d9edaf6caff3e8c322c8ec4e6b98f7a72cfb6931b1b7c5d519717` | `768053b900126a1aff4edcd5792bab6bbbf4e066596d2b19aaf47421c3cc01669fc460e10565091cbc8aa812b3f136bd79ea111092580def80` |
-| 3 | `8e10b54b4e7de8fbcc5845a080797367e1549414ee1f98de5b772da3f8db95b495d683fc68ead8f90718a24ec37a1f40e8d6bc1fc0d7951e` | `b4516dba2cf940add6e404fe5548d4b6e4d3f35cd152fd89d8dc8be99d73fd06b4c0628b802ba12981956dbc354c403c31755d2e3e0a4b2780` |
+| 1 | `692d92730a66096b0a971bfe712cde3dfacb726f94894c68841f8daec6cbb3c91df1be4a811aabd0a314d2b152156485b12fba9657637a14` | `7dcdc0aac7e24ad54a206a03f93d086f3aaaa0a999207ca5ed1798b522f7600c8136021ccf2844eb69459390b579bb13f2c285648bc0afe780` |
+| 2 | `05103b16d59fde2d062f2c2995b847c813728d981bb125181fb8240456efddcdc19187d1b62c54906f5365c64fb2f6c96d7fa7d4aaceba32` | `89fa9c64c4f86d958be5a05c3e26d2aa0dbd44f8ac087a72c88d228e085dbec18682e891b15f6c640c25701d85a80f97fc6ab2a5365effa080` |
+| 3 | `aead8b0d0d173bcdac3777c6458244319de1d11259fdaf03d02cf2dce51208d265325058ec3efd4f3b92f8da4c4f890e2acf9412fe39fb10` | `e4850a66863a281ed2529a1287c8634907629f1de66eec4c87257acf383a4b407628d3eeca24cbd2c8bb9f4d4252c4ff8157832f8412603680` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `9a922b34a0e67c160918c5c13f2037742b65dc14a451b52543864704cf140ced0b976eff580e810d5ed954f640a9bc98ce51a4cd11ff0df1897d56084a1c976a`
+- **Extension**: (empty)
+- **Transcript Hash**: `a1310fa41f9763c1470173e93c1b6bfadbe5ff5aba7eeb2954f103850c41dc6d62b782b48fa24605e2ecdbb7b879d1f8e962a70197f7b545dcc5ccd4cce86331`
 
 #### Final Output
 
-- **Group Public Key**: `5936a41063dd6b78792195f2bf9c4e16b013c296f83ecb6a2e0d096817dc6da8b3a11dffa6b40f1be563ed0b8282b603a58b5a833c941d3e80`
+- **Group Public Key**: `c9aa58f7c8007343ba47079ab1f8ccc67b7bedcf17114a27421a9891450007fbedb5faeb4a1586e105cca5cd4cf99f6aa1966c829fd762e080`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `28ad10f793c78f91c4ff81fcc14baab7e4acbbfb5831601377a83a80e138f1babc022025e6f478dc120c72fff31318f101654d31ca760439` | `7bc21ed1ddc9084bb76737df4341e9662024e44732f92e699a766b5aebcc7887253cbcab01521ea45e2569ff70e472a4363b122259f1238380` |
+| 2 | `0cb2dd92e19c593fe23bce1be0dc904ae2b54d222ccb30f9843852e1400f8fec0ccdc948d0a25869d6f9f3354635b40d8f5268e828827d1f` | `3a6b5c18161e72aa161462288373dcf69d8375b62780f4317ae0feab9ce68efcc853e8f5678587de630694446297bcc296593dda6ab0eb9780` |
+| 3 | `edce3a511e913bfc7e3f6cab89774a22f7e7cdadf9a1e8e0b2e01edc775a61d292fe4be136c558e829419c9829eac395ad86e4137cb5dc1e` | `31c900c00f9b41acdfb045b8a09341bbc100e448c410d0c5a44928040fb1ee062e0f61cd43028ac4970d7c784f20e81c62356b9f3b4cbc7a00` |
+| 4 | `3c7ed560932a84f03f785094b772fff9bcfc2cf7d1f579ec3b8e78c69cd2393320d3a7ca4778b31018dfc0b2dbc53fb1592e3b25ca9a481c` | `3b7de8170e210c6b87bd6a6974009d0e3f5a859bf98df073dec5aae7b001965d5063c5606885e62b13b9c0a2bb717cbd5d3a7ba490c1ea8800` |
+| 5 | `6b366edc00b1655eacb298ee3d6920710b7f71ae60b1f381403a526fd3a1684cf5c76cf391c1bbc0389faa68533176e53727fc999b6ecf36` | `9c3f3a2b5fe19c2a4d9bd25ed99f7011c8edc56a0aafaefb6c7e524d280daf372bbef938507983d60bd154d8667458a9fa4ba803c6dfdc5800` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `74e66247b81e130ca8077e234e721ca80c69f5edcad0cebf3e75f0ca4c9ad3b532778ca0911ea317ba616a825c0f842d66a65c216e98841f` | `2ac240fd19889d93dde270a8faed2daf7fdfbbea5cc09c9b982e532183efe803d8ac0480707b3e6c1b211dc63c26dee2e06699a80d8dba9c00` |
+| 2 | `ab0ed263fd9325ea453b65eacae73dd4f52275f60a58b543a71a5a4dfe72332544dbc18f36e5b83afdd6b426b54fc61eaf27151bfd2c9c04` | `e5dccb90f1c336a9a32dcc5780e575234def28862b104eee0599cabac19f584f93774cc91a1c27798f87a75488e13ebf261fa6eaea6ca54f80` |
+| 3 | `7afbb7fae999a02ea72629747d16e356832297c0ff32e92bac93397b244ce1da3e49dd9be7e0dd7f69e7a13b8980267dd0aa2ae1aac9d83c` | `0bd2835fb8dd8f379f1cdc7e7815307578fd099019d886f057f02e1c552b78dd4e0c44b3bd231ec95b3c415f0de0ebfe7a51c35575c0a4ca00` |
+| 4 | `08de0b0ac6e8196fcc1b79170eb7c5cb04c4d83fcccf7d2b907430dec025ddd622c1dec4a41112e7fe9231c1d8a1a448ca2f9d73776e3a08` | `599010b500ec99576e1cfd0a2e0200f4890dc36c7ce9911c69459a353847fd4efa5c39846f05b0a4e75ed3bfa0545cea1ba1e304109a8a8680` |
+| 5 | `2e85d69349c8fb15b5c8a57dd4102c972aabbc804dc05f8f10299decd1ff2619f042c60a6e775570bdd963b7a3b340819cb66cd2621bc126` | `178cbde51f0dd2db75337f1603b9c81e36965d161ecc2e116b793fef04b43c2a38972c8800fa9ddd057eb992fb9144bd58c4d8a21924f80c00` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `329e5fb3820eb9bb01b5cf947df31df2f11f4a354beabeeced40eef52c80303f5e08958d7fb7df119bca33f329c499fbe4c9ee0425e59bb368ad034a4b2df8c3`
+
+#### Final Output
+
+- **Group Public Key**: `c7f0192c26da753dd3875fea28957843195e95e2624ed9064c3e96bc45d54002338eb48018180193b11f94dac4ef1ffc6623a6b8e762a18180`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `2e49741700240512141761f0c9bb8a72a06ee832d3ca21086b0284769a127e05bb0e6e316705c52a38aa23c2fa5c7f5c200804e4d8fe6937` | `26beedd270a1804e1c1c3afaeda6dff964f1f736bf896ef06317e50c3ba60dd944861f41976f4c6ff5d50cfd5985dd1e40ded261aac41c6180` |
+| 2 | `20bfda80a16b8a1465170831b9429f17d39c844920f6ab0549b1bf4f3bec095b68e10df0fb790f7a6bc42f224e700b77f411cc7144d6f704` | `85fe44016c3ebae0343f933d875103b545ec191b3b81d8e40ba542a56615b668f7ea609e3602e673e31cdd41ccd5a88fd1a776aa2ee2ac1d00` |
+| 3 | `6b13ab64bf5a32ce2ea651582203d232a353dabb8e10a58fad2e71c4a34d7c36d91ac34cdf8f1fe0b84691b60a0664e75dfdf5751b78f50b` | `ffac62d10f742369ce24c40caa0f7230ede54ce9a8dbfb9335a229976578a734de73208db2204cc5078f8dba60e92cb8c250743ac75af5bc00` |
+| 4 | `4baeef01465f0b88f0f971aadcc16b62a21284eef58c61234f20e0c72004184034dab5e60494838560b475a638d3c6ac36c9fda843a63634` | `ca975dc0ab94079efbc007446526fc543cad9fbda6c114a6ebd6a40e270ec46a32ef4332f4129837f013e923e8ba27ac6a1559b35468977e00` |
+| 5 | `e28ee2b0f7cec248dd167d249b3a55f4fdc95d0018ca1dba3df4484077e1a364dc13e8e77a54619234e95fe405b15dc6a7bdf07ca777d232` | `7dbdd88ff13f88fcd938b2fdb2c60e22d75b0dfe746aa7addc418ec507199031ee883b734e6940164bc9edbf213f2799bdbadc5960d3a64b80` |
+| 6 | `b7bfa4c9d1380b63e53f04ae7064244cdd8a50aeee932fc76b0b8ff12b055ddfb31a5c2b1c4b6d2e210e088627bdc739ec5124d9c9b9f312` | `7c81e8e44857f1b67102408758a036e5d7c2040d2337847f77c2f49f5de7c10ff54a8125db2f5f5ffb659011f7e1aefaf9f8aeb3ff4cbdc880` |
+| 7 | `dda33e41bc8043a7126c71f92caeb483a4dccef7a75b55ce2828bcdf5459de1d16cceb2cbc478acbd5ef8062c6b832fcdd7700d9c442ec3c` | `4e569326ddfe7b9ebb691f92bc37d942a48458bbc7e94d77754ec559f754f9cb7565217d46300f80bbbf680ae2de160a0b18b89c75a2ba9a80` |
+| 8 | `6cb1996ae72d300760297aa4868864c13e6f67915cd9d3424453a189735269bb77b757be2805d099e74d26e6154f5f3af98e9af31aebd22e` | `6c26cdde7354c7bc38f5f6743ec5d87f4af87ba27656d4f55076362f5b9f3db1e168048a6604ea27f6b1b7c9c131d4d69d04117e71833f0e80` |
+| 9 | `5ed04adc9d0914cc9bfacc187dab34446e28d049713d81d76948a09fa67be7751c9bdb21796b2b2962330cda92be004784ebecaa526d450d` | `270f1a229acf30f51fe44085b16d083cc1e4babcedec5516f40343f6aedb5b714d1940929264f6dc292a93341927173ba0def1f9ab1b173100` |
+| 10 | `c8c33fe001de1648b036c78a0d4c7e7d4c61772f0c3bbcbb60d4499ab8a439d53094a75e04e8f84775fd736b457076a5652d40bcc599a517` | `f4752efa4e2bdcff22aeb8af3a3108de74d288fdabbd464bf0a80a7669ce74d23dfe40b6de911779178dae65b6ee1941d80759bd1662a95800` |
+| 11 | `cbc062d53c85f4a6b46f23aea28af71f18268286d9111e9d80fbe5b23e1efa6cf25c90e7d3a5d60de389c006151ace5ff6215012234ec532` | `83e6c870c990bd7e109836a946731255a21a0b811e4361cc30b173bf7d7fd2857a9728d024499a329a954caceb04531f58a734a57ffa7aed00` |
+| 12 | `8b95eabd2ce4125d4f5d832690e0e5612db9769865cca605c54c24d73a74ace968a8941070a146613e65019c506b87bed0d9ff0b92915f25` | `0e1027091c5ce5df6185a4e36334948130924b90c3063f24ec7d51ff02d6af24b1f53cbe09f80b7bda98331c11fb7bdbbcb56424d477ef9380` |
+| 13 | `96b2536f046f0ee057d40f0541a08b3c3239278a2aed7c870b309f64795451fdb44a53aef5817c878dd323bf42121695aa415764ff70ad11` | `9a42ea4137eb4952bcd77550cf69377ce5f8f23ae6e411397563deb254d43666581e42f35eb1f5c30ab5a31bc8ceaea0bc99fb69c98e95b980` |
+| 14 | `a6adbdf328f290f06c04a2607a4d92419b17ad3f600faf8b7e1f7b4c0fda5e742ad237600293d5e7d569b8936945dd83cd9bf95e211c5112` | `d9f60738374cc85b4e089ec6876ccb322f18a49b4b4df74e1a53cf741112762bcf99f49f323fe686e5ad07a4387ad8d08ebd8a479f4e7b8e80` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `59e3b1728224e5f9ae7e1ce2cd84fc9ee17bfcaaf41a27e076a49ae9a514ed3a2cdd78492d61004b86ee0e380d3e990d8f740a9da3ea0325` | `99c1ee621559234627fa395eb2706284bce1422fef9fd72486b0dcb046f9fb813cc5362b1174476f81e7c9e2a2fb6108cf7a6a3d6f97333700` |
+| 2 | `ea42417e465f64293c8237bbd680f35240033443961e39f6addb94cb4c9e6c4e59c07db267f0b13b4db63fc708deeee1292d05d674ce5707` | `b3d16d8c5815adc525363175960aaeef7daa17baf2be1239c740e4b3f2c1f060aab2006f6302cdf35b8619340908101ad54e6c2e9e30b12880` |
+| 3 | `9c4e5c7cdca3218334f86497bbe44f3daceb3a530b1e4fc9d7741fb24162f9b7e6bc92b1f76a4b54aa39656047c14e4f39cbde2cfb9a5f1c` | `39624b24ac85b0dd2b67aa7e731f7e51717d8398549fac6a902dc19e9c3b7bb7f19dc1fbba1c1fc509a65de63aac049bc39dde8a02f504b800` |
+| 4 | `5743105fa015ebb8c3f0cdfb5e1f6c66a04c2ae2c954fa8a12c781b374f0b3abf9cd71ce8175c1ed86e1dee4f5b7fb151e5062945f58b11b` | `61167639b5657f968c0ceb5e988634b2fc2f7ef6acee7cd5485d5d228f4b5f5e3adf7ff70024be1812aaebda829d12b3ab4ddfaefeb7ccd080` |
+| 5 | `2e86cdb94b8da9259ae2e44fd587c3a57bb329032ac908855dea60ef91386eb74a035bf89315caf363cb978f2d09b01cef9ff639cbce8603` | `5c0f8abf2cea2f9ee779f9bcba0049a8c12615cd9d7d578f28fb26bc0151a1a7f2670e19ddc4bdffaf51df68e1f87ffeb3ac0c0a1778efaa80` |
+| 6 | `d8b45f019f23baf444354863f99dce063ceec008708c0faaea8b110ce835eccdfed6ff29e9dc7f08d88449287008d3c95236c00f2ac0c21f` | `462009b88fa935678f3a29376a8efc7f6bb2d0057adbacb404b086101a556659221efae9770d6d7c6da8382bb3b0308ec167514232d2496b00` |
+| 7 | `d1cf5dfd5d55759b91c93e2980a6cf94d73343ecfa1f1f145c04a330859661d8d03ab1f126381606b7ea46a379ef0c130f571a626025a02b` | `5f6db290c2015aaf50e996c641110c6dad10068c0b570aee77681708f33395a4f8c12d3dc9edae4ed6d0f8e3c01e0b001a73e962bc95e2ac00` |
+| 8 | `a12f851c5a5a9b0750198633053bcfdbd3cbb1bd7790b61c0f17895b855d2cce8b5cd0dd14e19edee22bcf2d67fc384350ba6778f36e0b0e` | `77f4b53239b514384290549c6138b6241f2f02fc39d3b6f1c23947efbcd7195e5d46286cfcf5cee09ee1647d48528616661db47a1a3f4fb480` |
+| 9 | `b11d3d51f59adf66ca73457e7bba62139b8064a5cc6c7eeb263b932f9680cc52d52182cd4d74e0d9c5efe8a633d4b576a6b43a4125c9a530` | `bfd8165db47487561c9276938bf8ad03834315eff64512fb563674d94cc9fbf4809d9da5aa1a2c2adff3f15cfa191e404e08076d2fb72a0580` |
+| 10 | `efb7891d407737d6488a4ac8c5cd1c4cbecb480d4b5041a6c5ba3ec7b28018da485ba5256b2a3e3176a0c584892914ceb9dad40983637231` | `ba271a20d2126bae422020f0f16753a0acd722d9017d5342beb669a3bee93d63f468b7d11e6a8c8d45642910a27c70efaf41bd5149546d4980` |
+| 11 | `64b34a2f704bf15348d1ade111eae0d7b65bf18d0d905e4bfa0ad0d70efeae52e3ae0beaa9b4b00983d8ac26eaa72357b520fe40e7bb2d2f` | `ffa4aa5f48587895c23a984cebf9909fcfafbdd2af4bc2a48ab551c6d76e48e4431b898fd5a251863be5ffb0d6b49aa93aa3f9a342ec2c9c80` |
+| 12 | `a62491805f03167668a2faf8e8247493041d665453a02b69f3d5fc5d3a47a556bf39f5ba093dd0cb6af46f932a235eac68753345eeec4e30` | `7c5adfb3d18d9067756808696208d102527d0cfa5d48e14525b781760973f04f7456a5e9cb3e74ee3db45206e3d58a8e0e992c7579e9f44780` |
+| 13 | `a4ff7eadced6cc4763b892706ef28a5f4ae812d5b9c2585d981e0cb478e372e221e9ceb6e589efd9bac765a4450bb14a20d92c3edeffb224` | `f1b96e31dd8b632371c9984037f2d673bac2aa7e8e09afae28b65c786414e15c4e91b8e2c9ef138ad50e552ee9ac941a119202d4fd06230f00` |
+| 14 | `e6c4ff2845a9cf0665e6c120e8487a864868286ec146bb93b535d8174c181a92d78a3340074548a4d875ee9c8324a59d34f0ba010242f201` | `2da67651edd8eb18da5cd76084a93a90c26aaa1b8e515d81a3bdfa77e5b2d9057b58ada93ebf6066a19878046782c0dc445272daf181443680` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `6d23b915f67d0da68c5606996b2f2cc267adfe4f43e5a3feb0c1518c397bbf0a58613a729d1d06dd0e6fcf114045190e33bfb5c38cfc75e9a669a4eeb84d12bd`
+
+#### Final Output
+
+- **Group Public Key**: `5d2925ebae890f415b3d7e4de139a278c03b42155240a5279cdecbd79683caa95c75efb94beeaeb1ee1ac17b56762aab98a07cbbe8b1ea2880`
 
 ### COCKTAIL(JubJub, BLAKE2b-512)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `8756a0c7322018095abe95f054459a41205055037722761cdebe6a3e6a7bcb05` | `3065d01b5dbf09d93103277f40d13d0629a68fa3a17a34f23f761b5e6bb39618` |
-| 2 | `b734c21d6926af2f78db290091fadc0c36488c5cc2160b5ab5144d7007b3da0c` | `77b891f6bc745d07dcab03a00a60ea1779d742a43309db81a2f2700b2a8f166d` |
-| 3 | `48f49c804497cd7c094b706a9419087e6f01d26080ea4791f0fd98fa4cf74907` | `713431ed2f1bf47fdf676c2964dfa9ad3da190deeee88d73d246cb52c202ee4d` |
+| 1 | `11d2989adac4cd7d0affd18498410683b65faa55d37f55aa29985a2a60c10203` | `481898de652d5b6256de15b84b0769e7facddacb76d7a57fc24955715a5c2666` |
+| 2 | `4824d871017c9d26915aca64fa086bbbd4baed78448cb29ef25f704b8e1f1608` | `e20e5582a702cf241f7ba514b7d9fedd41e65e954b2cdc9c0457ffcfcc3989af` |
+| 3 | `25c54cf8332afa4f315a31c004da3340ffbd82e700d85a1a6dde532bb0b9170e` | `d6f44b9f141ff339b5d8623cba82bed6e9f3f97da81e67920302b4cc8c1d0884` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `991901cea440b3606f0e22ced3e6d31087946760fed97411d8d3a2ed7e0ab006` | `ce211ca67cb434c9d2b9721acf2d4615c28037a86b0fc206cae276e60ab05088` |
-| 2 | `17e3f0beaf59ee0a4f73a27686a87dfe816461797538d18b0de3a7173de97c0c` | `439f2ae10fcbcfb39ed238aa50d3b7c9affcd570768a79f8b89af07250c79dec` |
-| 3 | `de7fe9d85b6492e4abc75a52a549bf457cf92691eb5bc6ff994279dc1013cc03` | `c974fe1912d879ef6241a945755f2914e780940f6ef6d9113525ce8e9440b170` |
+| 1 | `51b3c5c002ed5659445453fb2ce8c791e51cfdd6d448bda5e80078ee6646dc0a` | `3318a3309ab0caeed3138a14e3be1fa761f62c9635bd5afdb16bc0533e96e856` |
+| 2 | `75bec8e2a889ee65e32cbc84e013b8c43195d157b285cbfce2ff50a38bfba10c` | `09392a7ddd5dbbcc1b7bb42fb7d3315049b9e4e20eaeeba2177a19f6d64a5d05` |
+| 3 | `99c9cb044f2686728205250e943fa8f77d0da6d88fc2d953ddfe2958b0b0670e` | `af6abe42f8adadf30a61ee5e88b80f70ccc3089606589c77bb7911b6fa92462b` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `e0c9514f613fcccd0c72d38ad7dad66b92efe6679531eb3c78c2bfea31f51f87fe33b4075dd249545774228efd7f1bcfb0ff8ebd801838fe0190237d44f62cbc`
+- **Extension**: (empty)
+- **Transcript Hash**: `05bb3a8d9cfb4669dab7030558580d769eec6712f5cd514f335eb39a79777acd904c2321252bb20fd25961ce9a0f286ac63dba1619c660033a4e4be5c820b686`
 
 #### Final Output
 
-- **Group Public Key**: `9ea64045a72f3f56522931e22cd692dfd6b007b566b92bb152932c8cb9df9a99`
+- **Group Public Key**: `6e48837cacc2cf38377fd9248baf43ac2ba91d641c5b3eab0827b2c0f12ad7d6`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `8a6d09f226a24ab14e12d4cf7939681758b571b78a81844d6b78c3d7034d6d0b` | `3251d5c596b4763fabf7da22c5e33fa80b4666d84bdf486077e5276f9fb89e84` |
+| 2 | `10cfbb1c024a9ed6162569eea190521e0b59c8aa720fe35a3519d2dd2e2d1a06` | `daf29360afef36c7a816e5979b313bdad5368a92d9336c05c3e5089f8ffc62be` |
+| 3 | `8ca247a17a2bae026617f2a284ea573f18d106e61ac294be5016384b6664a705` | `285656f8d3c9ae6ec97b33892f83a51887b16952a108bd2134b8468803e4968a` |
+| 4 | `5acbff5d41ec61ad8a92854f939476fdb9968795ebf19aabc914d4d65de6690d` | `e07e52c7545ebe51504ba6dd2c1c76ff3e7aee4fec8fa83bdeb91918c58787e3` |
+| 5 | `36b83d2ed77362108f91e8d40509750024c2707502ac7cfdce6ba844ed6aa206` | `7cab434cef12f07b04da81bfaf71de5a6b387ef1a603cc522dcb5115ba62e683` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `d192123cb3952a7be75c7048c4cda67ccaf99d2ce83579430809739305a93705` | `99eca94fc3af346d5fbef1ac5bf6fb59843723c22bda8a03132caddf61a4c1b9` |
+| 2 | `cac23979a4ff10c15d88dd5bb8cd731f7a56fe9315dfd8ffc7b102af7ee67706` | `7419e57ae943b925185f27e05d2a8ed91eea42f255e27504dea0d32a981d8654` |
+| 3 | `9f9424130b11f8e5065f114e5a8948d840c571dcdfef52823432652f2b489400` | `6926acd26b2e9d240624cff2ee2f89eec4e863008a838786cd1149324a68ff2c` |
+| 4 | `0735cae045d876ba65f1d3eb3d218d4d1f812c0748a34ed1f639ce79f5820a02` | `8c1b0f38cd5de9bb9f3f9ea326901b573d28a7421add8315e3d6a2091c3cb15e` |
+| 5 | `02a42ae254558d3e7a3f25356395417f158a2e144ef9cbec0ec93d8edd96da0a` | `29f6b2b1eea0275311e800642cea5ca8ce2200d7243ab50dbc2e1799d1146253` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `ace2e5f05fab9d8369a1e79e516d3c4d68632c89f10284b67c64a72634331c7fb186676f70abb59f0b2f401b91f24c2ec42cab01069760cbfe485971526895a1`
+
+#### Final Output
+
+- **Group Public Key**: `4ccf463f718689c226fd714367c4fb51ad4e6fc4911cc9b262852bf8aff4af50`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `42fa1bced9d44eaa91c7130b00d655369a57217ac7b9a80d4e7ce217f1cf4e03` | `5af4180913d87c2220280a9c4c493f612c5c18010d32bca57689c786b2b63e72` |
+| 2 | `62dd2648e35c9fe597e4b895b7bcb13398ce4c31175fc42284abd4ce91a13603` | `a510091418157ef5f96058991026df8a8cc7399a72b4ef9a3c79d1fd52162d08` |
+| 3 | `75ebb5adb727d2d9f2d86c429cdf0e9cb67051fddbcda2d2ae73a8820ac92603` | `454592d9b11e8fd4da9cbb75acdad08dd8bc74fd284e27d9a3f714423aaad8a2` |
+| 4 | `f22c3ce17d20852089b760c96a8271f6b687dd860aeaf14b0b89cfca39c57f01` | `fa645ab3c9a901294eb759ba34cc450362f334c93a318fccde9a2aedfaaa4c47` |
+| 5 | `95a0baa924993a740af56268c64f4e341360da4c624c3d688c9c60438db1fe0c` | `f239e2fe35250abdb8e6046177f3949e5e3dcfb0ff62ce66eea7169e78ee7fa3` |
+| 6 | `69acd10ddbd23fe3be0cf2308bef8df0ddaf9d68cca0fc2100e96bcd8b8c8009` | `a4dbfa6a3acb3af65f0eba94ee9c8278e19d8758d8ec8fe57f89dd86f0c737c9` |
+| 7 | `f143c80cc033974df36f03a05f6c39020dbe9c7027176bbc695d9b0329be1e0c` | `c612b4080d07d9b9743e19b6263a7f54b2ee6bd0a90f01705af7b5072ed80b70` |
+| 8 | `dfcd2b66be3f61404fa3168294d6f529638425db4b6f56ef9e5a4dd770a22500` | `5d510ea3ee3aa2be2435ef996990350693e4477d1b2ab855dee6dc22da727231` |
+| 9 | `b009a7f2ffa853be9fe5896014ebc50efae58275667e139b5afcd337dcfef00d` | `16345d02d6163fb45071a8e060e93e0a153f6ffa4604c90b67ccdcf060011b5b` |
+| 10 | `460c639864f66a3b0dd52a8aa1bfa49826fcd7df02ad8de2a590a1f00d37bb01` | `a13ed26059fac029dced05f1e823edf9504e174bbeebe073e5a00aa1f6547d4c` |
+| 11 | `00dec2a49175f48f43f2bc12e8619e61cfb3688c6b9e41a9264dddfb7d8c0802` | `84c2c49ef0a8d5833ec15becea091315bdc89f697c97b8fd8ca521466c9ee168` |
+| 12 | `bb58ee98116c739dd03652b7bc6e027bc33f1f775f2e496d04df106fd9256e09` | `1704cb469de5717b0a734573bf6140049848958766c65c6d98b0197b60924c59` |
+| 13 | `3aed697eabd74db9376e49675d25adefa691ebd3150c77e84e2c4b91960e7901` | `f52450a7ed19ce4451ac146def563db000ab1f0571da8ca30d09534ddc3606ab` |
+| 14 | `d0470dc53552b03529ceabe4e4f14a6cd1763cc667f26ab7b9ae44ec0929ce01` | `6df8004a1249b30ec5dff1ec931320068517c1f5c250330b6cfa62cb24b40ee6` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `22c0303a41b67951f7daeba907f360497defa6ce77a255605e468532fc15bf0a` | `bf5b892eae59a3485978639cf171ae6458bf4cf39575d3de647bc678afcd95e4` |
+| 2 | `80fa94b5d82dd8fdf6d1055de086aace960c413cb90d6d437da2449d379b1f08` | `53a3f41215d735688aacd74f4b9582a070c8c2d4b28a2286328ab18bbdc42cec` |
+| 3 | `348fbe7e1d6d05d5135d471beee77eb254350d92a7db5144cb736eeb98643305` | `c29136290f45fe1738e8a3a6c8fafe425e6e51e1e7d7f2dc3779d98b2d25a626` |
+| 4 | `4cc0dee20c4799d110ec3ab623114c2bed36de76c4140e6939dbda5a0244d307` | `77b86875cb32fef8090d338099f9cc8479b7ceea27f1b57d8ce5c90abfb5ac69` |
+| 5 | `f9a93f085906442c885b822721ab65cc704700931885805268485f3ebee31b0e` | `6c230b5dcf336a12903dee15ea00996e3e96555e5ad1dd043822e090414d7758` |
+| 6 | `4eaf8bbe8580b4c8495d1a4afb4283c591e87993291fde080596ccf14a737102` | `39740b467c86700cd45c758338eb5c51c709bdc49988aa3d7134ca9ea084829a` |
+| 7 | `95314dbf880f7b72c3090980e8a3123aafa63cc656210892d4d53d23969d2307` | `d5f57b8d118c62364f29db73bafb826d55f248f95736e73cc73f02a153992d6a` |
+| 8 | `a5404e6ae360b36ebd609e11dae8a35618536538899c0dd8e2c2e1ee415b5d06` | `ab98a06af6201692eaa54411cf74b978454820cebc34b70f59e419524597d799` |
+| 9 | `86fbe9a9369e6362377760df98b56ab198f20d775295bb8ca860b279acb5a20d` | `fe2c9ed6dede80814f8cc7df4d9a63ada02b88e93f4c2777edb0f7c85cced56f` |
+| 10 | `84432c010e88d02e9fb51967f668a9b53d9d97d460fc266aa69f0e29d6cf950a` | `c5cb250c683c01fbf80bd6bf01aaeb89183f6f15b675a167899184ea1c605e69` |
+| 11 | `fd3f0f8f4aa2930f9a70aa1b9ed3281a62eb804a5d1a4150aac03f5f7657d50a` | `a6eee8a48649a3343816b8a321bdd513bb15b0531ee7a0611133088e45a92539` |
+| 12 | `c3ba6cc0e17d6b20b0c35476b649d255f40451e321849bd284cc7b04ae5a9b08` | `ce0fc6d1e7d6da72550de7e28c33733a8b40612095135c6afd72e207bc6c1ad6` |
+| 13 | `5d9a309bc0da71e27e84ab27d3b6b58500523ebc55969989c40b05003fb27e00` | `3175fa9e2fcf656db482fa727b5c2d340b114f69e88c8b82de7d06dcf6db5da3` |
+| 14 | `949af86ff959c4ade4fb3b68551173847aa58b9869510b072a1064a7b477e207` | `22b698df1caac6f4d59cf04dbe88e6b09c7c75c1904a722eb12f1e62a9292c5b` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `329835b6f4f45c96ed006408bc96a839e814d73329e977657303ca8594f0942efc4de223ff024f3f3d64bd5f4d5496304f5318409a250af00e518b5c10d93245`
+
+#### Final Output
+
+- **Group Public Key**: `c572f3aa75fd20c31332a354fe23cb12e1a97cc0821d36f47c4690b4786efc0b`
 
 ### COCKTAIL(Pallas, BLAKE2b-512)
 
-#### Configuration
+#### 2-of-3 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
 |-------------|-------------------|-------------------|
-| 1 | `dea9ef4347bc98004ca7542d8a0e3ccb1c2f481a0db1d8e86f9a1eb3a50b3636` | `c2647de9413e06ca0310d2233b911df9846056fedcde7ddc27cdc812328cfa2e` |
-| 2 | `7c0f700861533daccfa018bb5e4e27ecc6ecf20140a640ecd1e851fab0df7d3f` | `6acafb1a30025829365370af851f0da90472082c8273e8cd937ce5b6e5ea44b7` |
-| 3 | `a4c870fbb031794cc6c4e4e80bad97a4d1e4a5dd52fc120612ad70e0c6721117` | `21449223d7eb20aa7aef16f66222c03dda599e1d9675634fd5a12a0718333730` |
+| 1 | `dce7e285e962eb4e696c1100cde1f7b6ebf52c3a2ca21261e4664a2a9d939e1c` | `510e2e035daee4a76c500d3c0a7556c2c8067ffd26849e68341f81e502d6039a` |
+| 2 | `ccb5469af32146ca72647d34a6a97c228fe45e8e9720e42aafdc3932c63a1a1d` | `eed2c4cda74c1db2aaf31fd83bc097b2f8cc5b1a079c8c90e73572608486811e` |
+| 3 | `a40391568417f3fcfde831017c8c4af5c91287ac492addeb55735e6b63c31b14` | `39eb0f3a427636d256add1e57065e4dceb863240ad9fdcbbd961ab2e4b5fc2b0` |
 
 #### Round 2 Outputs
 
 | Participant | Secret Share | Verification Share |
 |-------------|--------------|-------------------|
-| 1 | `3e990c81e397150313ad0373f1074768cbce03dd7ef707862d90640b96e5991c` | `502a5a29dc706328eee10948920af85475b6eeeade15913c44d63f7d4acce305` |
-| 2 | `cc3e48c135f9848ada87c0b00ce2d61d4d54da92914cfc821a70de79a84d9c1a` | `35725b9d1200428599cd49023374c10d2798092cfc0d3b0e5cdfbd1a96369738` |
-| 3 | `5ae48301885af411a2627dee27bc66d3ced9b048a4a1f07f075058e8bab59e18` | `0693f6aa6fc6de43819c4d12e07bb8081373d68a2889e5e14d7157358cc9de03` |
+| 1 | `c908dbcd035b1aa944385396307f8a1159351d59f84f2f4f6c0400db22f8b923` | `5761eadbb27999c49a5f1dbea3a85caa9be94355e689739a28a88b17267b77aa` |
+| 2 | `cb8697561f597fe9c4d0cf60966366fb871bbce43d451acde4728ee2dc849f2d` | `fd29aa1a33095e42950980154ac5f915ad6b187d591839da122edf040b2b1b3e` |
+| 3 | `cd0454df3a57e42945694c2bfc4742e5b6015b70833a054b5de11cea96118537` | `8a2231f605ee105fb22e51fe1593a8cbb660901179db64b6dad8460a3c68d582` |
 
 #### Round 3 (Transcript Certification)
 
-- **Transcript Hash**: `18a517e56b1187b18dd2bc4a4275ffb955db354b6dcece0f1ab394d7f9d3eba1769300b9bfbfbf1bed003e4ea88c3a28995d40086a6482d192a142afa2a2c207`
+- **Extension**: (empty)
+- **Transcript Hash**: `e76d93978d0853e17c8850556e08456efb9b80799bbcd06babde17deeadfafcaa0eb28f3a5e7d94db8b9663387e0fc9d0c08bc89dbf205b09701d1c893e38209`
 
 #### Final Output
 
-- **Group Public Key**: `94edd28e7713bf0c82c6201a2e2d14b741b776584c8301c840493ee3d1d92288`
+- **Group Public Key**: `1b79857a381a900f055bc241f2435e601192730d17df7e20c18f8e525fe16f12`
+
+#### 3-of-5 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `eea0877b8c311d7be72275ead14c203f0295e727dcdf3ec32bc7947f15920327` | `614232db54489f18cf281d7e989180dd0fa465f0aaa60efdf6d8dfad5d8b5aa9` |
+| 2 | `9c4f7ba4c99f68301674374fcc95c765b0dbc0f08df839559e3dcd34d6141a24` | `ced2c3cf62260694c46cacc236c46914c411f59439395e6e2811425e26c0668f` |
+| 3 | `781b5fa53c3a0dd79ceca9be323e6e4f857638bbd9d164c6cdaca584b6799729` | `a9d031584c1a4dd180724315f9b65b6fc753821a58c11ba7b3877766bda3db1c` |
+| 4 | `694b3227391db91004590958787132faa7204b56f3f69ee8ff097f8fb442d021` | `19f8413ada8dc86d2faece0a0b4f7ef9c0d14a933d905a589f485a5df0516830` |
+| 5 | `9689e8ae557073761bc9b97265690f06021ebbff72df424845b69839a867eb00` | `617ae7f1c95b3fcab4fba02c5f4f3961f83123169cde6e162d60f98b35faa492` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `60ab53256591d90b710aca515a320cb51b48bbbb6d3e7b0b0f621ed1da592f26` | `1518c141ee1c93967cf10900cb7d2531ad6ffc6c96c52d339b81387fa4b06600` |
+| 2 | `2fe168edec2b0ba2f0fcf758d287e68edab9159f66d1c8e78868da6dc2fa4d33` | `e0e04aa51ded03d2aa40bcb48febc5568be82665cd2414373ffa4cff941623a4` |
+| 3 | `7b2bc3b7dfc5308be143665e7cd42980d7693ed0924c343dd5a7e6bdd5373636` | `1fcc43ae084a4940ec4f5b6c74b0b44c426447eecb98f165ac118951bf73e731` |
+| 4 | `448a62843d5f4ac743df14625818d6881258354ff2afbd0bf41f43c11411e82e` | `5115582d310a9832e7f86b8d7c883ac450a92035df95bb0123fade1bd1129eb0` |
+| 5 | `8afd465306f8575617cf03646653eba88b84fa1b85fb6453e5d0ef777f86631d` | `c7493a78608370152fec1b31fa5c3affb5a4106bea8bada4cd191aaf8356d11b` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `77adba7a0d552f83f48e5637a2ba387d51aee5a288f71c9408d01e76251f38682f005f07992813c69de3d82d92bfeec31aafee275eadf845c62e522bd7d8ce5e`
+
+#### Final Output
+
+- **Group Public Key**: `3f1730e474eace6453afd08478d6fd87265b80de4d9e9d2fbf532fcd2b4f583b`
+
+#### 7-of-14 Configuration
+
+| Participant | Static Secret Key | Static Public Key |
+|-------------|-------------------|-------------------|
+| 1 | `08cb5f7c1d314d69662f575308143b9e1079efd8a40e66847185c496956ae61f` | `b3dd1f82c0ac45ab49c84ff6b87e5ac6c1769ba28d99a893571fd1f338e49b2b` |
+| 2 | `5201d3204930a047710c72d04d887c775d4a4974b38278e30649ab2b29e8a014` | `a09f2e8bbb2a6ecb1f755bdbfc9af44f79014a115a75acdbb70fbf41e944cd02` |
+| 3 | `b2412fb777b0d886b7d2918d1985e4b11923c0e94eaaaddff9eac64429af022d` | `bb44e645efc65742f25bbff8c170fa39e494ba0a40225959abd2e084eb3793ac` |
+| 4 | `c9449b4f3e2efabf8f9e636b482908171d28b61b67060c8195e55acb1304782e` | `935a770ef15e24cb69542555bd55f14d6cc819ea557cd381b86b9239c242fea8` |
+| 5 | `6dc8e6da546e45acec2d472e3379d5d6fa06992307d3cb5a2f27460074319513` | `a118c4e268c9f6fc4d4ad58d17753c8b2d948d65db2c363ecc0137d0a03ac1a3` |
+| 6 | `a5bcc4ac86ad1e6574d10d978b9539d3c98c2ba26b646a0a2e8ce89b4a96db02` | `65dde1876203d96318a3a9f167398870ac5d16b10f5c9762114beb2f3d0c410e` |
+| 7 | `648cd331852802cb3985675aabc69d00e47ea3c8922a6a789d8b40736aae8331` | `bdc648337adf58d83b89f22973cfec12aaf958a1edf7317e3f45526cc3a5da8e` |
+| 8 | `3189581d1c0f906a0a3618bf52aba812363aede5a646ba23974b81be0a532d01` | `e4556b51f09e08f8013dff7da92ff9ad6dd3cf45db1e53f70163e9268762ce05` |
+| 9 | `140ac48c030cd4b843843640ccbf8f1706d9f8d55419befef5c89766e458dd08` | `04a45ffc97e5b4f91f7e6d1a94a7862226958970c9c3092d0991bdcce3133eba` |
+| 10 | `6b3cbcdae0d4805ecfdfb961d191ec7a55c66f23cee7cee6be3732d8f6295004` | `afdd1b36f09fc6c4398f6d19a3e6533ba00378c93f68e5263e245f7d1330d9bb` |
+| 11 | `61778ade90bf65db59820d1a5f12d1850812a45f5b6b5546fcecc01614a00932` | `a400592285002667fe4b05927de6409376b0e3762622d81be49e9b55c992c38d` |
+| 12 | `f8f70b07bf46f48d6a9832b7da52f739b2ab3972219f2e2d89d0148cb3173607` | `e134370a598f51a8fd9d544fd2724819c95c740a749b979955273e22488556a2` |
+| 13 | `094b810cb4fd203d45d81c3cf9ef2edd4d2509c8b67680f3c56e37fad3a85124` | `8b79bfb62b66f79cfeb3104764317adf0018039745a4dedfc776624c4377c834` |
+| 14 | `e8f9024cdfa308d87e267643b6dd321e79864f5b99bb1d94ea37ab16f4e69103` | `2bcf96d64b641f1914cd9e56d5564f89524f9b9fcaa648555cc68c2d3eae2526` |
+
+#### Round 2 Outputs
+
+| Participant | Secret Share | Verification Share |
+|-------------|--------------|-------------------|
+| 1 | `d79fbf226240b029a278ba8cff5c3bb6cf79d8bbc7e5ca8b4347e930bb967b3c` | `d013779e5806291be27bc99943593c4905594724ffaa9bada7ae94e73410b78b` |
+| 2 | `8ae7b1b6a7c1430e5058da4d2f935e9af67385569a52f2006ed5089e86438b32` | `16dc962b2bb17c21163a033a36a182ee899925f59ebd06c50b984e9ce295b380` |
+| 3 | `106dff7c0f9242a1c3b0b173f87ecbc05958d5a86ddcfbfe054a8a8fd186b820` | `44ce84c68959a3cc08db1a7af5b107ab0b34f7baa2b59a44c67269b84a904e2f` |
+| 4 | `8d30ec51599fe1e3bb84607aef68d9cec511183c5bc75126e29b484054319514` | `ed560f4eaf3cdda8f83c3c449ac8e3705036fd5f8223241933d8612127cda42d` |
+| 5 | `9448759197c871837591d759cbe83871f65a445a01852f45cfbb9dc1d5f43623` | `53739c87446a7666eb59934f4df07d4ba7c8951398024a616a973e7388afaeb0` |
+| 6 | `31b270aa00b3533a62cde158e478b2bbc30044c03087073df24f85c826121d15` | `d16e3974d8cd3f4d04e16957f1c053e4e147af2c992081020a992e268c620d36` |
+| 7 | `08864c3503d5198769e2268dba513fd0f9eb7e048b3452f7f1c7719d580ccc01` | `e70440fe2879c3d786393dcd48e22cfd43e20a54ee08fb2b5bedb4c37163969f` |
+| 8 | `82926d8eb549e8e3a30516c59f5e8eddd9f2a4b111ffc569e9c9d32e30611f1b` | `f84367503cda809630cf988150c47b8420e86f85c669b9b92163d989de87d3a9` |
+| 9 | `0a5b2df4e242a0964b7ee2ee7c7d82b94472b615a69cf8a921f85346d5465128` | `2fbe8ba96eea7698f825eecdfdcab9eaaaa828a17ed2064ff7db82451b5afd18` |
+| 10 | `607c77287c9c806314d10d369b9f51e58fae4bc579616910940fbfe0bd6eb830` | `3fcdeccb1f186cd8b38174b1b1d3ec1a281620c9bf09752f7d9923139fe85a17` |
+| 11 | `f9750696424dbd3320a04581946ac9c603fc1ad36fbcf46a345fa4a8d5cd3b16` | `ee686e963e305c36e6a0ec8276aadfcaa5cd712bcf996c229b7983f999b313af` |
+| 12 | `74d83ff9b50d45127d863a9d4b21ee2804afbdbb6ed5b03e0398a693e1697c1f` | `676b6362a8c65ec04f4b5d88c8e49796639e241c4379c96882ac2ff3c7d45294` |
+| 13 | `1bd9af8c1bf1369062ff35be0f7478cfe1d3b305a34d3319e8f57ea21f2cb531` | `9a4e6ccbe4375b224c4ebb5aa71330b379c028f9e20af0b94ed2e820f8de1e8c` |
+| 14 | `7a4a24b9e81fcd0bd6f13db8c331f47356aea695b22140f153c1b2c322b9503a` | `4ab2228f0be38e3d2de6d0f68d258884877e75ca31794e142b9a4ef332ecb7ab` |
+
+#### Round 3 (Transcript Certification)
+
+- **Extension**: (empty)
+- **Transcript Hash**: `a851f0e21184e631b83c336ada0e80e75fe6615fa931aedb09ea017c154998962eb509a051abcd7eb533232e4158de28ff43554cbdc470df53e45e390d908677`
+
+#### Final Output
+
+- **Group Public Key**: `d4a3a30c91ee1197555361749ee9650ad443fd9e7958ec8a0a04d2137b68ea9e`
