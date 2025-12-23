@@ -741,6 +741,107 @@ public key $P_r$: $H6(x, E, P_s, P_r, extra)$ instead of $H6(x, E, P_r, extra)$.
 COCKTAIL-DKG allows optional application-defined data to be included in the encrypted share ciphertexts, which
 ChillDKG does not support.
 
+### Share Recovery
+
+COCKTAIL-DKG inherits a key feature from ChillDKG: the ability to recover DKG outputs from minimal backup material.
+This eliminates the need for participants to store session-specific secrets and simplifies backup procedures.
+
+#### Recovery Data
+
+The **recovery data** for a successful DKG session consists of:
+
+1. **Transcript ($T$):** The canonical byte representation of the protocol transcript, as constructed in Round 3.
+2. **Success Certificate:** The collection of all $n$ signatures on the transcript: $sig_1, sig_2, \ldots, sig_n$.
+
+The recovery data is identical for all participants and contains no confidential information. It can be safely:
+
+- Stored with untrusted backup providers
+- Obtained from any cooperative participant or the coordinator
+- Shared publicly without compromising security
+
+#### Backup Requirements
+
+A complete backup for any participant $i$ consists of only two components:
+
+1. **Static Secret Key ($d_i$):** The participant's long-term static private key.
+2. **Recovery Data:** The transcript and success certificate from each DKG session the participant joined.
+
+This is a significant simplification compared to traditional DKG backup schemes, which typically require storing
+session-specific secrets for each key generation ceremony.
+
+#### Recovery Algorithm
+
+Given the static secret key $d_i$ and the recovery data, a participant can deterministically reconstruct all DKG outputs:
+
+**Input:**
+
+- $d_i$: The participant's static secret key.
+- $T$: The transcript from a successful DKG session.
+- $\{sig_1, \ldots, sig_n\}$: The success certificate.
+
+**Output:**
+
+- $x_i$: The participant's secret share.
+- $Y$: The group public key.
+- $Y_1, \ldots, Y_n$: The public verification shares.
+
+**Steps:**
+
+1. **Validate Certificate:** Verify each signature $sig_j$ on the transcript $T$ against the public key $P_j$ extracted
+   from the transcript. If any signature is invalid, abort with an error.
+2. **Extract Parameters:** Parse the transcript to obtain:
+   - The context string and its length
+   - The number of participants $n$ and threshold $t$
+   - All static public keys $P_1, \ldots, P_n$
+   - All VSS commitments $C_1, \ldots, C_n$
+   - All Proofs of Possession $PoP_1, \ldots, PoP_n$
+   - All ephemeral public keys $E_1, \ldots, E_n$
+   - The application-specific extension (if any)
+3. **Determine Participant Index:** Find the index $i$ such that $P_i = d_i * B$. If no such index exists, abort.
+4. **Reconstruct Encryption Keys:** For each participant $j$ from $1$ to $n$:
+   1. Compute the ECDH shared secrets:
+      - $S^{(e)}_{j,i} = d_i * E_j$ (using the sender's ephemeral key)
+      - $S^{(d)}_{j,i} = d_i * P_j$ (using the sender's static key)
+   2. Derive the symmetric key $k_{j,i}$ and nonce $iv_{j,i}$ using H6, following the same derivation as Round 1.
+5. **Obtain Ciphertexts:** The recovering participant must request the ciphertexts $c_{j,i}$ from other participants
+   or the coordinator. This cooperative step ensures that recovery requires active participation from the group,
+   preventing unilateral recovery from backup alone.
+6. **Decrypt and Verify Shares:** For each participant $j$, decrypt $c_{j,i}$ using $k_{j,i}$ and $iv_{j,i}$ to obtain
+   $s_{j,i}$. Verify each share against the VSS commitment: $s_{j,i} * B = \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$.
+7. **Compute Final Share:** $x_i = \sum_{j=1}^{n} s_{j,i}$.
+8. **Compute Public Outputs:**
+   - Group public key: $Y = \sum_{j=1}^{n} C_{j,0}$.
+   - Public verification shares: For each participant $m$, $Y_m = \sum_{j=1}^{n} \sum_{k=0}^{t-1} m^k \cdot C_{j,k}$.
+
+#### Privacy Considerations
+
+Users should be aware that recovery data reveals:
+
+- Session parameters (threshold $t$ and number of participants $n$)
+- All participants' static public keys ($P_1, \ldots, P_n$)
+- The group public key ($Y$) and public verification shares
+- The application-specific extension (if used)
+
+This information may create correlations between participants and their threshold setup. For privacy-sensitive
+applications, the recovery data **SHOULD** be encrypted before storage with untrusted providers. A recommended approach
+is to derive an encryption key from the static secret key using the ciphersuite's hash function:
+
+$$k_{backup} = H(\text{"COCKTAIL-BACKUP-KEY"} \parallel d_i)$$
+
+#### Security Considerations for Recovery
+
+1. **Timing of Key Usage:** Participants **MUST NOT** use the group public key $Y$ until they have confirmed that all
+   participants possess the recovery data. A catastrophic scenario could otherwise occur: one participant deems the
+   session successful and begins using the threshold key, but they are the only one with recovery data. If that
+   participant's storage fails, the key becomes unrecoverable and any data or operations depending on it are lost.
+
+2. **Explicit Confirmations:** Before using a threshold public key, applications **SHOULD** obtain explicit confirmations
+   from all participants that they have successfully stored the recovery data.
+
+3. **Recovery Without Confirmations:** If a participant receives recovery data after a session but cannot verify other
+   participants' completion, they **MAY** still recover their outputs for future signing participation. However, they
+   **SHOULD NOT** rely on that threshold key for critical operations until all participants have confirmed storage.
+
 ## Alternatives
 
 - **Trusted Dealer**: Simpler but introduces a single point of failure. COCKTAIL-DKG is for scenarios where a trusted
@@ -1236,6 +1337,15 @@ Each ciphersuite includes the following test vector types:
    ext = H(uint64_le(n) || uint64_le(len(payload_1)) || payload_1 || ... || uint64_le(len(payload_n)) || payload_n)
    ```
 
+3. **Recovery vectors** (2-of-3): Each 2-of-3 configuration includes recovery test data for participant 1.
+   The recovery data contains:
+   - The ciphertexts $c_{j,1}$ from each participant $j$ to participant 1
+   - The expected recovered secret share $x_1$
+   - The expected recovered verification share $Y_1$
+
+   These values enable implementers to verify their recovery implementation produces correct outputs when
+   decrypting ciphertexts using participant 1's static secret key and the transcript from the DKG session.
+
 Full test vectors in JSON format are also available in [CCTV](https://github.com/C2SP/CCTV/tree/main/cocktail-dkg).
 
 The following sections provide test vectors for 2-of-3, 3-of-5, and 7-of-14 threshold configurations for each
@@ -1267,6 +1377,16 @@ ciphersuite.
 #### Final Output
 
 - **Group Public Key**: `0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f`
+
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `9123460b09df36e1e8b23c5ab8716568874481343bb647109941484c4a0b77243e9057ea3e6e39b394f3e97abd09e407` |
+| Ciphertext from P2 | `5f4432d0349118d57dd893d08094fe9732574887ae1f6ad0c723c5ec95a5a25973b7e974f221667f86547833f62abfe4` |
+| Ciphertext from P3 | `7c72d167a3a1ae7a7d1afb3970a16e7433af7a9a9d17e7ba1f1dae334889b989dcb9fae5dd17d70952953d03858f1b98` |
+| Recovered Secret Share | `09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304` |
+| Recovered Verification Share | `5e130c137d31a445d1b8df391b41db0dbf6a9e13649abb40d68d3fa955eca22d` |
 
 #### 3-of-5 Configuration
 
@@ -1371,6 +1491,16 @@ ciphersuite.
 
 - **Group Public Key**: `ec21f5ee46aa6e11ddc8d3f42af51e6636b86de0243229d848da48c3b604964d`
 
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `c4d2fe0e35aabb3b681fa607b2f317327d84f59e55e778c11cd84bf1c822d0d82d2892ef746f3c01f1912de0a5343152` |
+| Ciphertext from P2 | `b628bd68a7e39dd414e99d2926868537cd9f54d3cd26cf789a70a5c03ec8c8b55b936a12042ae97979e33803a7008418` |
+| Ciphertext from P3 | `edb0c868a4f15eda0dfe55e1af46a5567f942d72fabf8fc43d45daea676ed725bb1c0e5f16cc6e336d8b45af967b8e0d` |
+| Recovered Secret Share | `c11e69ce202b5f0edb662e870c506269016bf9113f5b66af4cc01fdf1482860c` |
+| Recovered Verification Share | `8a45d3e10b89c0937e323c8456b9eae9bf939c3277a653f2c800df70a03fccc2` |
+
 #### 3-of-5 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
@@ -1473,6 +1603,16 @@ ciphersuite.
 #### Final Output
 
 - **Group Public Key**: `02a8b67f71bffd8c6c2e529027aad586c1f544ad42f7ea7048b0eaebf233c4352a`
+
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `7e8cb8ef817b78873a7eeb00fba8bbced71124951500ccdb2a287ac8c27e9619cb3e3e5957811dda27dcd6d463d5b54b` |
+| Ciphertext from P2 | `5d7d7fa5304ca522ce93970dcedb630a9034afc1b06ac864dee3f0ab0661d824b13fe694cc8a6e462bb8472a2236f833` |
+| Ciphertext from P3 | `0793cbe598727514b55731e9410bde1a302cdcf675b69bf44e720b9cef8e2be5274cdd7ce33d227f1752d9a1c8a00809` |
+| Recovered Secret Share | `112ffc75c88657968c290f46bea1573996cd4825c79d1422b2a430dcde0863af` |
+| Recovered Verification Share | `0314bd10010bd552adee76a83db3042a17021244f0871cb2abdd1648686f55f662` |
 
 #### 3-of-5 Configuration
 
@@ -1577,6 +1717,16 @@ ciphersuite.
 
 - **Group Public Key**: `0317763ca657a4d5e1c661b395aa9454ee2d9bdbbe8f2ea57ea0ec5cc0723ed9d9`
 
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `2bdd90da132bb078da821d243212e080d79f4e673872857185e84b604a1cc650615d7d8fbfbc8cbb485b5dd361c93bba` |
+| Ciphertext from P2 | `a14ec908c3cc4ac2805846ca05a20a8244fb7ce3e889ae94ab00768c8bf0e4d309986b00a99484938cb0dfcdc7746636` |
+| Ciphertext from P3 | `f6f277baa4fb9c0affec954d3f5cb147d804b1156b66fb349400adb7908bafc4e6abd1fa76d8a081185791d30bef363a` |
+| Recovered Secret Share | `78402404ae73ea8795a8af5d5fe1caae5a71abdb62b52bd4be279a05df62bb26` |
+| Recovered Verification Share | `02f6c8494a0e242d73696a1635b3839a54a55dc471d3465e719fedcc8bf8f07f11` |
+
 #### 3-of-5 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
@@ -1679,6 +1829,16 @@ ciphersuite.
 #### Final Output
 
 - **Group Public Key**: `c9aa58f7c8007343ba47079ab1f8ccc67b7bedcf17114a27421a9891450007fbedb5faeb4a1586e105cca5cd4cf99f6aa1966c829fd762e080`
+
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `4fd7af4723dba2d8764084938c8c84415816e20a51c1132446aa6e6edfe2e4702167513b1d328a7090b6c6dfbe247151b2a583cf14e701ce1ff495cab56fb1c39b6782fd13faade0` |
+| Ciphertext from P2 | `4ba50472a8d1a23146504939e7536275b56407a3366ee20742d34eedd301ce76503a32b4b4c6986e4ff2f068951c78085bf9da7f944c06e866d551a735031c4da80a5e7b72749960` |
+| Ciphertext from P3 | `f17f9ccc4b6f1b1100abbf1ebdd79eae0eb19640ecb02961858cc1b75a6426536885806044891a6fd98e88ba7cacaea8bb39ee4b91b86cf0e5424c4498405a73735447f4d5d7e7c3` |
+| Recovered Secret Share | `692d92730a66096b0a971bfe712cde3dfacb726f94894c68841f8daec6cbb3c91df1be4a811aabd0a314d2b152156485b12fba9657637a14` |
+| Recovered Verification Share | `7dcdc0aac7e24ad54a206a03f93d086f3aaaa0a999207ca5ed1798b522f7600c8136021ccf2844eb69459390b579bb13f2c285648bc0afe780` |
 
 #### 3-of-5 Configuration
 
@@ -1783,6 +1943,16 @@ ciphersuite.
 
 - **Group Public Key**: `6e48837cacc2cf38377fd9248baf43ac2ba91d641c5b3eab0827b2c0f12ad7d6`
 
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `32edacd4da8afd0380f7e577a965bfcbadd8a086f9c9be596eadb10216c05a2a3162cbd24eb339dba2c942de18d61b71` |
+| Ciphertext from P2 | `891d5baa9845ae997b69e63a8e7c70865f79c21c369cdea71695ceb16356375879470ec456ed336bef29b4a710ef7cce` |
+| Ciphertext from P3 | `2a8c326eb385f811bda008a79aff1f9fc0b141c47607df14a7af282a8b1919662578a21f46ad03b4432213679ed4dfe1` |
+| Recovered Secret Share | `51b3c5c002ed5659445453fb2ce8c791e51cfdd6d448bda5e80078ee6646dc0a` |
+| Recovered Verification Share | `3318a3309ab0caeed3138a14e3be1fa761f62c9635bd5afdb16bc0533e96e856` |
+
 #### 3-of-5 Configuration
 
 | Participant | Static Secret Key | Static Public Key |
@@ -1885,6 +2055,16 @@ ciphersuite.
 #### Final Output
 
 - **Group Public Key**: `1b79857a381a900f055bc241f2435e601192730d17df7e20c18f8e525fe16f12`
+
+#### Recovery (Participant 1)
+
+| Field | Value |
+|-------|-------|
+| Ciphertext from P1 | `874f3f77c95bb8ad202d3acdf0aec2842effbbe7cc8eb8474fddf3f1ff6bc829d6593ee0cc0f50956a0fcc4174e5e43b` |
+| Ciphertext from P2 | `92ce5450df413f6c9934beb0803e1fb605c0ace3d405dfed7d9b2850ccbacf8e057aa33b0a27ff1496591219d5733d55` |
+| Ciphertext from P3 | `5785bcc613ffdbfcb201820c839071a82099592f004452cbdb3a9a24d9998a81272f724caa2ce6c5add8689f0cd96614` |
+| Recovered Secret Share | `c908dbcd035b1aa944385396307f8a1159351d59f84f2f4f6c0400db22f8b923` |
+| Recovered Verification Share | `5761eadbb27999c49a5f1dbea3a85caa9be94355e689739a28a88b17267b77aa` |
 
 #### 3-of-5 Configuration
 
