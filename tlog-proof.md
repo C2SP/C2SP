@@ -89,3 +89,38 @@ log is included verbatim, according to [tlog-checkpoint][].
 [tlog-cosignature]: https://c2sp.org/tlog-cosignature
 [tlog-witness]: https://c2sp.org/tlog-witness
 [RFC 6962, Section 2.1.1]: https://www.rfc-editor.org/rfc/rfc6962.html#section-2.1.1
+
+## Verifying a tlog proof
+
+To verify a tlog proof, as defined above, the verifier needs
+additional information: It needs to know the contents of the leaf that
+is logged (based on application-specific data provided out-of-band,
+and the `extra` line; e.g., this could include the hash of a software
+artifact and metadata). The verifier also needs the public keys for
+origin lines it is willing to accept, as well as the public keys for
+some witnesses.
+
+To verify the proof, the following steps are required:
+
+1. Compute the leaf hash. This step is application specific.
+
+2. Check that the checkpoint origin line is acceptable, and that the
+   checkpoint is signed by a log public key configured for that origin
+   line.
+
+3. Verify all cosignatures for witnesses known to the verifier. Which
+   subsets of witnesses are considered strong enough, is determined by
+   application policy. One possible policy is to require k valid
+   cosignatures out of n known witnesses; more complex policies are
+   possible but out of scope for this document.
+
+4. Check that the inclusion proof is valid, to bind the leaf hash
+   computed in step 1 to the the root hash of the signed checkpoint.
+
+### Use of timestamps
+
+Each cosignature timestamp is covered by the corresponding witness
+cosignature, and hence are required to be able to verify the
+cosignature. However, after a cosignature has been verified, the
+timestamp value is ignored by the above verification procedure.
+Application policy may apply additional constraints on the timestamps.
