@@ -71,7 +71,7 @@ The signature MUST be a 72-byte `timestamped_signature` structure.
     }
 
 "timestamp" is the time at which the cosignature was generated, as seconds since
-the UNIX epoch (January 1, 1970 00:00 UTC).
+the UNIX epoch (January 1, 1970 00:00 UTC), serialized as a big-endian integer.
 
 "signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
