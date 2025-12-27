@@ -108,8 +108,9 @@ Example request body:
 The witness MUST verify the checkpoint signature against the public key(s) it
 trusts for the checkpoint origin, and it MUST ignore signatures from unknown
 keys. If the checkpoint origin is unknown, the witness MUST respond with a "404
-Not Found" HTTP status code. If none of the signatures verify against a trusted
-public key, the witness MUST respond with a "403 Forbidden" HTTP status code.
+Not Found" HTTP status code. If none of the signatures verify against any of the
+trusted public keys, the witness MUST respond with a "403 Forbidden" HTTP status
+code.
 
 The old size MUST be equal to or lower than the checkpoint size. Otherwise,
 the witness MUST respond with a "400 Bad Request" HTTP status code.
