@@ -20,10 +20,10 @@ process. Instead, they rely on an abstract random bit generator to produce a
 variable number of bit (not byte) strings.
 
 This document bridges the gap by describing a seed-based deterministic key
-generation process for ECDSA. The process is compliant with the algorithms
-described in [FIPS 186-5], reuses where possible functions that libraries are
-likely to have already implemented, and is simplified by targeting only
-production parameters.
+generation process for ECDSA and RSA. The process is compliant with the
+algorithms described in [FIPS 186-5], reuses where possible functions that
+libraries are likely to have already implemented, and is simplified by targeting
+only production parameters.
 
 ## ECDSA
 
@@ -194,3 +194,244 @@ Equivalent processes are explicitly allowed by point 4 of [FIPS 186-5, Appendix 
 [RFC 6979]: https://rfc-editor.org/rfc/rfc6979.html
 [RFC 6979, Section 2.3.2]: https://rfc-editor.org/rfc/rfc6979.html#section-2.3.2
 [draft-irtf-cfrg-det-sigs-with-noise-04]: https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-det-sigs-with-noise-04
+
+## RSA
+
+At a high level, this RSA key generation process involves instantiating
+HMAC_DRBG with SHA-256, the seed, and a personalization string including the
+target bit size; converting byte strings from the DRBG into prime number
+candidates until two primes are generated; and restarting if the resulting
+totient is not coprime with the fixed public exponent.
+
+Below, HMAC(K, M) denotes the 32-byte HMAC of message M with key K computed with
+hash function SHA-256.
+
+**Input**:
+
+1. *seed* — A byte string. The seed MUST be at least 128 bits (16 bytes) long,
+   and SHOULD include at least 192 bits of entropy to provide a security margin
+   against multi-target attacks.
+
+2. *bits* — The desired modulus size, in bits. *bits* MUST be a multiple of 16,
+   and MUST be at least 2048.[^sizes]
+
+**Output**:
+
+1. *N*, *e*, *d*, *p*, *q* — The generated modulus, public exponent,
+   private exponent, and prime factors.
+
+**Process**:
+
+1. *personalization_string* = `det RSA key gen` || I2OSP(*bits*, 2)
+
+   I2OSP is defined in [RFC 8017, Section 4.1][].
+   It encodes an integer as a big-endian byte string of a specified length.
+
+2. *K* = 0x00 0x00 ... 0x00, where *K* is 256 bits long.
+
+3. *V* = 0x01 0x01 ... 0x01, where *V* is 256 bits long.
+
+4. *K* = HMAC(*K*, *V* || 0x00 || *seed* || *personalization_string*)
+
+5. *V* = HMAC(*K*, *V*)
+
+6. *K* = HMAC(*K*, *V* || 0x01 || *seed* || *personalization_string*)
+
+7. *V* = HMAC(*K*, *V*)
+
+8. *temp* = ""
+
+9. While len(*temp*) < *bits* / 16:
+
+   1. *V* = HMAC(*K*, *V*)
+
+   2. *temp* = *temp* || *V*
+
+10. *temp*[0] |= 0b1100_0000
+
+    Setting the two most significant bits ensures the bit length of the product
+    of two candidates is always exactly *bits*.
+
+11. *temp*[*bits*/16 - 1] |= 1
+
+    Setting the least significant bit ensures the candidate is odd.
+
+12. *t* = OS2IP(*temp*[:*bits*/16])
+
+13. If *t* is not prime, repeat steps 8—13.
+
+    OS2IP is defined in [RFC 8017, Section 4.2][].
+    It interprets a byte string as a big-endian integer.
+
+    Primality testing MUST be done in such a way that the probability of false
+    positives or negatives is cryptographically negligible for random
+    candidates. One such efficient method is by performing trial divisions by
+    primes up to 1619[^primes] (which can be performed three at a time[^three]
+    with 32-bit divisors), followed by 3 iterations of the Miller-Rabin
+    primality test with randomly-selected bases, or 4 iterations if
+    *bits* < 7494, or 5 iterations if *bits* < 2690.[^iterations]
+
+14. *p* = *t*.
+
+15. Repeat steps 8—13.
+
+16. *q* = *t*.
+
+17. *ratio* = GCD(*p* - 1, *q* - 1)
+
+18. If *ratio* ≥ 2³², repeat steps 8—18.
+
+    Note that both primes are rejected. This has negligible performance impact
+    (it has probability 2⁻³²) but avoids multi-word divisors in step 19.
+
+19. *λ* = (*p* - 1) × (*q* - 1) / *ratio*
+
+    Using Euler's totient *φ* = (*p* - 1) × (*q* - 1) instead of Carmichael
+    totient *λ* would avoid the division and the GCD between even numbers in
+    step 17, with no performance impact (because despite yielding a *d* value
+    that is on average 1.82 bits shorter, the CRT exponents that are actually
+    used in private key operations would remain the same), but unfortunately
+    [FIPS 186-5, Appendix A.1.1][] explicitly requires *λ*.
+
+20. *e* = 65537
+
+21. *d* = *e*⁻¹ mod *λ*
+
+    If the modular inverse does not exist, repeat steps 8—21.
+
+    Note that both primes are rejected. This has negligible performance impact
+    (it has probability 2⁻¹⁶) but avoids separately computing GCD(*e*, *p* - 1)
+    and GCD(*e*, *q* - 1), or passing *p* to the *q* generation process.
+
+22. *N* = *p* × *q*
+
+23. Return (*N*, *e*, *d*, *p*, *q*)
+
+[^sizes]: The algorithm can be adapted to other sizes, for example by clearing
+    the appropriate number of most significant bits before step 10, and shifting
+    the masks in steps 10 and 11. However, strict compliance with FIPS 186-5
+    would require using the leftmost bits of the generated byte string, which
+    would complicate the implementation. Therefore, we recommend only claiming
+    compliance for round sizes, and if necessary using masking for the others.
+
+    Also note that check (5) in the "IFC key pair criteria" section below would
+    have a non-negligible chance of failure for toy-sized keys.
+
+[^iterations]: The worst case false positive rate for a single iteration is 1/4
+    per https://eprint.iacr.org/2018/749, so if *t* were selected adversarially,
+    we would need up to 64 iterations to get to a negligible (2⁻¹²⁸) chance of
+    false positive. However, since we only use *t* values sampled from uniformly
+    random DRBG output, we can use a smaller number of iterations. The exact
+    number depends on the size of the prime (and the implied security level).
+    See [BoringSSL for the full formula][iterations].
+
+[iterations]: https://cs.opensource.google/boringssl/boringssl/+/master:crypto/fipsmodule/bn/prime.c.inc;l=208-283;drc=3a138e43
+
+[^primes]: Using fewer or more primes does not affect correctness, but affects
+    performance. More primes cause fewer Miller-Rabin tests of composites
+    (nothing can help with the final test on the actual prime) but have
+    diminishing returns: the first 255 primes catch 84.9% of composites, the
+    next 255 would catch 1.5% more. Adding primes can still be marginally useful
+    since they only compete with the (much more expensive) first Miller-Rabin
+    round for candidates that were not rejected by the previous primes.
+
+[^three]: To check divisibility by three primes *a*, *b*, and *c* at the same time,
+    compute *r* = *x* mod (*a* × *b* × *c*), then check if *r* mod *a* = 0,
+    *r* mod *b* = 0, or *r* mod *c* = 0.
+
+### NIST FIPS 186-5 compliance
+
+The algorithm is equivalent to following [FIPS 186-5, Appendix A.1], *IFC Key
+Pair Generation* with [FIPS 186-5, Appendix A.1.3], *Generation of Random Primes
+that are Probably Prime*, using HMAC_DRBG from [SP 800-90A Rev. 1].
+
+If FIPS 186-5 and SP 800-90A Rev. 1 compliance is required, the seed MUST be
+generated from a compliant DRBG, and MUST contain at least 168, 192, 288, and
+384 bits of entropy for 2048+, 3072+, 7680+, and 15360+ bits, respectively.
+(That's 3/2 of the requested security strength, allowing omission of the DRBG
+nonce per [SP 800-90A Rev. 1, Section 8.6.7] and [SP 800-57 Part 1 Rev. 5,
+Section 5.6.1.1].)
+
+SHA-256 is sufficient for any requested security strength,
+per [SP 800-90A Rev. 1, Section 10.1] and [SP 800-57 Part 1 Rev. 5, Section 5.6.1.2].
+
+Steps 2–7 instantiate HMAC_DRBG per [SP 800-90A Rev. 1, Section 10.1.2.3].
+Steps 8–9 generate a bit string per [SP 800-90A Rev. 1, Section 10.1.2.5].
+The following steps implement a process equivalent to [FIPS 186-5, Appendix A.1.3].
+Equivalent processes are explicitly allowed.
+Step 13 suggests a primality testing process following [FIPS 186-5, Appendix B.3]
+with trial division limit *L* of 1619 and Miller-Rabin iteration count as specified
+in [FIPS 186-5, Table B.1] and calculated according to [FIPS 186-5, Appendix C.1]
+for the intermediate sizes.
+
+[FIPS 186-5, Appendix A.1.3], step 4.7 allows testing at most 5 × *bits*
+candidates for *p* before returning ERROR. This has a probability of failure of
+[approximately 2⁻⁴¹], which can be encountered in practice at scale. In that
+case, step 13 simulates returning an error and then rerunning the whole process,
+instead of looping within the prime generation process. Step 5.8 similarly
+limits the *q* number of candidates to 10 × *bits*, which instead has a
+probability of failure of [approximately 2⁻⁸³]. Restarting in this case would
+lead to a different key being generated, as *p* would get discarded, but it is
+not practically reachable. For compliance, implementations may choose to return
+an (unreachable) fatal error after 10 × *bits* candidates for all prime generations.
+
+[approximately 2⁻⁴¹]: https://www.wolframalpha.com/input?i2d=true&i=log2%5C%2840%29Power%5B%5C%2840%291-Divide%5B2.885%2C1024%5D%5C%2841%29%2C2048+*+5%5D%5C%2841%29
+[approximately 2⁻⁸³]: https://www.wolframalpha.com/input?i2d=true&i=log2%5C%2840%29Power%5B%5C%2840%291-Divide%5B2.885%2C1024%5D%5C%2841%29%2C2048+*+10%5D%5C%2841%29
+
+#### IFC key pair criteria
+
+[FIPS 186-5, Appendix A.1.1][] specifies a number of criteria for RSA key pairs.
+The process above generates keys that meet all of them, as detailed below.
+
+1. 2¹⁶ < *e* < 2²⁵⁶ and *e* is odd
+
+   With *e* fixed at 65537, this is always true.
+
+2. (*p* - 1) and (*q* - 1) relatively prime to *e*
+
+   Guaranteed by step 21. The modular inverse exists if and only if
+   GCD(*e*, *λ*) = 1, which implies GCD(*e*, *p* - 1) = 1 and
+   GCD(*e*, *q* - 1) = 1 because *λ* is a multiple of both by definition.
+
+3. √2 × 2^(*bits*/2 - 1) ≤ *p*, *q* ≤ 2^(*bits*/2) - 1
+
+   Guaranteed by step 10, which sets the two most significant bits of each
+   candidate, bringing it to the range
+
+       [ 2^(bits/2 - 1) + 2^(bits/2 - 2), 2^(bits/2) - 1 ]
+
+   Note that
+
+       2^(bits/2 - 1) + 2^(bits/2 - 2) = 3/2 × 2^(bits/2 - 1) > √2 × 2^(bits/2 - 1)
+
+4. |*p* - *q*| > 2^(*bits*/2 - 100)
+
+   The probability of |*p* - *q*| ≤ *k* where *p* and *q* are uniformly random
+   in the range (a, b) is
+
+       1 - (b - a - k)^2 / (b - a)^2
+
+   so the probability of this check failing is fixed at approximately 2⁻⁹⁷,
+   which is cryptographically negligible.
+
+5. *d* ≥ 2^(*bits* / 2)
+
+   The probability of this check failing is approximately
+
+       2^(bits/2) / λ(N) ≈ 2^(-bits/2 + 1.82)
+
+   which is less than 2⁻¹⁰²² for *bits* ≥ 2048.
+
+Demonstrating FIPS 186-5 compliance might require performing the above checks
+even if they are demonstrably unnecessary, but they can be treated as key
+validity checks performed after key generation, and failures can be handled as
+fatal errors.
+
+[RFC 8017, Section 4.1]: https://rfc-editor.org/rfc/rfc8017.html#section-4.1
+[RFC 8017, Section 4.2]: https://rfc-editor.org/rfc/rfc8017.html#section-4.2
+[FIPS 186-5, Appendix A.1]: https://doi.org/10.6028/NIST.FIPS.186-5
+[FIPS 186-5, Appendix A.1.1]: https://doi.org/10.6028/NIST.FIPS.186-5
+[FIPS 186-5, Appendix A.1.3]: https://doi.org/10.6028/NIST.FIPS.186-5
+[FIPS 186-5, Appendix B.3]: https://doi.org/10.6028/NIST.FIPS.186-5
+[FIPS 186-5, Table B.1]: https://doi.org/10.6028/NIST.FIPS.186-5
+[FIPS 186-5, Appendix C.1]: https://doi.org/10.6028/NIST.FIPS.186-5
