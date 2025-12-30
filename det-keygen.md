@@ -252,9 +252,11 @@ hash function SHA-256.
     Setting the two most significant bits ensures the bit length of the product
     of two candidates is always exactly *bits*.
 
-11. *temp*[*bits*/16 - 1] |= 1
+11. *temp*[*bits*/16 - 1] |= 0b0000_0111
 
-    Setting the least significant bit ensures the candidate is odd.
+    Setting the least significant bit ensures the candidate is odd. Setting the
+    next one ensures (*t* - 1) / 2 is odd, which simplifies the GCD in step 17
+    and the inversion in step 21. The third simplifies compliance with FIPS 186-5.
 
 12. *t* = OS2IP(*temp*[:*bits*/16])
 
@@ -358,7 +360,8 @@ per [SP 800-90A Rev. 1, Section 10.1] and [SP 800-57 Part 1 Rev. 5, Section 5.6.
 Steps 2–7 instantiate HMAC_DRBG per [SP 800-90A Rev. 1, Section 10.1.2.3].
 Steps 8–9 generate a bit string per [SP 800-90A Rev. 1, Section 10.1.2.5].
 The following steps implement a process equivalent to [FIPS 186-5, Appendix A.1.3].
-Equivalent processes are explicitly allowed.
+Step 11 is equivalent to steps 4.5 and 4.6 of Appendix A.1.3, with *a* and *b*
+set to 7. Equivalent processes are explicitly allowed.
 Step 13 suggests a primality testing process following [FIPS 186-5, Appendix B.3]
 with trial division limit *L* of 1619 and Miller-Rabin iteration count as specified
 in [FIPS 186-5, Table B.1] and calculated according to [FIPS 186-5, Appendix C.1]
