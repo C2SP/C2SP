@@ -300,7 +300,7 @@ hash function SHA-256.
     If the modular inverse does not exist, repeat steps 8—21.
 
     Note that both primes are rejected. This has negligible performance impact
-    (it has probability 2⁻¹⁶) but avoids separately computing GCD(*e*, *p* - 1)
+    (it has probability ≈ 2⁻¹⁵) but avoids separately computing GCD(*e*, *p* - 1)
     and GCD(*e*, *q* - 1), or passing *p* to the *q* generation process.
 
 22. *N* = *p* × *q*
