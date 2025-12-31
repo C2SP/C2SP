@@ -260,10 +260,16 @@ hash function SHA-256.
 
 12. *t* = OS2IP(*temp*[:*bits*/16])
 
-13. If *t* is not prime, repeat steps 8—13.
-
     OS2IP is defined in [RFC 8017, Section 4.2][].
     It interprets a byte string as a big-endian integer.
+
+13. If *t* is not prime:
+
+    1. *K* = HMAC(*K*, *V* || 0x00)
+
+    2. *V* = HMAC(*K*, *V*)
+
+    3. Repeat steps 8–13.
 
     Primality testing MUST be done in such a way that the probability of false
     positives or negatives is cryptographically negligible for random
@@ -275,39 +281,55 @@ hash function SHA-256.
 
 14. *p* = *t*.
 
-15. Repeat steps 8—13.
+15. *K* = HMAC(*K*, *V* || 0x00)
 
-16. *q* = *t*.
+16. *V* = HMAC(*K*, *V*)
 
-17. *ratio* = GCD(*p* - 1, *q* - 1)
+17. Repeat steps 8—13.
 
-18. If *ratio* ≥ 2³², repeat steps 8—18.
+18. *q* = *t*.
+
+19. *ratio* = GCD(*p* - 1, *q* - 1)
+
+20. If *ratio* ≥ 2³²:
+
+    1. *K* = HMAC(*K*, *V* || 0x00)
+
+    2. *V* = HMAC(*K*, *V*)
+
+    3. Repeat steps 8—20.
 
     Note that both primes are rejected. This has negligible performance impact
-    (it has probability 2⁻³²) but avoids multi-word divisors in step 19.
+    (it has probability 2⁻³²) but avoids multi-word divisors in step 21.
 
-19. *λ* = (*p* - 1) × (*q* - 1) / *ratio*
+21. *λ* = (*p* - 1) × (*q* - 1) / *ratio*
 
     Using Euler's totient *φ* = (*p* - 1) × (*q* - 1) instead of Carmichael
     totient *λ* would avoid the division and the GCD between even numbers in
-    step 17, with no performance impact (because despite yielding a *d* value
+    step 19, with no performance impact (because despite yielding a *d* value
     that is on average 1.82 bits shorter, the CRT exponents that are actually
     used in private key operations would remain the same), but unfortunately
     [FIPS 186-5, Appendix A.1.1][] explicitly requires *λ*.
 
-20. *e* = 65537
+22. *e* = 65537
 
-21. *d* = *e*⁻¹ mod *λ*
+23. *d* = *e*⁻¹ mod *λ*
 
-    If the modular inverse does not exist, repeat steps 8—21.
+    If the modular inverse does not exist:
+
+    1. *K* = HMAC(*K*, *V* || 0x00)
+
+    2. *V* = HMAC(*K*, *V*)
+
+    3. Repeat steps 8—23.
 
     Note that both primes are rejected. This has negligible performance impact
     (it has probability ≈ 2⁻¹⁵) but avoids separately computing GCD(*e*, *p* - 1)
     and GCD(*e*, *q* - 1), or passing *p* to the *q* generation process.
 
-22. *N* = *p* × *q*
+24. *N* = *p* × *q*
 
-23. Return (*N*, *e*, *d*, *p*, *q*)
+25. Return (*N*, *e*, *d*, *p*, *q*)
 
 [^sizes]: The algorithm can be adapted to other sizes, for example by clearing
     the appropriate number of most significant bits before step 10, and shifting
@@ -358,7 +380,8 @@ SHA-256 is sufficient for any requested security strength,
 per [SP 800-90A Rev. 1, Section 10.1] and [SP 800-57 Part 1 Rev. 5, Section 5.6.1.2].
 
 Steps 2–7 instantiate HMAC_DRBG per [SP 800-90A Rev. 1, Section 10.1.2.3].
-Steps 8–9 generate a bit string per [SP 800-90A Rev. 1, Section 10.1.2.5].
+Steps 8–9 and 15–16 (and 13.1–13.2, 20.1–20.2, and 23.1–23.2) generate a bit string
+per [SP 800-90A Rev. 1, Section 10.1.2.5].
 The following steps implement a process equivalent to [FIPS 186-5, Appendix A.1.3].
 Step 11 is equivalent to steps 4.5 and 4.6 of Appendix A.1.3, with *a* and *b*
 set to 7. Equivalent processes are explicitly allowed.
