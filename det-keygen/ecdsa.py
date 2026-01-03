@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives import serialization
 
 def det_ecdsa_keygen(seed: bytes, curve: ec.EllipticCurve) -> ec.EllipticCurvePrivateKey:
     if len(seed) < 16:
-        raise ValueError("Seed must be at least 16 bytes long")
+        raise ValueError("seed must be at least 16 bytes long")
 
     # Curve parameters
     personalization = {
@@ -68,7 +68,7 @@ def det_ecdsa_keygen(seed: bytes, curve: ec.EllipticCurve) -> ec.EllipticCurvePr
 
     # Step 12: Check validity (cryptographically negligible probability)
     if d == 0 or d >= curve.group_order:
-        raise RuntimeError("Generated invalid private key")
+        raise RuntimeError("generated invalid private key")
 
     # Step 13-14: Generate public key
     return ec.derive_private_key(d, curve)

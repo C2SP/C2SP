@@ -5,4 +5,5 @@ description = "det-keygen non-production implementation"
 requires-python = ">=3.13"
 dependencies = [
     "cryptography>=45.0.4",
+    "sympy>=1.14.0",
 ]
