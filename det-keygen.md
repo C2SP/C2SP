@@ -300,7 +300,7 @@ hash function SHA-256.
     3. Repeat steps 8—20.
 
     Note that both primes are rejected. This has negligible performance impact
-    (it has probability 2⁻³²) but avoids multi-word divisors in step 21.
+    (it has probability ≈ 2⁻³²) but avoids multi-word divisors in step 21.
 
 21. *λ* = (*p* - 1) × (*q* - 1) / *ratio*
 
