@@ -213,7 +213,7 @@ hash function SHA-256.
    against multi-target attacks.
 
 2. *bits* — The desired modulus size, in bits. *bits* MUST be a multiple of 16,
-   and MUST be at least 2048.[^sizes]
+   and MUST be at least 2048 and at most 65520.[^sizes]
 
 **Output**:
 
