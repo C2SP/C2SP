@@ -76,7 +76,8 @@ The signature MUST be a 72-byte `timestamped_signature` structure.
     }
 
 "timestamp" is the time at which the cosignature was generated, as a POSIX
-timestamp.
+timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
+with timestamps in the future.
 
 "signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
