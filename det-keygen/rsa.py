@@ -275,6 +275,8 @@ def main():
             "9549a8515cb1ebcc76124d8bc3821a2f",
             "56aa66de42f0e0b0a096644c44ec9f69",
             "061f65a3ba6ef9952145827e78eeeccf",
+            "0a720a90a9d637c04e7aadae80ced132",
+            "4dac53b0f5339d88c86689868d683ea9",
         ],
         e_divides_either_minus_1_twice,
     )
@@ -296,6 +298,8 @@ def main():
             "a535687a2ec5f1279944a3f4815e0f20",
             "ebb1ef958dce2016868255bfc5a16c28",
             "30c1eed294a21b5243d8943b8bfd2ae3",
+            "38045d4e6a8af7431eadd3a29c3c42a0",
+            "86d683ca429693133974213ac4eaa788",
         ],
         ratio_bitlen_31,
     )
@@ -312,6 +316,7 @@ def main():
             "3685289ca75e6e9e1089bc864d5880d1",
             "116c0b59528250d49782b96bfe4636b2",
             "cce06fcd8984c864c22f36397c814a82",
+            "636095a55f61b977b516a3af812785b0",
         ],
         ratio_bitlen_32,
     )
@@ -320,7 +325,14 @@ def main():
     ratio_bitlen_33 = lambda keygen_result: (
         pair_rejections(keygen_result, 1) and keygen_result.ratio_lengths[0] == 33
     )
-    add_vector(2048, "b38a65c4cfe3810cd474248178d8a119", ratio_bitlen_33)
+    add_vector(
+        2048,
+        [
+            "b38a65c4cfe3810cd474248178d8a119",
+            "c8cd81fe6e1851094e9500a930dfbbca",
+        ],
+        ratio_bitlen_33,
+    )
 
     # 2^33 <= gcd(p-1,q-1) < 2^34, rejected
     ratio_bitlen_34 = lambda keygen_result: (
