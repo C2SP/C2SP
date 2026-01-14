@@ -461,3 +461,12 @@ fatal errors.
 [FIPS 186-5, Appendix B.3]: https://doi.org/10.6028/NIST.FIPS.186-5
 [FIPS 186-5, Table B.1]: https://doi.org/10.6028/NIST.FIPS.186-5
 [FIPS 186-5, Appendix C.1]: https://doi.org/10.6028/NIST.FIPS.186-5
+
+## Test vectors
+
+Test vectors covering various sizes and rare edge cases are available at
+https://github.com/C2SP/C2SP/tree/main/det-keygen.
+
+## Implementations
+
+ - Go — https://filippo.io/keygen
