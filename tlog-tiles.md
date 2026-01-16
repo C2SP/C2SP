@@ -84,9 +84,9 @@ Full tiles MUST be exactly 256 hashes wide, or 8,192 bytes.  At “level 0” ti
 contain leaf hashes. At “level 1” and above, each hash in a tile is the Merkle
 Tree Hash of a *full* tile at the level below.
 
-More formally, in the language of RFC 6962, Section 2.1, the *n*-th tile at
-level *l*, with *n* and *l* starting at 0, is the sequence of the following
-Merkle Tree Hashes, with *i* from 0 to 255:
+More formally, in the language of [merkle-tree][], the *n*-th tile at level *l*,
+with *n* and *l* starting at 0, is the sequence of the following Merkle Tree
+Hashes, with *i* from 0 to 255:
 
     MTH(D[(n * 256 + i) * 256**l : (n * 256 + i + 1) * 256**l])
 
@@ -248,6 +248,7 @@ the feedback of the Sigsum team and of many individuals in the WebPKI community.
 
 [Certificate Transparency]: https://certificate.transparency.dev/
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
+[merkle-tree]: https://c2sp.org/merkle-tree
 [RFC 5246]: https://www.rfc-editor.org/rfc/rfc5246.html
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [signed note]: https://c2sp.org/signed-note

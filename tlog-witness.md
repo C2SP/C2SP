@@ -26,7 +26,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
-[RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
+[merkle-tree]: https://c2sp.org/merkle-tree
 
 ## Introduction
 
@@ -125,7 +125,7 @@ If a client doesn't have information on the latest cosigned checkpoint, it MAY
 initially make a request with a old size of zero to obtain it.
 
 The consistency proof lines MUST encode a Merkle Consistency Proof from the old
-size to the checkpoint size according to [RFC 6962][], Section 2.1.2. The proof
+size to the checkpoint size according to [merkle-tree][]. The proof
 MUST be empty if the old size is zero. If the Merkle Consistency Proof doesn't
 verify, the witness MUST respond with a "422 Unprocessable Entity" HTTP status
 code.
