@@ -21,7 +21,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 A tiled transparency log is defined by a URL *prefix*, a [checkpoint][] origin,
 and one or more [signed note][] public keys.
 
-The origin line SHOULD be the schema-less URL prefix of the log with no trailing
+The origin line SHOULD be the scheme-less URL prefix of the log with no trailing
 slashes. For example, a log with *prefix* `https://rome.ct.example.com/tevere/`
 will use `rome.ct.example.com/tevere` as the checkpoint origin line.
 
