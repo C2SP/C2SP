@@ -27,6 +27,9 @@ policy:
           - the det-keygen maintainers have authored relevant changes
           - the det-keygen maintainers have approved relevant changes
         - or:
+          - the FLOE maintainers have authored relevant changes
+          - the FLOE maintainers have approved relevant changes
+        - or:
           - the https-bastion maintainers have authored relevant changes
           - the https-bastion maintainers have approved relevant changes
         - or:
@@ -264,6 +267,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/det-keygen"
+    requires:
+      count: 0
+
+  - name: the FLOE maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^FLOE\\.md$"
+          - "^FLOE/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/FLOE"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the FLOE maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^FLOE\\.md$"
+          - "^FLOE/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/FLOE"
     requires:
       count: 0
 
