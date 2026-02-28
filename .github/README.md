@@ -1,3 +1,11 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/.logo/logo-light.svg">
+    <source media="(prefers-color-scheme: light)" srcset="/.logo/logo.svg">
+    <img alt="The Community Cryptography Specification Project" src="/.logo/logo.svg" width="256">
+  </picture>
+</p>
+
 # The Community Cryptography Specification Project
 
 The Community Cryptography Specification Project (C2SP) is a project that
