@@ -28,5 +28,17 @@ See [#45](https://github.com/C2SP/C2SP/issues/45) for an example.
 
 ## Tagging new versions
 
-At the moment, there is no automation to tag new versions. Open an issue and cc
-@C2SP/stewards. We plan to fix this.
+To tag a new version, a maintainer creates a file named `<spec-name>/.new-tag`
+(e.g. `age/.new-tag`) with the following contents:
+
+```
+v1.2.3
+<full 40-character commit hash>
+```
+
+The first line is the version (a valid semver like `v1.2.3`), and the second
+line is the full commit hash to tag. The commit must be reachable from the main
+branch.
+
+Merge this file to main, and a GitHub Action will create the tag
+`<spec-name>/v1.2.3` and remove the `.new-tag` file.
