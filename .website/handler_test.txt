@@ -1,0 +1,35 @@
+GET https://c2sp.org/
+redirect == https://github.com/C2SP/C2SP/
+header strict-transport-security == max-age=63072000; includeSubDomains; preload
+
+GET https://c2sp.org/CCTV/age?go-get=1
+body contains c2sp.org/CCTV git https://github.com/C2SP/CCTV
+
+GET https://c2sp.org/foo?go-get=1
+body contains c2sp.org git https://github.com/C2SP/C2SP
+
+GET https://c2sp.org/foo/bar?go-get=1
+body contains c2sp.org git https://github.com/C2SP/C2SP
+
+GET https://c2sp.org/age
+redirect == https://github.com/C2SP/C2SP/blob/main/age.md
+
+GET https://c2sp.org/tlog-witness@v0.1.0
+redirect == https://github.com/C2SP/C2SP/blob/tlog-witness/v0.1.0/tlog-witness.md
+
+GET https://c2sp.org/static-ct-api@v1.0.0-rc.1
+redirect == https://github.com/C2SP/C2SP/blob/static-ct-api/v1.0.0-rc.1/static-ct-api.md
+
+GET https://c2sp.org/CCTV
+redirect == https://github.com/C2SP/CCTV/
+
+GET https://c2sp.org/CCTV/age
+redirect == https://github.com/C2SP/CCTV/tree/main/age
+
+GET https://c2sp.org/CCTV/ed25519vectors
+redirect == https://c2sp.org/CCTV/ed25519
+
+GET https://c2sp.org/sunlight
+redirect == https://c2sp.org/static-ct-api
+
+GET https://c2sp.org/healthz
