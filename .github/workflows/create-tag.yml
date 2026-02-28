@@ -1,0 +1,34 @@
+name: Create Tag
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*/.new-tag'
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.MAINTAINERS_DEPLOY_KEY }}
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .github/go.mod
+          cache: false
+      - name: Create tags
+        run: |
+          cd .github/create-tag
+          go run . "${{ github.workspace }}"
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add -A '*/.new-tag'
+            git commit -m "all: remove processed .new-tag files"
+            git push origin main
+            git push origin --tags
+          fi

@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version-file: .github/go.mod
-          check-latest: true
+          cache: false
       - name: Generate maintainers list
         env:
           GITHUB_TOKEN: ${{ secrets.MAINTAINERS_GITHUB_TOKEN }}
