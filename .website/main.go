@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +19,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+func specNameIsValid(name string) bool {
+	matched, _ := regexp.MatchString(`^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$`, name)
+	return matched
+}
 
 func main() {
 	metricsMux := http.NewServeMux()
@@ -59,15 +66,50 @@ func handler(repo *Repo) http.Handler {
 	mux.Handle("/CCTV", http.RedirectHandler("https://github.com/C2SP/CCTV/", http.StatusFound))
 
 	mux.HandleFunc("/{name}", func(w http.ResponseWriter, r *http.Request) {
-		if name, vers, ok := strings.Cut(r.PathValue("name"), "@"); ok {
-			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/"+name+"/"+vers+"/"+name+".md", http.StatusFound)
-		} else {
+		name, vers, ok := strings.Cut(r.PathValue("name"), "@")
+		if !ok {
+			vers = "latest"
+		}
+		if !specNameIsValid(name) {
+			http.Error(w, "invalid spec name", http.StatusBadRequest)
+			return
+		}
+
+		if vers == "latest" {
+			var err error
+			vers, err = repo.Latest(name)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to get latest version: %v", err), http.StatusInternalServerError)
+				return
+			}
+			if vers == "" {
+				vers = "main"
+			}
+		}
+
+		versions, err := repo.Versions(name)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to get versions: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		if vers == "main" {
 			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/main/"+name+".md", http.StatusFound)
+		} else if slices.Contains(versions, vers) {
+			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/"+name+"/"+vers+"/"+name+".md", http.StatusFound)
+		} else if repo.IsCommit(vers) {
+			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/"+vers+"/"+name+".md", http.StatusFound)
+		} else {
+			http.Error(w, "version not found", http.StatusNotFound)
 		}
 	})
 
 	mux.HandleFunc("/CCTV/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
+		if !specNameIsValid(name) {
+			http.Error(w, "invalid spec name", http.StatusBadRequest)
+			return
+		}
 		http.Redirect(w, r, "https://github.com/C2SP/CCTV/tree/main/"+name, http.StatusFound)
 	})
 
