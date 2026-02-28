@@ -37,9 +37,9 @@ Versions are tracked as git tags of the form `<spec-name>/vX.Y.Z` like
 
 Specifications should be linked using their c2sp.org short-links.
 `https://c2sp.org/<spec-name>` and `https://c2sp.org/<spec-name>@<version>` are
-supported. (The former currently redirects to the specification in the main
-branch, this may change in the future to the latest tagged version of the spec.)
-GitHub URLs should not be considered stable.
+supported. The former is equivalent to `@latest` and redirects to the latest
+tagged version. To link to the main branch, use `@main`. GitHub URLs should not
+be considered stable.
 
 All C2SP specifications are licensed under [CC BY
 4.0](https://creativecommons.org/licenses/by/4.0/). All code and data in this

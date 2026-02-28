@@ -10,14 +10,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/mod/semver"
 )
 
 const repoURL = "https://github.com/C2SP/C2SP.git"
 
-var repo *Repo
+var commitHashRE = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
 
 // Repo is a local bare mirror of the upstream repository, kept up to date by
 // periodic fetches.
@@ -70,7 +73,7 @@ func (r *Repo) fetch() error {
 	defer r.mu.Unlock()
 
 	// Fetch latest main.
-	if _, err := r.git("fetch", "--depth=1", "origin", "main"); err != nil {
+	if _, err := r.git("fetch", "origin", "main"); err != nil {
 		return err
 	}
 
@@ -152,6 +155,73 @@ func (r *Repo) FileAt(path, tag string) ([]byte, error) {
 		ref = tag
 	}
 	return r.git("show", "--end-of-options", ref+":"+path)
+}
+
+// Versions returns the sorted list of semver versions for the given spec name,
+// based on git tags of the form "name/vX.Y.Z".
+func (r *Repo) Versions(name string) ([]string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	out, err := r.git("tag", "-l", "--end-of-options", name+"/*")
+	if err != nil {
+		return nil, err
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	var versions []string
+	for line := range strings.Lines(string(out)) {
+		line = strings.TrimSuffix(line, "\n")
+		v := strings.TrimPrefix(line, name+"/")
+		if semver.IsValid(v) {
+			versions = append(versions, v)
+		}
+	}
+	semver.Sort(versions)
+	return versions, nil
+}
+
+// Latest returns the latest version for the given spec name, following Go's
+// @latest logic: it returns the highest non-prerelease version, or the highest
+// prerelease version if no releases exist. It returns "" if there are no versions.
+func (r *Repo) Latest(name string) (string, error) {
+	versions, err := r.Versions(name)
+	if err != nil {
+		return "", err
+	}
+	var latestRelease, latestPrerelease string
+	for _, v := range versions {
+		if semver.Prerelease(v) != "" {
+			latestPrerelease = v
+		} else {
+			latestRelease = v
+		}
+	}
+	if latestRelease != "" {
+		return latestRelease, nil
+	}
+	return latestPrerelease, nil
+}
+
+// IsCommit returns whether the given ref is a valid git commit hash reachable
+// from origin/main, potentially truncated.
+func (r *Repo) IsCommit(ref string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if !commitHashRE.MatchString(ref) {
+		return false
+	}
+
+	out, err := r.git("rev-parse", "--quiet", "--verify", ref+"^{commit}")
+	if err != nil {
+		return false
+	}
+	commit := strings.TrimSpace(string(out))
+
+	_, err = r.git("merge-base", "--is-ancestor", commit, "origin/main")
+	return err == nil
 }
 
 // git runs a git command against the repository and returns its stdout.

@@ -12,7 +12,22 @@ GET https://c2sp.org/foo/bar?go-get=1
 body contains c2sp.org git https://github.com/C2SP/C2SP
 
 GET https://c2sp.org/age
+redirect ~ https://github.com/C2SP/C2SP/blob/age/v1\.[^/]+/age\.md
+
+GET https://c2sp.org/age@latest
+redirect ~ https://github.com/C2SP/C2SP/blob/age/v1\.[^/]+/age\.md
+
+GET https://c2sp.org/age@main
 redirect == https://github.com/C2SP/C2SP/blob/main/age.md
+
+GET https://c2sp.org/age@037e546d164a89fd7577df2c18df80bb54bd246e
+redirect == https://github.com/C2SP/C2SP/blob/037e546d164a89fd7577df2c18df80bb54bd246e/age.md
+
+GET https://c2sp.org/age@037e546d1
+redirect == https://github.com/C2SP/C2SP/blob/037e546d1/age.md
+
+GET https://c2sp.org/vrf-r255
+redirect == https://github.com/C2SP/C2SP/blob/main/vrf-r255.md
 
 GET https://c2sp.org/tlog-witness@v0.1.0
 redirect == https://github.com/C2SP/C2SP/blob/tlog-witness/v0.1.0/tlog-witness.md

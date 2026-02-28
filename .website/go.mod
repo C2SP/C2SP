@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	github.com/cespare/webtest v0.3.0
 	github.com/prometheus/client_golang v1.23.2
+	golang.org/x/mod v0.33.0
 )
 
 require (
