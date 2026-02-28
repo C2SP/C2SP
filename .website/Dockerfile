@@ -8,6 +8,8 @@ RUN go install -trimpath
 
 FROM alpine:3.23
 
+RUN apk add --no-cache git
+
 COPY --from=builder /go/bin/website /usr/local/bin/
 
 ENTRYPOINT ["/usr/local/bin/website"]

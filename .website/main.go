@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +25,14 @@ func main() {
 		ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second}
 	go func() { log.Fatal(metricsServer.ListenAndServe()) }()
 
-	h := handler()
+	ctx := context.Background()
+
+	repo, err := InitRepo(ctx, os.TempDir())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	h := handler(repo)
 	s := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,12 +46,14 @@ func main() {
 	log.Fatal(s.ListenAndServe())
 }
 
-func handler() http.Handler {
+func handler(repo *Repo) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	mux.Handle("POST /_fetch", repo.FetchHandler())
 
 	mux.Handle("/{$}", http.RedirectHandler("https://github.com/C2SP/C2SP/", http.StatusFound))
 	mux.Handle("/CCTV", http.RedirectHandler("https://github.com/C2SP/CCTV/", http.StatusFound))

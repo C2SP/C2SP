@@ -1,0 +1,15 @@
+name: Notify website
+on:
+  push:
+    branches: [main]
+  create:
+    tags:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify website to fetch
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.FETCH_TOKEN }}" \
+            https://c2sp.org/_fetch

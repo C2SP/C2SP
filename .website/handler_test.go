@@ -7,5 +7,10 @@ import (
 )
 
 func TestHandler(t *testing.T) {
-	webtest.TestHandler(t, "*_test.txt", handler())
+	repo, err := InitRepo(t.Context(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	webtest.TestHandler(t, "*_test.txt", handler(repo))
 }
