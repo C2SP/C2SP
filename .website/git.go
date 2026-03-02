@@ -52,6 +52,53 @@ func InitRepo(ctx context.Context, tmpDir string) (*Repo, error) {
 	return r, nil
 }
 
+// ImportRepo initializes a bare repository from a fast-export stream. The repo
+// will not support fetching, but can be used for testing.
+//
+// It also returns a map from mark (like ":1") to commit hash, which can be used
+// in tests to refer to specific commits in the stream.
+func ImportRepo(ctx context.Context, exportFile, tmpDir string) (*Repo, map[string]string, error) {
+	dir := filepath.Join(tmpDir, "C2SP.git")
+	r := &Repo{}
+	if _, err := os.Stat(dir); err != nil {
+		if _, err := r.git("init", "--bare", dir); err != nil {
+			return nil, nil, err
+		}
+	}
+	r.dir = dir
+
+	f, err := os.Open(exportFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+
+	cmd := exec.Command("git", "fast-import", "--quiet", "--export-marks="+filepath.Join(tmpDir, "marks.txt"))
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Stdin = f
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		return nil, nil, fmt.Errorf("git fast-import: %w\n%s", err, stderr.Bytes())
+	}
+
+	marksData, err := os.ReadFile(filepath.Join(tmpDir, "marks.txt"))
+	if err != nil {
+		return nil, nil, fmt.Errorf("read marks: %w", err)
+	}
+	marks := make(map[string]string)
+	for line := range strings.Lines(string(marksData)) {
+		parts := strings.Fields(line)
+		if len(parts) != 2 {
+			return nil, nil, fmt.Errorf("invalid marks line: %q", line)
+		}
+		marks[parts[0]] = parts[1]
+	}
+
+	return r, marks, nil
+}
+
 func (r *Repo) fetchLoop(ctx context.Context) {
 	t := time.NewTicker(5 * time.Minute)
 	defer t.Stop()
@@ -84,6 +131,9 @@ func (r *Repo) fetch() error {
 
 // Fetch signals the fetch loop to run immediately. It does not block.
 func (r *Repo) Fetch() {
+	if r.fetchC == nil {
+		return
+	}
 	select {
 	case r.fetchC <- struct{}{}:
 	default:

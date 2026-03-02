@@ -1,0 +1,105 @@
+# This webtest script is executed against a test C2SP repository imported from
+# testrepo_export.txt.
+#
+# Any :NNN marks (like ":1") are replaced with the corresponding SHA-1 hash,
+# while :NNN! is replaced with the SHA-1 hash truncated to 16 characters.
+
+# foo: has releases, @latest picks highest non-prerelease (v1.0.0)
+
+GET https://c2sp.org/foo
+redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+
+GET https://c2sp.org/foo@latest
+redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+
+# foo: explicit versions
+
+GET https://c2sp.org/foo@v0.0.1
+redirect == https://github.com/C2SP/C2SP/blob/foo/v0.0.1/foo.md
+
+GET https://c2sp.org/foo@v1.0.0
+redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+
+GET https://c2sp.org/foo@v1.0.1-pre.1
+redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.1-pre.1/foo.md
+
+# foo: @<commit-hash> reachable from origin/main
+
+GET https://c2sp.org/foo@:18
+redirect == https://github.com/C2SP/C2SP/blob/:18/foo.md
+
+GET https://c2sp.org/foo@:18!
+redirect == https://github.com/C2SP/C2SP/blob/:18!/foo.md
+
+# foo: @main
+
+GET https://c2sp.org/foo@main
+redirect == https://github.com/C2SP/C2SP/blob/main/foo.md
+
+# foo: non-existent version
+
+GET https://c2sp.org/foo@v9.9.9
+code == 404
+body contains version not found
+
+# commit hash not reachable from origin/main
+
+GET https://c2sp.org/foo@:20
+code == 404
+
+# invalid ref that looks like it could be a version or hash
+
+GET https://c2sp.org/foo@notahex
+code == 404
+
+# BAR: only has prerelease, @latest picks it
+
+GET https://c2sp.org/BAR
+redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
+
+GET https://c2sp.org/BAR@latest
+redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
+
+GET https://c2sp.org/BAR@v1.0.1-pre.1
+redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
+
+GET https://c2sp.org/BAR@main
+redirect == https://github.com/C2SP/C2SP/blob/main/BAR.md
+
+# a-b-c: no tags at all, @latest falls back to main
+
+GET https://c2sp.org/a-b-c
+redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
+
+GET https://c2sp.org/a-b-c@latest
+redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
+
+GET https://c2sp.org/a-b-c@main
+redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
+
+# a-b-c: non-existent version
+
+GET https://c2sp.org/a-b-c@v1.0.0
+code == 404
+
+# invalid spec names
+
+GET https://c2sp.org/foo.bar
+code == 400
+body contains invalid spec name
+
+GET https://c2sp.org/foo_bar
+code == 400
+body contains invalid spec name
+
+GET https://c2sp.org/foo..bar
+code == 400
+
+GET https://c2sp.org/-foo
+code == 400
+
+GET https://c2sp.org/foo-
+code == 400
+
+GET https://c2sp.org/foo--bar
+code == 400

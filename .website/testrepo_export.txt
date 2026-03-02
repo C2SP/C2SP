@@ -1,0 +1,173 @@
+blob
+mark :1
+data 0
+
+reset refs/remotes/origin/main
+commit refs/remotes/origin/main
+mark :2
+author Filippo Valsorda <filippo@example.com> 1772455406 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455406 +0100
+data 14
+foo: new spec
+M 100644 :1 foo.md
+
+blob
+mark :3
+data 20
+#foo
+foo content 1
+
+
+commit refs/remotes/origin/main
+mark :4
+author Filippo Valsorda <filippo@example.com> 1772455447 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455447 +0100
+data 15
+foo: content 1
+from :2
+M 100644 :3 foo.md
+
+reset refs/tags/foo/v0.0.1
+from :4
+
+blob
+mark :5
+data 20
+#foo
+foo content 2
+
+
+commit refs/remotes/origin/main
+mark :6
+author Filippo Valsorda <filippo@example.com> 1772455569 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455569 +0100
+data 15
+foo: content 2
+from :4
+M 100644 :5 foo.md
+
+reset refs/tags/foo/v1.0.0
+from :6
+
+blob
+mark :7
+data 20
+#BAR
+BAR content 1
+
+
+commit refs/remotes/origin/main
+mark :8
+author Filippo Valsorda <filippo@example.com> 1772455575 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455575 +0100
+data 15
+BAR: content 1
+from :6
+M 100644 :7 BAR.md
+
+blob
+mark :9
+data 20
+#foo
+foo content 3
+
+
+commit refs/remotes/origin/main
+mark :10
+author Filippo Valsorda <filippo@example.com> 1772455579 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455579 +0100
+data 15
+foo: content 3
+from :8
+M 100644 :9 foo.md
+
+reset refs/tags/foo/v1.0.1-pre.1
+from :10
+
+blob
+mark :11
+data 20
+#foo
+foo content 4
+
+
+commit refs/remotes/origin/main
+mark :12
+author Filippo Valsorda <filippo@example.com> 1772455584 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455584 +0100
+data 15
+foo: content 4
+from :10
+M 100644 :11 foo.md
+
+blob
+mark :13
+data 24
+#a-b-c
+a-b-c content 1
+
+
+commit refs/remotes/origin/main
+mark :14
+author Filippo Valsorda <filippo@example.com> 1772455594 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455594 +0100
+data 17
+a-b-c: content 1
+from :12
+M 100644 :13 a-b-c.md
+
+blob
+mark :15
+data 20
+#BAR
+BAR content 2
+
+
+commit refs/remotes/origin/main
+mark :16
+author Someone Else <someone@example.org> 1772455705 +0100
+committer Someone Else <someone@example.org> 1772455705 +0100
+data 15
+BAR: content 2
+from :14
+M 100644 :15 BAR.md
+
+reset refs/tags/BAR/v1.0.1-pre.1
+from :16
+
+blob
+mark :17
+data 20
+#BAR
+BAR content 3
+
+
+commit refs/remotes/origin/main
+mark :18
+author Someone Else <someone@example.org> 1772455747 +0100
+committer Someone Else <someone@example.org> 1772455747 +0100
+data 15
+BAR: content 3
+from :16
+M 100644 :17 BAR.md
+
+# A non-semver tag, should be ignored by Versions/Latest.
+reset refs/tags/foo/draft1
+from :6
+
+# A divergent commit not reachable from origin/main.
+blob
+mark :19
+data 22
+#foo
+foo divergent 1
+
+commit refs/heads/divergent
+mark :20
+author Filippo Valsorda <filippo@example.com> 1772455800 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455800 +0100
+data 20
+foo: divergent work
+from :14
+M 100644 :19 foo.md
+
