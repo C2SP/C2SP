@@ -1,0 +1,19 @@
+name: Website tests
+on:
+  push:
+    paths:
+      - .website/**
+  pull_request:
+    paths:
+      - .website/**
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: .website/go.mod
+      - run: |
+          cd .website
+          go test ./...
