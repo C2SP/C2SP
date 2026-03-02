@@ -1,4 +1,4 @@
-name: Create Tag
+name: Create tag
 on:
   push:
     branches: [main]
