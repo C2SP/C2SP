@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"golang.org/x/mod/semver"
+	"c2sp.org/C2SP/website/spec"
 )
 
 func main() {
@@ -32,9 +32,9 @@ func main() {
 
 	var failed bool
 	for _, match := range matches {
-		spec := filepath.Dir(match)
+		specName := filepath.Dir(match)
 		if err := processNewTag(match); err != nil {
-			log.Printf("[%s] error: %v", spec, err)
+			log.Printf("[%s] error: %v", specName, err)
 			failed = true
 		}
 	}
@@ -45,8 +45,8 @@ func main() {
 }
 
 func processNewTag(match string) error {
-	spec := filepath.Dir(match)
-	log.Printf("[%s] processing %s", spec, match)
+	specName := filepath.Dir(match)
+	log.Printf("[%s] processing %s", specName, match)
 
 	data, err := os.ReadFile(match)
 	if err != nil {
@@ -61,7 +61,7 @@ func processNewTag(match string) error {
 	version := strings.TrimSpace(lines[0])
 	commitHash := strings.TrimSpace(lines[1])
 
-	if semver.Canonical(version) == "" || semver.Canonical(version) != version {
+	if !spec.ValidVersion(version) {
 		return fmt.Errorf("invalid semver version %q", version)
 	}
 
@@ -76,8 +76,8 @@ func processNewTag(match string) error {
 		return fmt.Errorf("commit %s is not reachable from main: %v", commitHash, err)
 	}
 
-	tagName := spec + "/" + version
-	log.Printf("[%s] creating tag %s at %s", spec, tagName, commitHash)
+	tagName := specName + "/" + version
+	log.Printf("[%s] creating tag %s at %s", specName, tagName, commitHash)
 
 	if err := gitCmd("tag", "--end-of-options", tagName, commitHash); err != nil {
 		return fmt.Errorf("failed to create tag %s: %v", tagName, err)
@@ -87,7 +87,7 @@ func processNewTag(match string) error {
 		return fmt.Errorf("failed to remove %s: %v", match, err)
 	}
 
-	log.Printf("[%s] successfully created tag %s", spec, tagName)
+	log.Printf("[%s] successfully created tag %s", specName, tagName)
 	return nil
 }
 
