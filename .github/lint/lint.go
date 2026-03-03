@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"c2sp.org/C2SP/website/spec"
 )
 
 func main() {
@@ -26,9 +28,12 @@ func main() {
 		panic(err)
 	}
 
-	for _, spec := range specs {
-		if !strings.Contains(string(readme), "(https://c2sp.org/"+spec+")") {
-			log.Fatal("README.md does not contain " + spec)
+	for _, s := range specs {
+		if !spec.ValidName(s) {
+			log.Fatalf("invalid spec name %q", s)
+		}
+		if !strings.Contains(string(readme), "(https://c2sp.org/"+s+")") {
+			log.Fatal("README.md does not contain " + s)
 		}
 	}
 }

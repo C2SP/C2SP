@@ -9,21 +9,16 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"c2sp.org/C2SP/website/spec"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
-
-func specNameIsValid(name string) bool {
-	matched, _ := regexp.MatchString(`^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$`, name)
-	return matched
-}
 
 func main() {
 	metricsMux := http.NewServeMux()
@@ -70,7 +65,7 @@ func handler(repo *Repo) http.Handler {
 		if !ok {
 			vers = "latest"
 		}
-		if !specNameIsValid(name) {
+		if !spec.ValidName(name) {
 			http.Error(w, "invalid spec name", http.StatusBadRequest)
 			return
 		}
@@ -106,7 +101,7 @@ func handler(repo *Repo) http.Handler {
 
 	mux.HandleFunc("/CCTV/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
-		if !specNameIsValid(name) {
+		if !spec.ValidName(name) {
 			http.Error(w, "invalid spec name", http.StatusBadRequest)
 			return
 		}
