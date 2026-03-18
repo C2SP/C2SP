@@ -42,9 +42,9 @@ public key. Each witness is configured with a list of supported log public keys.
 For each log, uniquely identified by its origin line, the witness is only
 required to keep track of the latest checkpoint it observed and verified.
 
-Clients are not expected to communicate directly with the witnesses, logs and
-(sometimes) monitors are, but there is no authentication of requests beyond the
-validation of the signature on the checkpoint.
+Only logs and sometimes monitors (see the end of this specification) are
+expected to communicate directly with the witnesses.  There is no authentication
+of requests beyond the validation of the signature on the checkpoint.
 
 Witnesses are designed to scale well with a large number of rarely active logs,
 and to support diverse log designs, including low-latency and "serverless" logs,
