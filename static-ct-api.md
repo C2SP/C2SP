@@ -64,7 +64,7 @@ and
 ## Submission APIs
 
 For clients submitting certificates, a log that implements the Static API is
-fully RFC 6962 compliant: it implements the RFC 6962 submission APIs and
+largely RFC 6962 compliant: it implements the RFC 6962 submission APIs and
 produces RFC 6962 signatures.
 
 In particular, a Static API log MUST implement:
@@ -72,7 +72,8 @@ In particular, a Static API log MUST implement:
    - the `<submission prefix>/ct/v1/add-chain` API endpoint according to
      RFC 6962, Section 4.1
    - the `<submission prefix>/ct/v1/add-pre-chain` API endpoint according to
-     RFC 6962, Section 4.2
+     RFC 6962, Section 4.2, except that the log MAY reject precertificates
+     issued using a Precertificate Signing Certificate.
    - the `<submission prefix>/ct/v1/get-roots` API endpoint according to
      RFC 6962, Section 4.7
 
