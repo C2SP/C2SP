@@ -6,13 +6,14 @@ signatures asserting that a mirror has done so.
 [cosigner]: https://c2sp.org/tlog-cosignature
 [cosignature]: https://c2sp.org/tlog-cosignature
 [checkpoint]: https://c2sp.org/tlog-checkpoint
+[note]: https://c2sp.org/signed-note
 [tiled transparency log]: https://c2sp.org/tlog-tiles
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [retention policy]: https://c2sp.org/tlog-tiles#retention-policies
 [witness]: https://c2sp.org/tlog-witness
 [percent-encoded]: https://www.rfc-editor.org/rfc/rfc3986.html#section-2.1
-[subtree]: https://www.ietf.org/archive/id/draft-davidben-tls-merkle-tree-certs-05.html#name-subtrees
-[subtree consistency proof]: https://www.ietf.org/archive/id/draft-davidben-tls-merkle-tree-certs-05.html#name-subtree-consistency-proofs
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtrees
+[subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtree-consistency-proofs
 
 ## Conventions used in this document
 
@@ -121,8 +122,8 @@ name. The mirror's signature is computed later, as described below.
 
 ### add-entries
 
-The mirror implements an `add-entries` endpoint to upload entries for a supported
-log:
+The mirror implements an `add-entries` endpoint to upload entries for a
+supported log:
 
     POST <submission prefix>/add-entries
 
@@ -180,11 +181,6 @@ The subtree consistency proof is computed from the [subtree][] defined by
 `[rounded_start + i * 256, end)`, and the log checkpoint with tree size
 `upload_end`.
 
-TODO: This is currently citing an individual IETF draft for subtrees, though it
-is versioned and immutable. Should we, for now, copy and paste that text
-somewhere here? (Subtrees are also slightly more general than needed here. Every
-subtree we consider is directly contained in the target tree size.)
-
 #### Processing
 
 The request body has unbounded size, so the client and mirror SHOULD stream it.
@@ -192,12 +188,18 @@ The request body has unbounded size, so the client and mirror SHOULD stream it.
 The mirror processes the request as follows:
 
 First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
-`ticket`. If `log_origin` is not a known log, the mirror MUST respond with a
-"404 Not Found" HTTP status code. If `upload_end` is not the tree size of a
-known pending checkpoint value, the mirror MUST respond with a "409 Conflict"
-HTTP status code. If `upload_start` is greater than the mirror's next entry, or
-too far below the mirror's next entry, the mirror MUST also respond with a
-"409 Conflict" HTTP status code.
+`ticket`:
+
+* If `log_origin` is not a known log, the mirror MUST respond with a
+  "404 Not Found" HTTP status code.
+
+* If `upload_end` is not the tree size of a known pending checkpoint value, or
+  if it is less than the mirror checkpoint's tree size, the mirror MUST respond
+  with a "409 Conflict" HTTP status code.
+
+* If `upload_start` is greater than the mirror's next entry, or too far below
+  the mirror's next entry, the mirror MUST also respond with a "409 Conflict"
+  HTTP status code.
 
 The mirror SHOULD send these error responses without waiting for the entire
 request body to be available. Conversely, the client SHOULD be prepared to
@@ -246,10 +248,33 @@ next entry will be greater or equal to `upload_end`. The mirror then finishes
 committing entries up to `upload_end` to the log. For example, a mirror that
 stores individual tiles might compute new tiles and start serving them.
 
-Finally, the mirror performs the following steps atomically:
-* Check if the mirror checkpoint's tree size is less than `upload_end`
-* If so, sign the pending checkpoint of size `upload_end` and update the mirror
-  checkpoint to the newly-signed checkpoint.
+Finally, the mirror performs the following steps atomically. Note the mirror
+checkpoint may have changed since the start of this process.
+
+* Check if `upload_end` is still greater than or equal to the mirror
+  checkpoint's tree size.
+
+* If so, update the mirror checkpoint to the pending checkpoint of size
+  `upload_end`.
+
+If `upload_end` was too small, the mirror MUST respond with a "409 Conflict"
+HTTP status code, as described above.
+
+Otherwise, if the mirror checkpoint was updated, the mirror MUST respond with a
+"200 Success" HTTP status code. The response body MUST be formatted as in a
+[witness][]'s successful `add-checkpoint` response: a sequence of one or more
+[note][] signature lines, each starting with the `—` character (U+2014) and
+ending with a newline character (U+000A). The signatures MUST be
+[cosignatures][cosignature] from the mirror key(s) on the checkpoint.
+
+Example response body:
+
+    — mirror.example/m1 CMp+6LWBU0anHGH5aNDTJkH/gj79sG+T6+iP2ThYN5krrDJbR1HDnucjL39QsZTSvVjyQLrdk3DXDqI5G2HgLatVs0pWh6Up69HVOw==
+    — mirror.example/m1 I7rEps0pvK2UqkS2gSpVUDhrhVtQV9lgF6pRrWAvjJHjyWpW7VcE3SiOlVlbQNt64vWhO+DlkL0+UfzuOBMh9ChdMkP1vi/lCAsmlw==
+    — mirror.example/m2 AWui8Sk55XjYLOijihBjhqEH6nS1ndDymE0a+6idX7pLcnoB+dhnz0854aLZgrrKbYKA7nC3HNJhm/kWl7oJlqU3rXXvpysAdyP3wQ==
+
+As in the witness protocol, the client MUST ignore any cosignatures from unknown
+keys. The mirror MUST persist the new checkpoint before responding.
 
 #### Implementation Considerations
 
