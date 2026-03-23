@@ -26,6 +26,9 @@ of [RFC 8446][].
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
 value in the 0-255 range. `||` denotes concatenation.
 
+A time represented as a POSIX timestamp is the time converted to
+[seconds since the Epoch][], as defined by [POSIX.1-2024][].
+
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this
 document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
@@ -36,6 +39,8 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
 [RFC 8032]: https://www.rfc-editor.org/rfc/rfc8032.html
+[seconds since the Epoch]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap04.html#tag_04_19
+[POSIX.1-2024]: https://pubs.opengroup.org/onlinepubs/9799919799
 
 ## Format
 
@@ -70,8 +75,8 @@ The signature MUST be a 72-byte `timestamped_signature` structure.
         u8 signature[64];
     }
 
-"timestamp" is the time at which the cosignature was generated, as seconds since
-the UNIX epoch (January 1, 1970 00:00 UTC).
+"timestamp" is the time at which the cosignature was generated, as a POSIX
+timestamp.
 
 "signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
 over the message defined in the next section.
@@ -86,8 +91,8 @@ The header line MUST be the fixed string `cosignature/v1`, and provides domain
 separation.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
-the number of seconds since the UNIX epoch encoded as an ASCII decimal with no
-leading zeroes. This value MUST match the `timestamped_signature.timestamp`.
+`timestamped_signature.timestamp` encoded as an ASCII decimal with no leading
+zeroes.
 
     cosignature/v1
     time 1679315147
