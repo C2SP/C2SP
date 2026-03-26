@@ -11,8 +11,8 @@ It has similar purpose to [STREAM][] and [FLOE][], but is closer in its design
 to the [TLS 1.3][] record layer, with a key derivation step that includes key
 commitment.
 
-If instantiated with an AEAD having a tag length of 16 bytes, this scheme has an
-overhead of approximately 0.1%.
+If instantiated with an AEAD having a tag length of 16 bytes, this scheme has a
+fixed overhead of 56 bytes and a marginal overhead of approximately 0.1%.
 
 ## Specification
 
@@ -58,7 +58,7 @@ ciphertext, before the *commitment*.
 *key* and *base nonce* MUST be of *len(key)* and *len(nonce)* bytes
 respectively.
 
-*commitment* MUST be of 16 bytes, and MUST be prepended to the ciphertext, after
+*commitment* MUST be of 32 bytes, and MUST be prepended to the ciphertext, after
 the *salt*. When decrypting, implementations MUST check the *commitment* matches
 the derived value before continuing.
 
@@ -117,12 +117,12 @@ offset relative to the end of the message. All decryption implementations must
 check the commitment before decrypting any chunk.
 
 A plaintext index `i` can be found at index `i % 16384` of chunk `i // 16384`.
-Chunk `k` can be found at ciphertext offset `40 + k * (16384 + len(tag))`.
+Chunk `k` can be found at ciphertext offset `56 + k * (16384 + len(tag))`.
 
 Note that not all message ciphertext lengths are valid, in particular any
-message of encrypted length `40 + k * (16 KiB + len(tag))` is truncated, and any
-message of encrypted length < 40, or > `40 + k * (16 KiB + len(tag))` and <
-`40 + k * (16 KiB + len(tag)) + len(tag)` is invalid. Pay attention not to
+message of encrypted length `56 + k * (16 KiB + len(tag))` is truncated, and any
+message of encrypted length < 56, or > `56 + k * (16 KiB + len(tag))` and <
+`56 + k * (16 KiB + len(tag)) + len(tag)` is invalid. Pay attention not to
 assume that the final encrypted chunk is always > `len(tag)`, as that can cause
 panics or memory errors.
 
@@ -188,6 +188,8 @@ verification oracle for the input key and salt, but since their combined space
 (128 + 192 = 320 bits in the worst case) exceeds the derived key and base nonce
 space (128 + 96 - 40 = 184 bits in the worst case), it does not become the
 bottleneck for multi-target security.
+
+The 32-byte key commitment provides 128 bits of key commitment security.
 
 The HKDF-Expand info field is encoded as a parseable sequence of a fixed-length
 prefix, a variable-length AEAD name terminated with a zero byte, a fixed-length
@@ -268,7 +270,7 @@ higher-level protocol, or exposed as a “hazmat” primitive meant for implemen
 protocols.
 
 The ciphertext offset and validity formulas in the implementation notes must be
-adjusted to remove the 40-byte prefix when implementing raw mode.
+adjusted to remove the 56-byte prefix when implementing raw mode.
 
 [STREAM]: https://eprint.iacr.org/2015/189
 [FLOE]: https://c2sp.org/FLOE
