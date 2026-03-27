@@ -2,10 +2,9 @@
 
 https://c2sp.org/chunked-encryption
 
-This document specifies a mechanism to encrypt a large *message* of up to 16
-PiB, allowing authenticated streaming encryption and decryption, and
-authenticated random access with predictable mapping of plaintext and ciphertext
-indices.
+This document specifies a mechanism to encrypt a large *message* of up to 4 PiB,
+allowing authenticated streaming encryption and decryption, and authenticated
+random access with predictable mapping of plaintext and ciphertext indices.
 
 It has similar purpose to [STREAM][] and [FLOE][], but is closer in its design
 to the [TLS 1.3][] record layer, with a key derivation step that includes key
@@ -77,8 +76,8 @@ chunking for each message length. For example:
 When decrypting, the implementation MUST check that the final chunk is shorter
 than 16 KiB, and consider the message truncated otherwise.
 
-The chunks are numbered from zero, and the message MUST NOT exceed 2⁴⁰ chunks
-(16 PiB). If the chunk counter reaches or exceeds 2⁴⁰ while encrypting or
+The chunks are numbered from zero, and the message MUST NOT exceed 2³⁸ chunks
+(4 PiB). If the chunk counter reaches or exceeds 2³⁸ while encrypting or
 decrypting, implementations MUST abort. Implementations MAY limit the chunk
 count to a lower number, but SHOULD NOT apply a limit lower than 2³² (64 TiB).
 
@@ -87,7 +86,7 @@ count to a lower number, but SHOULD NOT apply a limit lower than 2³² (64 TiB).
 Each chunk MUST be encrypted/decrypted with the AEAD using the *key* and a
 *nonce* derived as the XOR of the *base nonce* and the chunk number as a
 big-endian integer as wide as the *base nonce*. (Equivalently, the final 5 bytes
-of the *base nonce* are XOR’d with the chunk number as a big-endian 40-bit
+of the *base nonce* are XOR’d with the chunk number as a big-endian 38-bit
 integer.)
 
 The AEAD’s AAD is not used and MUST be empty.
@@ -136,7 +135,7 @@ The key derivation uses an Approved Feedback Mode KDF from [NIST SP 800-108 Rev.
 
 A FIPS 140-3 compliant AEAD must be selected, such as AES-GCM. It can be shown
 that the key and nonce derivation employed by this scheme fully satisfies the SP
-800-38D universal pair uniqueness requirement even if 2⁷⁶ full-length messages
+800-38D universal pair uniqueness requirement even if 2⁷⁷ full-length messages
 are encrypted. (See the birthday bound analysis below.) However, most FIPS 140-3
 modules and NVLAP-accredited labs only accept schemes that comply with the
 relaxed requirements of Implementation Guidance C.H. This scheme can be used
@@ -158,35 +157,32 @@ However, we can also provide a simpler, more conservative analysis.
 
 At the AEAD level, we need to show that (key, nonce) pairs have a low chance of
 colliding. Even assuming a worst case scenario in which every message has length
-16 PiB, exhausting the 40-bit counter space in the nonce, and the AEAD has a key
-size of 128 bits and nonce size of 96 bits, that leaves 128 + 96 - 40 = 184 bits
-of uniformly random space. Since the counter occupies at most the low-order 40
-bits, the remaining 56 bits of the base nonce are invariant across chunks within
+4 PiB, exhausting the 38-bit counter space in the nonce, and the AEAD has a key
+size of 128 bits and nonce size of 96 bits, that leaves 128 + 96 - 38 = 186 bits
+of uniformly random space. Since the counter occupies at most the low-order 38
+bits, the remaining 58 bits of the base nonce are invariant across chunks within
 a message and can’t collide unless the whole base nonce collides. That produces
-a birthday bound of 2⁷⁶ messages for a chance of collision of 2⁻³².
+a birthday bound of 2⁷⁷ messages for a chance of collision of 2⁻³².
 
-For the multi-target setting, again assuming a worst case scenario of 16 PiB
-messages, 128-bit keys, and 96-bit nonces, this scheme provides 128 + 96 - 40 -
-64 = 120 bits of security against an attacker which targets 2⁶⁴ messages. Each
+For the multi-target setting, again assuming a worst case scenario of 4 PiB
+messages, 128-bit keys, and 96-bit nonces, this scheme provides 128 + 96 - 38 -
+64 = 122 bits of security against an attacker which targets 2⁶⁴ messages. Each
 “effective” nonce (the prefix unaffected by the counter) is reused by (on
-average) 2⁶⁴ / 2⁵⁶ = 2⁸ users, producing an effort to succeed of 2¹²⁸⁻⁸. See
+average) 2⁶⁴ / 2⁵⁸ = 2⁶ users, producing an effort to succeed of 2¹²⁸⁻⁶. See
 Section 1.1 of [ePrint 2018/993][].
 
-At the block mode level, counter modes have a wearout limit of
-2<sup>48.5</sup> blocks, or ~5.6 PiB for 128-bit ciphers like AES, for an
-attacker advantage of 2⁻³². See Equation (7) of [ePrint 2024/051][]. A full-size
-message of 16 PiB provides the attacker with an advantage of 2⁻²⁹, which is
-still small and would require an impractical amount of resources. Applications
-may nonetheless choose to limit message size to e.g. 4 PiB by limiting the chunk
-counter to 2³⁸ instead of 2⁴⁰.
+At the block mode level, counter modes have a wearout limit of 2<sup>48.5</sup>
+blocks, or ~5.6 PiB for 128-bit ciphers like AES, for an attacker advantage of
+2⁻³². See Equation (7) of [ePrint 2024/051][]. That is above the maximum message
+size of 4 PiB, so the block mode does not become the bottleneck for security.
 
 At the key derivation level, using random 192-bit salts has a birthday bound of
 2⁸⁰ messages for a chance of collision of 2⁻³², which exceeds the derived key +
-base nonce birthday bound of 2⁷⁶. The HKDF internal state is sufficient not to
+base nonce birthday bound of 2⁷⁷. The HKDF internal state is sufficient not to
 be the bottleneck even if SHA-256 is in use. The commitment provides a
 verification oracle for the input key and salt, but since their combined space
 (128 + 192 = 320 bits in the worst case) exceeds the derived key and base nonce
-space (128 + 96 - 40 = 184 bits in the worst case), it does not become the
+space (128 + 96 - 38 = 186 bits in the worst case), it does not become the
 bottleneck for multi-target security.
 
 The 32-byte key commitment provides 128 bits of key commitment security.
@@ -226,10 +222,10 @@ that size. The selected chunk size provides marginal overhead (< 0.1%) and a
 maximum message size that exceeds the key wearout limit of a 128-bit block
 cipher in CTR mode.
 
-The maximum chunk count is selected such that it doesn’t impose any further
-limit on the size of a message beyond the key wearout limit of a 128-bit block
-cipher in CTR mode, while protecting enough nonce space to make the birthday
-bound and multi-target security analysis of 128-bit keys straightforward.
+The maximum chunk count is selected such that the maximum size of a message is
+below the key wearout limit of a 128-bit block cipher in CTR mode, while
+protecting enough nonce space to make the birthday bound and multi-target
+security analysis of 128-bit keys straightforward.
 
 The nonce is generated along with the key to extend the birthday and
 multi-target bounds of AEADs with 128-bit keys. The counter is XOR’d with the
