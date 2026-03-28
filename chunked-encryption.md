@@ -6,9 +6,14 @@ This document specifies a mechanism to encrypt a large *message* of up to 4 PiB,
 allowing authenticated streaming encryption and decryption, and authenticated
 random access with predictable mapping of plaintext and ciphertext indices.
 
-It has similar purpose to [STREAM][] and [FLOE][], but is closer in its design
-to the [TLS 1.3][] record layer, with a key derivation step that includes key
+It has similar purpose to [STREAM][] and [FLOE][], combining the [TLS 1.3][]
+record layer design with an HKDF-Expand key derivation step that includes key
 commitment.
+
+It is secure if instantiated with any secure hash of at least 256 bits and a
+secure AEAD based on a block cipher of at least 128 bits, with a key size of at
+least 128 bits and a nonce size of at least 96 bits. The recommended
+instantiation is SHA-256 and AES-128-GCM.
 
 If instantiated with an AEAD having a tag length of 16 bytes, this scheme has a
 fixed overhead of 56 bytes and a marginal overhead of approximately 0.1%.
