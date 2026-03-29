@@ -81,8 +81,8 @@ chunking for each message length. For example:
 When decrypting, the implementation MUST check that the final chunk is shorter
 than 16 KiB, and consider the message truncated otherwise.
 
-The chunks are numbered from zero, and the message MUST NOT exceed 2³⁸ chunks
-(4 PiB). If the chunk counter reaches or exceeds 2³⁸ while encrypting or
+The chunks are numbered from zero, and the message MUST NOT exceed 2³⁸ chunks or
+4 PiB - 1 byte. If the chunk counter reaches or exceeds 2³⁸ while encrypting or
 decrypting, implementations MUST abort. Implementations MAY limit the chunk
 count to a lower number, but SHOULD NOT apply a limit lower than 2³² (64 TiB).
 
