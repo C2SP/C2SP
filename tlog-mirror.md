@@ -361,10 +361,10 @@ In principle, a mirror update protocol could be a single request providing:
 2. All entries between the current and new checkpoint position
 
 The mirror could then atomically incorporate the new entries into its current
-state, check the root hash in the new checkpoint and proceed. However, this
-would be a large atomic transaction that cannot verify or commit any of the new
-entries until they all have been received and processed. A mirror would then
-need to maintain a large, unbounded amount of uncommitted data.
+state, check the root hash in the new checkpoint, and commit everything at once.
+However, this would be a large atomic transaction that cannot verify or commit
+any of the new entries until they all have been received and processed. A mirror
+would need to maintain an unbounded amount of uncommitted data.
 
 This protocol is split into several steps to bound the transaction size. The
 atomic transactions are:
