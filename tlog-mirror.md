@@ -366,8 +366,8 @@ However, this would be a large atomic transaction that cannot verify or commit
 any of the new entries until they all have been received and processed. A mirror
 would need to maintain an unbounded amount of uncommitted data.
 
-This protocol is split into several steps to bound the transaction size. The
-atomic transactions are:
+Instead, this protocol is split into several steps to bound the transaction
+size. The atomic transactions are:
 
 * A [witness][] update operation, which acts on O(log N) hashes.
 
