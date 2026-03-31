@@ -36,6 +36,9 @@ policy:
           - the jq255 maintainers have authored relevant changes
           - the jq255 maintainers have approved relevant changes
         - or:
+          - the sequencehash maintainers have authored relevant changes
+          - the sequencehash maintainers have approved relevant changes
+        - or:
           - the signed-note maintainers have authored relevant changes
           - the signed-note maintainers have approved relevant changes
         - or:
@@ -348,6 +351,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/jq255"
+    requires:
+      count: 0
+
+  - name: the sequencehash maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^sequencehash\\.md$"
+          - "^sequencehash/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/sequencehash"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the sequencehash maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^sequencehash\\.md$"
+          - "^sequencehash/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/sequencehash"
     requires:
       count: 0
 
