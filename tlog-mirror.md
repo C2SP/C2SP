@@ -64,7 +64,7 @@ a [cosignature][] from the mirror.
 
 ## Updating a Mirror
 
-The mirror update process is designed to be safely interruptible, while avoding
+The mirror update process is designed to be safely interruptible, while avoiding
 large atomic operations. For each origin log, a mirror maintains the following:
 
 * A copy of the log, [pruned][pruning] to its minimum index. The latest
@@ -352,3 +352,44 @@ minimum index, provided the newly-mirrored entries can be obtained, e.g., via
 another mirror. Before committing these entries, the mirror MUST authenticate
 them against its mirror or pending checkpoint by checking a
 [subtree consistency proof][].
+
+## Design Rationale
+
+In principle, a mirror update protocol could be a single request providing:
+
+1. A new checkpoint
+2. All entries between the current and new checkpoint position
+
+The mirror could then atomically incorporate the new entries into its current
+state, check the root hash in the new checkpoint, and commit everything at once.
+However, this would be a large atomic transaction that cannot verify or commit
+any of the new entries until they all have been received and processed. A mirror
+would need to maintain an unbounded amount of uncommitted data.
+
+Instead, this protocol is split into several steps to bound the transaction
+size. The atomic transactions are:
+
+* A [witness][] update operation, which acts on O(log N) hashes.
+
+* Committing a single [tiled transparency log][] entry bundle to the log.
+
+* Committing a new checkpoint to the log, if it is newer than the current one.
+
+Mirrors are expected to remain consistent. If a log signs two inconsistent
+checkpoints, the mirror should remain on *some* consistent branch, even if
+concurrent update requests upload inconsistent data. A single, giant transaction
+achieves this straightforwardly, but these smaller transactions complicate
+matters.
+
+This protocol achieves this by authenticating every log entry before committing.
+The `add-entries` endpoint requires the mirror to first be locked onto some
+containing checkpoint (a pending checkpoint). Entries can then be proven
+consistent to the pending checkpoint. To amoritize this overhead, entries are
+divided into atomic "packages", each with a consistency proof. Entry packages
+intentionally align with entry bundle boundaries, so that a
+[tiled transparency log][] implementation can commit them directly.
+
+As a result, even if there are multiple concurrent `add-entries` operations,
+all entry data is authenticated to a consistent pending checkpoint and is thus
+known to be consistent. Even if the mirror serves a mix of entries from two
+concurrent `add-entries`, those entries will be consistent.
