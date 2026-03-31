@@ -3,10 +3,10 @@
 This document describes a synchronous HTTP-based protocol to obtain
 [cosignatures][] from transparency log witnesses.
 
-[cosignatures]: https://c2sp.org/tlog-cosignature
+[cosignatures]: https://c2sp.org/tlog-cosignature@v1.0.1
 [bastion]: https://c2sp.org/https-bastion
-[checkpoint]: https://c2sp.org/tlog-checkpoint
-[note]: https://c2sp.org/signed-note
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
+[note]: https://c2sp.org/signed-note@v1.0.0
 
 ## Conventions used in this document
 
