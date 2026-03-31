@@ -52,6 +52,10 @@
 
 - [@pornin](https://github.com/pornin)
 
+### sequencehash
+
+- [@opal-escent](https://github.com/opal-escent)
+
 ### signed-note
 
 - [@FiloSottile](https://github.com/FiloSottile)
