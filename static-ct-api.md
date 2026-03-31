@@ -338,6 +338,5 @@ TrustFabric, and ISRG teams.
 
 [Certificate Transparency]: https://certificate.transparency.dev/
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
-[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [note signature]: https://c2sp.org/signed-note
