@@ -32,13 +32,13 @@ set of logs. A policy without witness cosigning can be defined using a
 empty.
 
 The policy says that a checkpoint is considered valid if it is signed
-by any one of the listed logs, and it is cosigned according to the
-defined quorum rule.
+by any one of the listed logs, and it is cosigned by witnesses
+according to the defined quorum rule.
 
 Both logs and witnesses are identified primarily by their public keys.
 Each log or witness may also have an associated URL; this is required
 for operations interacting with the log or witness, but no URLs are
-needed if the policy is used only for offline verification.
+required if the policy is used only for offline verification.
 
 Witnesses (and groups, described below) are named. These names are
 used only for defining the quorum and group membership; they have no
@@ -56,6 +56,7 @@ groups. Actual keys are elided, for brevity, and the optional URLs are
 omitted:
 ```
 log <vkey>
+
 witness X1 <vkey>
 witness X2 <vkey>
 witness X3 <vkey>
@@ -187,11 +188,11 @@ group <name> any <name>...
 group <name> <k> <name>...
 ```
 
-All these defines a group, where the group is considered to witness a
-checkpoint if and only if at least k of its n members have witnessed
-that checkpoint, each group member being either a witness or another
-group. In this terminology, for a single witness, "witnessing" is the
-same as cosigning.
+Each of these defines a group, where the group is considered to
+witness a checkpoint if and only if at least k of its n members have
+witnessed that checkpoint, each group member being either a witness or
+another group. In this terminology, for a single witness, "witnessing"
+is the same as cosigning.
 
 At least one member must be listed (i.e., n >= 1). The `any` variant
 is a shorthand for k = 1, and the `all` variant is a shorthand for k =
@@ -221,8 +222,8 @@ are opaque. In particular, names must be handled as opaque octet
 strings, e.g., the name 0x4B (ASCII "K") is different from the name
 0xE2 0x84 0xAA (a Kelvin sign encoded using UTF-8).
 
-The motivation for this way of allowing non-ASCII, but handle it as
-opaque data, is to:
+The motivations for allowing non-ASCII, but handling it as opaque
+data, are to:
 
 * Ensure that processing the policy file does not require unicode
   awareness and corresponding tables, and that the meaning of the
