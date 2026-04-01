@@ -55,6 +55,7 @@
 ### sequencehash
 
 - [@opal-escent](https://github.com/opal-escent)
+- [@tob-scott-a](https://github.com/tob-scott-a)
 
 ### signed-note
 
