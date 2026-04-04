@@ -155,6 +155,15 @@ The resulting hash for 1 000 000 iterations is
 
     2163ae1445985a30b60585ee67daa55674df06901b890593e824b8a7c885ab15
 
+## Security analysis
+
+[Blockcipher-Based Key Derivation without PRP/PRF Switching](https://eprint.iacr.org/2025/878.pdf)
+by Benhamouda et al. from Amazon Web Services analyzes the security claims
+of XAES-256-GCM as a standalone construction.
+
+XAES-256-GCM can also be analyzed as a compliant composition of two
+widely-analyzed components: a counter-based CMAC-AES256 KDF and AES-256-GCM.
+
 ## Variants
 
 [Blockcipher-Based Key Commitment for Nonce-Derived Schemes](https://eprint.iacr.org/2025/758.pdf)
