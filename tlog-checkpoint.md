@@ -33,7 +33,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
 [RFC 5246]: https://www.rfc-editor.org/rfc/rfc5246.html
-[RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
+[merkle-tree]: https://c2sp.org/merkle-tree
 [RFC 8032]: https://www.rfc-editor.org/rfc/rfc8032.html
 
 ## Note text
@@ -52,8 +52,8 @@ newlines (U+000A).
     the number of leaves in the tree, with no leading zeroes (unless the tree is
     empty, in which case the tree size is `0`).
 
- 3. The third line is the **root hash**, the base64 encoding of the root of the
-    [RFC 6962] Merkle hash tree at the specified tree size.
+ 3. The third line is the **root hash**, the base64 encoding of the
+    [merkle-tree][] Merkle Tree Hash at the specified tree size.
 
  4. Any following lines are **extension lines**, opaque and OPTIONAL. Extension
     lines, if any, MUST be non-empty. The use of extension lines is NOT
