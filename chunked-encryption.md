@@ -214,7 +214,12 @@ implementation to do trial decryptions or look-ahead to determine if a chunk is
 final or not; it requires extra buffering (push-based) or overread (pull-based)
 on the encryption side, even if the application makes inputs available in
 otherwise optimal chunk-sized spans; and finally it requires an exception to
-allow an empty chunk for empty messages.
+allow an empty chunk for empty messages. Moreover, the final chunk flag is a bit
+of in-band signaling, which requires handling cases like trailing chunks or
+garbage after the final chunk, and it can be a source of implementation errors.
+Similarly, with full final chunks a valid ciphertext length can be both a valid
+truncation and a valid message, while with short final chunks a valid ciphertext
+length can only be a single valid message.
 
 Padding and variable chunk sizes are not supported, to allow random access
 decryption with a predictable mapping of plaintext indices.
