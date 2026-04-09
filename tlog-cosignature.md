@@ -17,6 +17,12 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 — witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
 ```
 
+This document specifies two cosignature types: one based on Ed25519, and one
+based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments, and
+it's extended to also commit to the cosigner's name, and to allow signing
+subtrees that don't start at zero. (Those subtrees don't currently have a
+[checkpoint][] representation.)
+
 ## Conventions used in this document
 
 Data structures are defined according to the conventions laid out in Section 3
@@ -52,40 +58,51 @@ Per the signed note format, a note signature line is
 
 The key name SHOULD be a schema-less URL that identifies the cosigner. Like the
 checkpoint origin line, this is for disambiguation, and MAY match a publicly
-reachable endpoint or not.
+reachable endpoint or not. For ecosystems that use OIDs for identification, the
+key name MAY be the string `oid/` followed by an OID in dotted decimal form.
 
-The key ID MUST be
+The key ID for Ed25519 cosignatures MUST be computed as
 
     SHA-256(<name> || "\n" || 0x04 || 32-byte Ed25519 cosigner public key)[:4]
+
+The key ID for ML-DSA-44 cosignatures MUST be computed as
+
+    SHA-256(<name> || "\n" || 0x06 || 1312-byte ML-DSA-44 cosigner public key)[:4]
 
 Clients are configured with tuples of (cosigner name, public key, supported
 cosignature version) and based on that they can compute the expected name and
 key ID, and ignore any signature lines that don't match the name and key ID.
 
-Public keys MAY be encoded as [vkeys][] with signature type 0x04 and the 32-byte
-Ed25519 cosigner public key as the public key material.
+Ed25519 public keys MAY be encoded as [vkeys][] with signature type 0x04 and the
+32-byte Ed25519 cosigner public key as the public key material.
+
+ML-DSA-44 public keys MAY be encoded as [vkeys][] with signature type 0x06 and the
+1312-byte ML-DSA-44 cosigner public key as the public key material.
 
 Future cosignature formats MAY reuse the same cosigner public key with a
-different key ID algorithm byte (and a different signed message header line).
+different key ID algorithm byte (and a different newline-terminated prefix).
 
-The signature MUST be a 72-byte `timestamped_signature` structure.
+The signature MUST be a `timestamped_signature` structure.
 
     struct timestamped_signature {
         u64 timestamp;
-        u8 signature[64];
+        select (signature_algorithm) {
+            case ed25519: opaque ed25519_signature[64];
+            case ml-dsa-44: opaque ml_dsa_44_signature[2420];
+        } signature;
     }
 
 "timestamp" is the time at which the cosignature was generated, as a POSIX
 timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
 with timestamps in the future.
 
-"signature" is an Ed25519 ([RFC 8032][]) signature from the cosigner public key
-over the message defined in the next section.
+"signature" is an Ed25519 ([RFC 8032][]) or ML-DSA-44 ([FIPS 204][]) signature
+from the cosigner public key over the message defined below.
 
 Per [RFC 8446][], Section 3.3, these are serialized in sequence, with the
 timestamp encoded in big-endian order.
 
-## Signed message
+## Ed25519 signed message
 
 The signed message MUST be two newline (U+000A) terminated lines (one header
 line and one timestamp line) followed by the whole note body of the cosigned
@@ -115,20 +132,87 @@ the log based on the first three lines of the checkpoint; consensus between
 cosigners on the extension lines SHALL NOT be assumed, and no semantic statement
 is made about any extension lines unless the cosigner's operator says otherwise.
 
+A cosigner operator that operates multiple Ed25519 cosigners (e.g. with distinct
+additional statements, see below) MUST use distinct public keys for each
+cosigner. The Ed25519 signed message format doesn't commit to the cosigner name,
+so the same public key can't be used across multiple cosigners.
+
+## ML-DSA-44 signed message
+
+The signed message MUST be a `cosigned_message` structure.
+
+    struct cosigned_message {
+        uint8 label[12] = "subtree/v1\n\0";
+        opaque name<1..2^8-1>;
+        uint64 timestamp;
+        opaque origin<1..2^8-1>;
+        uint64 start;
+        uint64 end;
+        uint8 root_hash[32];
+    }
+
+`name` is the cosigner name. If the name starts with `oid/`, it MUST be encoded
+as specified below in OID Encoding.
+
+`timestamp` is `timestamped_signature.timestamp`. These two values MAY be zero
+if the cosigner doesn't make any statement as to the tree being the largest
+observed at time of signing.
+
+`origin` is the log's origin, as represented in a checkpoint's origin line
+without the final newline. If the origin starts with `oid/`, it MUST be encoded
+as specified below in OID Encoding.
+
+`start` is the index of the first leaf included in the [subtree][] being signed.
+If signing a [checkpoint][], it MUST be zero. If `start` is not zero,
+`timestamp` MUST be zero.
+
+`end` is the index of the last leaf included in the [subtree][] being signed,
+plus one. If signing a [checkpoint][], it is the size of the tree.
+
+`root_hash` is the root hash of the subtree being signed.
+
+Semantically, a v1 subtree cosignature is a statement that the subtree with the
+specified root hash is consistent with all other historical views observed by
+the cosigner of the log identified by the origin line. If the timestamp is not
+zero, it is also a statement that, as of the specified time, this is the
+consistent tree head with the largest size the cosigner has observed for the log.
+
+Note that checkpoint extension lines are not included in the signed message for
+ML-DSA-44 cosignatures, and no statement is made about them. Subtrees with start
+different from zero currently don't have a checkpoint representation.
+
+### OID encoding
+
+If the cosigner name or log origin line starts with `oid/`, the rest of the
+string MUST be an OID in dotted decimal form, and it MUST be replaced with its
+DER encoding without tag and length, preserving the `oid/` prefix.
+
+For example, the name `oid/2.999.42.1337` would be encoded as
+
+    6f 69 64 2f 88 37 2A 8A 39
+
+This encoding is meant to disambiguate OID-based names from domain-based ones,
+while letting verifiers in OID-based ecosystems avoid carrying a decimal OID
+encoder. It is not meant to be represented on the wire: the ASCII name SHOULD be
+used wherever both types may occur, and an appropriate OID encoding (such as DER
+or even a RELATIVE OID encoding) can be used in contexts where only OID-based
+names are expected.
+
+## Additional statements
+
 A cosigner MAY make additional statements about a checkpoint.  These
 additional statements need to be communicated out of band to those defining
 trust policies based on tuples of (public key, supported cosignature version).
 A given tuple MUST imply a single set of statements.  These statements MUST
-include the cosignature/v1 semantics, and MAY include other statements that
+include the base cosignature semantics, and MAY include other statements that
 are non-conflicting.  Examples of non-conflicting statements include "I also
-mirrored the log up until the checkpoint size" and "I also reproduced the sparse
-Merkle tree root in the extension lines".  See [tlog-mirror][] for an example.
-
-A cosigner operator that operates multiple cosigners with distinct additional
-statements MUST use distinct public keys for each cosigner. In cosignature/v1,
-it is not sufficient to use a distinct cosigner name.
+mirrored the log up until the checkpoint size", "I also reproduced the sparse
+Merkle tree root in the extension lines", and "I certify the SAN ←→ public key
+associations in the log leaves".  See [tlog-mirror][] for an example.
 
 [note signature]: https://c2sp.org/signed-note@v1.0.0
 [vkeys]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror
+[FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtrees
