@@ -18,10 +18,13 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 ```
 
 This document specifies two cosignature types: one based on Ed25519, and one
-based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments, and
-it's extended to also commit to the cosigner's name, and to allow signing
-subtrees that don't start at zero. (Those subtrees don't currently have a
-[checkpoint][] representation.)
+based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments.
+
+Unlike the Ed25519 type, the ML-DSA-44 type is secure against quantum computers.
+Moreover, it commits to the cosigner's name, and supports signing [subtrees][]
+in addition to [checkpoints][checkpoint]. The ML-DSA-44 parameter set was
+selected because at NIST Level 2 it provides some margin beyond the 128-bit
+security level.
 
 ## Conventions used in this document
 
@@ -84,19 +87,19 @@ different key ID algorithm byte (and a different newline-terminated prefix).
 
 The signature MUST be a `timestamped_signature` structure.
 
-    struct timestamped_signature {
+    struct {
         u64 timestamp;
         select (signature_algorithm) {
             case ed25519: opaque ed25519_signature[64];
             case ml-dsa-44: opaque ml_dsa_44_signature[2420];
         } signature;
-    }
+    } timestamped_signature;
 
-"timestamp" is the time at which the cosignature was generated, as a POSIX
+`timestamp` is the time at which the cosignature was generated, as a POSIX
 timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
 with timestamps in the future.
 
-"signature" is an Ed25519 ([RFC 8032][]) or ML-DSA-44 ([FIPS 204][]) signature
+`signature` is an Ed25519 ([RFC 8032][]) or ML-DSA-44 ([FIPS 204][]) signature
 from the cosigner public key over the message defined below.
 
 Per [RFC 8446][], Section 3.3, these are serialized in sequence, with the
@@ -141,45 +144,46 @@ so the same public key can't be used across multiple cosigners.
 
 The signed message MUST be a `cosigned_message` structure.
 
-    struct cosigned_message {
+    struct {
         uint8 label[12] = "subtree/v1\n\0";
-        opaque name<1..2^8-1>;
+        opaque cosigner_name<1..2^8-1>;
         uint64 timestamp;
-        opaque origin<1..2^8-1>;
+        opaque log_origin<1..2^8-1>;
         uint64 start;
         uint64 end;
-        uint8 root_hash[32];
-    }
+        uint8 hash[32];
+    } cosigned_message;
 
-`name` is the cosigner name. If the name starts with `oid/`, it MUST be encoded
-as specified below in OID Encoding.
+`cosigner_name` is the cosigner name. If the name starts with `oid/`, it MUST be
+encoded as specified below in [OID Encoding](#oid-encoding).
 
 `timestamp` is `timestamped_signature.timestamp`. These two values MAY be zero
 if the cosigner doesn't make any statement as to the tree being the largest
-observed at time of signing.
+observed at time of signing. If `start` is not zero, these values MUST be zero.
 
-`origin` is the log's origin, as represented in a checkpoint's origin line
+`log_origin` is the log's origin, as represented in a checkpoint's origin line
 without the final newline. If the origin starts with `oid/`, it MUST be encoded
-as specified below in OID Encoding.
+as specified below in [OID Encoding](#oid-encoding).
 
 `start` is the index of the first leaf included in the [subtree][] being signed.
 If signing a [checkpoint][], it MUST be zero. If `start` is not zero,
 `timestamp` MUST be zero.
 
-`end` is the index of the last leaf included in the [subtree][] being signed,
-plus one. If signing a [checkpoint][], it is the size of the tree.
+`end` is the exclusive upper bound of the indexes of the leaves in the
+[subtree][] being signed: the index of the last included leaf plus one. If
+signing a [checkpoint][], it is the size of the tree.
 
-`root_hash` is the root hash of the subtree being signed.
+`hash` is the root hash of the subtree being signed.
 
 Semantically, a v1 subtree cosignature is a statement that the subtree with the
 specified root hash is consistent with all other historical views observed by
 the cosigner of the log identified by the origin line. If the timestamp is not
-zero, it is also a statement that, as of the specified time, this is the
-consistent tree head with the largest size the cosigner has observed for the log.
+zero, it is also a statement that, as of the specified time, this is the largest
+consistent tree the cosigner has observed for the log.
 
 Note that checkpoint extension lines are not included in the signed message for
-ML-DSA-44 cosignatures, and no statement is made about them. Subtrees with start
-different from zero currently don't have a checkpoint representation.
+ML-DSA-44 cosignatures, and no statement is made about them. Subtrees with
+non-zero start values currently don't have a checkpoint representation.
 
 ### OID encoding
 
@@ -191,12 +195,12 @@ For example, the name `oid/2.999.42.1337` would be encoded as
 
     6f 69 64 2f 88 37 2A 8A 39
 
-This encoding is meant to disambiguate OID-based names from domain-based ones,
+This encoding is meant to disambiguate OID-based names from URL-based ones,
 while letting verifiers in OID-based ecosystems avoid carrying a decimal OID
 encoder. It is not meant to be represented on the wire: the ASCII name SHOULD be
-used wherever both types may occur, and an appropriate OID encoding (such as DER
-or even a RELATIVE OID encoding) can be used in contexts where only OID-based
-names are expected.
+used wherever both types may occur, however an appropriate OID encoding (such as
+DER or even a RELATIVE OID encoding) may be used in contexts where only
+OID-based names are expected.
 
 ## Additional statements
 
@@ -206,9 +210,8 @@ trust policies based on tuples of (public key, supported cosignature version).
 A given tuple MUST imply a single set of statements.  These statements MUST
 include the base cosignature semantics, and MAY include other statements that
 are non-conflicting.  Examples of non-conflicting statements include "I also
-mirrored the log up until the checkpoint size", "I also reproduced the sparse
-Merkle tree root in the extension lines", and "I certify the SAN ←→ public key
-associations in the log leaves".  See [tlog-mirror][] for an example.
+mirrored the log up until the checkpoint size" and "I certify the SAN ←→ public
+key associations in the log leaves".  See [tlog-mirror][] for an example.
 
 [note signature]: https://c2sp.org/signed-note@v1.0.0
 [vkeys]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
