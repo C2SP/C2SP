@@ -54,7 +54,6 @@ For each supported origin log, the mirror is configured with:
 * The log's public key
 * The log's URL prefix
 * A minimum index to start mirroring (see below for how this is configured)
-* An optional list of monitoring prefixes for other mirrors for the log
 
 The mirror maintains a copy of each origin log and serves it publicly via the
 [tiled transparency log][] interface. It uses a URL prefix of
