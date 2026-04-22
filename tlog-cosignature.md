@@ -1,7 +1,7 @@
 # Transparency Log Cosignatures
 
 A cosignature is a statement by a *cosigner* that it verified
-the consistency of a [checkpoint][]. Log clients can verify a quorum of
+the consistency of a [checkpoint][] or [subtree][]. Log clients can verify a quorum of
 cosignatures to prevent split-view attacks before trusting an inclusion proof.
 A cosigner may make additional statements relating to a checkpoint.  Log clients
 that know about this can then be assured of additional cosigning properties.
