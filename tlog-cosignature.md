@@ -154,16 +154,14 @@ The signed message MUST be a `cosigned_message` structure.
         uint8 hash[32];
     } cosigned_message;
 
-`cosigner_name` is the cosigner name. If the name starts with `oid/`, it MUST be
-encoded as specified below in [OID Encoding](#oid-encoding).
+`cosigner_name` is the cosigner name.
 
 `timestamp` is `timestamped_signature.timestamp`. These two values MAY be zero
 if the cosigner doesn't make any statement as to the tree being the largest
 observed at time of signing. If `start` is not zero, these values MUST be zero.
 
 `log_origin` is the log's origin, as represented in a checkpoint's origin line
-without the final newline. If the origin starts with `oid/`, it MUST be encoded
-as specified below in [OID Encoding](#oid-encoding).
+without the final newline.
 
 `start` is the index of the first leaf included in the [subtree][] being signed.
 If signing a [checkpoint][], it MUST be zero. If `start` is not zero,
@@ -184,23 +182,6 @@ consistent tree the cosigner has observed for the log.
 Note that checkpoint extension lines are not included in the signed message for
 ML-DSA-44 cosignatures, and no statement is made about them. Subtrees with
 non-zero start values currently don't have a checkpoint representation.
-
-### OID encoding
-
-If the cosigner name or log origin line starts with `oid/`, the rest of the
-string MUST be an OID in dotted decimal form, and it MUST be replaced with its
-DER encoding without tag and length, preserving the `oid/` prefix.
-
-For example, the name `oid/2.999.42.1337` would be encoded as
-
-    6f 69 64 2f 88 37 2A 8A 39
-
-This encoding is meant to disambiguate OID-based names from URL-based ones,
-while letting verifiers in OID-based ecosystems avoid carrying a decimal OID
-encoder. It is not meant to be represented on the wire: the ASCII name SHOULD be
-used wherever both types may occur, however an appropriate OID encoding (such as
-DER or even a RELATIVE OID encoding) may be used in contexts where only
-OID-based names are expected.
 
 ## Additional statements
 
