@@ -61,14 +61,16 @@ newlines (U+000A).
 
 ## Signatures
 
-Logs MUST not sign any checkpoint which is inconsistent with any checkpoint it
+A log MUST not sign any checkpoint which is inconsistent with any checkpoint it
 previously signed. Two checkpoints are inconsistent if a consistency proof can't
 be constructed from one to the other.
 
 The log’s key name in its signature line SHOULD match the origin line.
 
-Logs SHOULD use Ed25519 signatures to sign the checkpoint, but MAY use any note
-signature algorithm based on the ecosystem they operate in.
+Logs SHOULD use ML-DSA-44 [cosignatures][] to sign the checkpoint, but MAY use
+any note signature algorithm based on the ecosystem they operate in. Note that
+the ML-DSA-44 cosignature format doesn't sign the extension lines, which SHOULD
+be empty.
 
 According to the note specification, clients MUST ignore unknown signatures.
 This enables, for example, log key rotation, and witness cosigning.
