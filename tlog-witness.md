@@ -3,7 +3,7 @@
 This document describes a synchronous HTTP-based protocol to obtain
 [cosignatures][] from transparency log witnesses.
 
-[cosignatures]: https://c2sp.org/tlog-cosignature@v1.0.1
+[cosignatures]: https://c2sp.org/tlog-cosignature
 [bastion]: https://c2sp.org/https-bastion
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [note]: https://c2sp.org/signed-note@v1.0.0
@@ -144,7 +144,11 @@ cosigned checkpoint and respond with a "200 Success" HTTP status code. The
 response body MUST be a sequence of one or more [note][] signature lines, each
 starting with the `—` character (U+2014) and ending with a newline character
 (U+000A). The signatures MUST be [cosignatures][] from the witness key(s) on the
-checkpoint.
+checkpoint. Witnesses SHOULD use ML-DSA-44 [cosignatures][]. If the cosignature
+format supports subtrees, the cosignature returned by the witness MUST be for
+the entire tree in the submitted checkpoint, i.e. start MUST be zero and end
+MUST be the checkpoint size. The cosignature MUST NOT omit the timestamp, i.e.
+the timestamp MUST NOT be zero.
 
 Example response body:
 
