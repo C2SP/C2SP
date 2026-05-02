@@ -341,7 +341,7 @@ potentially requires user presence. With knowledge of the public key, it is
 possible to check if a stanza was addressed to a specific recipient before
 attempting decryption. (This offers less privacy than the default recipient
 types.) The tagged recipient types are based on HPKE, and use P-256 ECDH for
-compatiblity with existing hardware, optionally hybridized with ML-KEM-786
+compatibility with existing hardware, optionally hybridized with ML-KEM-786
 for quantum resistance.
 
 This document only defines the recipient encodings, and does not define how the
