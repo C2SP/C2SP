@@ -180,6 +180,14 @@ The subtree consistency proof is computed from the [subtree][] defined by
 `[rounded_start + i * 256, end)`, and the log checkpoint with tree size
 `upload_end`.
 
+The request body for `add-entries` SHOULD be compressed at the HTTP layer.
+Mirrors MUST support receiving `Content-Encoding: gzip` in `add-entries`
+requests. When sending responses, mirrors SHOULD send an `Accept-Encoding`
+header that includes `gzip` and any other supported compression algorithms.
+Clients MAY send `Content-Encoding: gzip` without prior knowledge of the
+mirror's capabilities. After observing an `Accept-Encoding` header, clients MAY
+also use any other listed compression algorithm.
+
 #### Processing
 
 The request body has unbounded size, so the client and mirror SHOULD stream it.
