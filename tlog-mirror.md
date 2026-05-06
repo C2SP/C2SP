@@ -147,29 +147,31 @@ checkpoints.
 `upload_start` MUST be less or equal to `upload_end`. It MUST also be less or
 equal to the mirror's next entry for the origin.
 
-The request body uploads the log entries whose indices are in
-`[upload_start, upload_end)`. Entries are grouped into bounded-size entry
-packages. Each package has a [subtree consistency proof][] that allows the
-mirror to verify and commit the entries in the package without buffering the
+The request body uploads log entries from the interval
+`[upload_start, upload_end)`. The interval determines a fixed *canonical
+sequence* of entry packages, aligned at multiples of 256. Each package
+carries a bounded number of entries with a [subtree consistency proof][],
+allowing the mirror to verify and commit the package without buffering the
 entire request body.
 
-Each entry package is determined by a half-open interval `[start, end)` of log
-indices. The request MUST contain entry packages whose intervals' disjoint
-union, in order, is the interval `[upload_start, upload_end)`. The overall
-interval MUST be divided into packages at multiples of 256, to align with the corresponding entry bundles.
+The request MUST contain a prefix of the canonical sequence: zero or more
+packages, each exactly as specified below, in order. If the client sends a
+strict prefix, the mirror processes the prefix and advances its next entry
+accordingly; the client issues further `add-entries` requests to complete
+the upload.
 
-More precisely, if `upload_start` is equal to `upload_end`, there are no
-packages. Otherwise, let `rounded_start` be `upload_start` rounded down to a
-multiple of 256, and let `rounded_end` be `upload_end` rounded up to a
-multiple of 256. The request MUST contain
+If `upload_start` is equal to `upload_end`, the canonical sequence is empty.
+Otherwise, let `rounded_start` be `upload_start` rounded down to a multiple
+of 256, and let `rounded_end` be `upload_end` rounded up to a multiple of
+256. The canonical sequence consists of
 `num_packages = (rounded_end - rounded_start) / 256` packages. Entry
-package `i`, for `0 <= i < num_packages`, MUST be computed from the interval
-`[start, end)` where:
+package `i`, for `0 <= i < num_packages`, is determined by the half-open
+interval `[start, end)` of log indices where:
 
     start = max(upload_start, rounded_start + i * 256)
     end = min(upload_end, rounded_start + (i + 1) * 256)
 
-The package MUST contain the following values, concatenated.
+Each package MUST contain the following values, concatenated.
 
 * The log entries in `[start, end)`, each with a big-endian uint16 length prefix
 * 1 byte, encoding an 8-bit unsigned integer, `num_hashes`, which MUST be at
@@ -241,6 +243,18 @@ If this verification process fails, it MUST respond with a
 "422 Unprocessable Entity" HTTP status code and end processing. Otherwise, it
 saves the entries as pending entries. If some entry has already been written to
 the log or the pending entry list, the mirror MUST skip saving that entry.
+
+The mirror discards any partial bytes after the last successfully
+authenticated entry package. If at least one entry package was authenticated
+and saved, the mirror MUST respond with a "409 Conflict" carrying the
+advanced next entry, as described above. The client retries with
+`upload_start` set to the advertised next entry value, repeating until the
+mirror has received all packages covering `[upload_start, upload_end)`.
+
+If no entry package was authenticated and saved before the body ended (for
+example, the request header itself was malformed, or the first package's
+bytes were truncated mid-package), the mirror MUST respond with a
+"400 Bad Request" HTTP status code.
 
 Once all expected entry packages are successfully validated and committed, the
 next entry will be greater or equal to `upload_end`. The mirror then finishes
@@ -319,6 +333,13 @@ or update its mirror checkpoint until all entries are durably committed. If the
 mirror commits entries out of order, it MUST correctly compute the next entry to
 be the *first* missing entry, even if some subsequent entries have been
 committed. Mirror clients will then reupload the subsequent entries.
+
+To work around per-request body size limits on common hosting platforms,
+clients SHOULD limit each `add-entries` request to at most 32 entry
+packages (8192 entries). When `(rounded_end - rounded_start) / 256`
+exceeds 32, the client sends the first 32 packages of the canonical
+sequence as a prefix, receives a 409 with the advanced next entry, and
+issues further requests to complete the upload.
 
 A mirror MAY additionally implement other update processes, provided it continues
 to correctly operate `add-entries` and never violates its cosigner requirements
