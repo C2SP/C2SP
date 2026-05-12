@@ -48,7 +48,7 @@ COCKTAIL-DKG allows a group of $n$ participants to securely generate a shared gr
 shares for a $t$-of-$n$ threshold, without a trusted dealer. The protocol is built on Feldman's Verifiable Secret
 Sharing (VSS), uses pairwise ECDH to encrypt shares for transport over insecure channels, and includes a final
 certification round to ensure all participants agree on the outcome. It is designed to be ciphersuite-agile, with
-specific recommendations for curves like secp256k1, Ed25519 (via Ristretto255), and Ed448 (via Decaf448).
+specific recommendations for curves like secp256k1, Ed25519 (via Ristretto255), and Ed448.
 
 ## Design Overview
 
@@ -60,10 +60,17 @@ An encryption layer, called "EncPedPop", wraps SimplPedPop with pairwise ECDH to
 
 Finally, an equality check protocol called "CertEq" is built atop EncPedPop to create a standalone protocol.
 
-A **coordinator** is assumed to facilitate message passing between participants. The coordinator is a trusted third
-party that is responsible for receiving messages from all participants, aggregating them where necessary, and
-broadcasting them to all participants. The coordinator does not have access to any secret information. The role of the
-coordinator can be fulfilled by a simple broadcast channel, a peer-to-peer network, or a dedicated server application.
+A **coordinator** is assumed to facilitate message passing between participants. The coordinator is an **untrusted
+facilitator**: it is responsible for receiving messages from all participants, aggregating them where necessary, and
+broadcasting them to all participants, but it is **not trusted** with the confidentiality, integrity, or consistency
+of any protocol message. A malicious coordinator can disrupt **availability** (a liveness concern: refusing to
+broadcast, dropping participants, or stalling the protocol; none of which can be prevented by cryptographic
+mechanisms), but it cannot break **confidentiality** (it never sees any participant's secret share or the final 
+group secret key) or **consistency** (any split-view attack, in which different participants receive different
+messages, causes the CertEq phase to fail safely with all-or-nothing semantics). The coordinator does not need any
+private key material. The role of the coordinator can be fulfilled by a simple broadcast channel, a peer-to-peer
+network among the participants themselves, or a dedicated server application; the choice does not change the
+protocol's security properties.
 
 ## Supporting Definitions
 
@@ -92,16 +99,31 @@ throughout the COCKTAIL-DKG protocol.
 - $Y_i$: The public verification share for participant $i$.
 - $Y$: The final group public key, where $Y = \sum_{j=1}^{n} C_{j,0}$.
 - $payload_{i,j}$: An optional application-defined payload from participant $i$ to participant $j$, which may be empty.
-- $S^{(e)}_{i,j}$: The ephemeral-to-static ECDH shared secret, where $S^{(e)}_{i,j} = e_i * P_j$.
-- $S^{(d)}_{i,j}$: The static-to-static ECDH shared secret, where $S^{(d)}_{i,j} = d_i * P_j$.
+- $S^{(e)}_{i,j}$: The ephemeral-to-static ECDH shared secret, where $S^{(e)}_{i,j} = e_i * P_j$. When $S^{(e)}_{i,j}$
+  appears as bytes (e.g., inside $x = S^{(e)} \parallel S^{(d)}$ as an input to $H6$), it is the canonical
+  ciphersuite-specific byte encoding of the elliptic-curve point $e_i \cdot P_j$ as defined in
+  [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding).
+- $S^{(d)}_{i,j}$: The static-to-static ECDH shared secret, where $S^{(d)}_{i,j} = d_i * P_j$. Encoded as bytes per
+  [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding).
 
 ### Operations
 
-- $Add(P1, P2)$: Elliptic curve point addition.
+- $Add(P_1, P_2)$: Elliptic curve point addition.
 - $RandomScalar()$: Generates a uniform cryptographically secure random scalar in the range $[0, q-1]$.
 - $H6()$: A ciphersuite-specific key derivation function.
+- $H7()$ and $HashToScalar()$: Ciphersuite-specific tagged hash and hash-to-scalar functions, defined in
+  [Schnorr Signature Scheme](#schnorr-signature-scheme).
 - $Enc()$/$Dec()$: Ciphersuite-specific AEAD encryption/decryption functions.
-- $Sign()$/$Verify()$: Ciphersuite-specific digital signature functions for the Proof of Possession.
+- $Sign()$/$Verify()$: The Schnorr signature scheme defined in
+  [Schnorr Signature Scheme](#schnorr-signature-scheme), used for both the Proof of Possession and CertEq
+  transcript certification.
+- $ecdh\_encode(P)$: A ciphersuite-specific canonical byte encoding of an elliptic-curve point $P$, used to
+  serialize ECDH shared-secret outputs before they are fed into $H6$. The encoding is fixed-length per
+  ciphersuite and is defined in [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding). Any reference to
+  the bytes of an ECDH product (e.g., $S^{(e)}_{i,j} = e_i \cdot P_j$ used as an input to $H6$) means
+  $ecdh\_encode$ applied to that product.
+- $uint64\_be(v)$ and $uint64\_be\_decode(b)$: The 8-byte big-endian encoding and decoding of a 64-bit unsigned
+  integer, used for the variable-length-ciphertext length prefixes in $msg_{1|i}$, $msg_{2|i}$, and $C^{rec}_i$.
 
 ### Message Formats
 
@@ -113,11 +135,25 @@ defined below. Implementations **MUST** adhere to these formats to ensure intero
 Let $G$ be an elliptic curve group with a standardized name (e.g., "P-256", "Ed25519", "secp256k1").
 
 - **Scalar**: A scalar is an integer in the range $[0, q-1]$, where $q$ is the order of the group $G$. A scalar is
-  encoded as a fixed-size, big-endian byte array. The size is determined by the curve (e.g., 32 bytes for P-256,
-  secp256k1, and Ed25519/Ristretto255). Implementations **MUST** reject any decoded scalar value $s$ where $s \geq q$.
-- **Elliptic Curve Point**: An elliptic curve point is encoded in its compressed form, as a fixed-size byte array. The
-  size and format are determined by the curve (e.g., 33 bytes for P-256 and secp256k1, 32 bytes for
-  Ed25519/Ristretto255). Implementations **MUST** validate that decoded points are valid curve points.
+  encoded as a fixed-size byte array using the encoding defined by the corresponding FROST ciphersuite in
+  [RFC 9591](https://www.rfc-editor.org/rfc/rfc9591.html#name-ciphersuites) (or, for ZIP-0312 ciphersuites, the
+  encoding defined in [ZIP-0312](https://zips.z.cash/zip-0312#ciphersuites)). The endianness is therefore
+  ciphersuite-specific:
+  - Ed25519, Ristretto255, Ed448, JubJub, Pallas: **little-endian**.
+  - P-256, secp256k1: **big-endian**.
+
+  Scalar sizes are: 32 bytes for P-256, secp256k1, Ed25519/Ristretto255, JubJub, and Pallas; and 57 bytes for
+  Ed448, matching RFC 9591.
+  Implementations **MUST** reject any decoded scalar value $s$ where $s \geq q$. When a scalar value is the result
+  of arithmetic operations (e.g., polynomial evaluation $f_i(j)$, share summation $x_i = \sum_j s_{j,i}$, or
+  index powers $i^k$), implementations **MUST** reduce the result modulo $q$ before encoding it to bytes;
+  implementations using arbitrary-precision integer types are particularly susceptible to silently encoding an
+  unreduced value that is larger than $q$.
+- **Elliptic Curve Point**: An elliptic curve point is encoded in its compressed form, as a fixed-size byte array,
+  using the corresponding FROST ciphersuite encoding from RFC 9591 / ZIP-0312. Sizes are: 33 bytes for P-256 and
+  secp256k1; 32 bytes for Ed25519/Ristretto255, JubJub, and Pallas; and 57 bytes for Ed448, matching RFC 9591.
+  Implementations **MUST** validate that decoded points are valid curve points and (for
+  ciphersuites with non-trivial cofactor) lie in the prime-order subgroup.
 - **The Point at Infinity**: The point at infinity, which is the identity element of the group, is represented by a byte
   array of the same length as a standard point encoding, but filled with all zero bytes. The point at infinity **MUST**
   be rejected when parsing VSS commitment points $C_{i,k}$, ephemeral public keys $E_i$, and static public keys $P_i$.
@@ -130,8 +166,11 @@ representations of their constituent parts in the specified order.
 
 **1. $msg_{1|i}$ (Participant -> Coordinator, Round 1)**
 
-This message contains the participant's VSS commitment, their Proof-of-Possession, their ephemeral public key, and the
-encrypted shares for all other participants.
+This message contains the participant's VSS commitment, their Proof-of-Possession, their ephemeral public key, and
+one encrypted share per participant; including a self-share $c_{i,i}$ addressed to participant $i$ themselves. The 
+self-share is encrypted under the same procedure as the others; including it keeps the message structure uniform, makes
+the recovery procedure symmetric across the $n$ participants, and ensures every entry of the recipient-indexed bundle 
+$C^{rec}_i$ is non-empty.
 
 - $C_i$: The VSS commitment, which is a list of **exactly** $t$ elliptic curve points. Implementations **MUST** verify
   that the commitment contains exactly $t$ points; any other length indicates a malformed message or an attempted
@@ -142,33 +181,64 @@ encrypted shares for all other participants.
 - $E_i$: The ephemeral public key, an elliptic curve point.
   - It does not refer to isogenies. Here, E stands for "ephemeral".
 - $c_{i,j}$: An encrypted ciphertext containing the secret share $s_{i,j}$ and an optional application-defined payload
-  $payload_{i,j}$. The plaintext format is $s_{i,j} \parallel payload_{i,j}$, where $payload_{i,j}$ may be empty.
-  The ciphertext size depends on the AEAD scheme and the payload size. The minimum ciphertext size is the scalar
-  encoding size plus the AEAD authentication tag size (e.g., 32 + 16 = 48 bytes for most ciphersuites).
-  Implementations **SHOULD** enforce a maximum ciphertext size to prevent resource exhaustion attacks.
+  $payload_{i,j}$. The plaintext format is $s_{i,j} \parallel payload_{i,j}$, where $payload_{i,j}$ may be empty. The 
+  ciphertext size depends on the AEAD scheme and the payload size. The minimum ciphertext size is the scalar encoding 
+  size plus the AEAD authentication tag size (e.g., 32 + 16 = 48 bytes for most ciphersuites).
+  
+  Implementations **MUST** configure an upper bound `MAX_CIPHERTEXT_SIZE` on each individual ciphertext and
+  **MUST** reject any framed ciphertext whose length prefix exceeds it; this is the resource-exhaustion
+  mitigation referenced in $msg_{1|i}$, $msg_{2|i}$, and $C^{rec}_i$ parsing. The lower bound on
+  `MAX_CIPHERTEXT_SIZE` itself is also normative:
+
+  - **Conformance floor (MUST):** `MAX_CIPHERTEXT_SIZE` **MUST** be at least `scalar_size + AEAD_TAG_SIZE` (the
+    exact size of a zero-payload encrypted share). An implementation whose configured `MAX_CIPHERTEXT_SIZE`
+    setting causes it to reject ciphertexts of *exactly* this minimum size (and therefore reject zero-payload
+    shares) is **non-conformant**. (Ciphertexts strictly *smaller* than this minimum are still **MUST**-rejected
+    by the protocol-level checks at $msg_{1|i}$ parsing, $msg_{2|i}$ parsing, and recovery, because they cannot
+    decrypt to a valid share at all; this conformance floor concerns the upper-bound cap, not the lower-bound
+    size check.)
+  - **Interoperability floor (SHOULD):** `MAX_CIPHERTEXT_SIZE` **SHOULD** be at least 65,536 bytes (64 KiB). This
+    bound covers realistic application-payload sizes for the use cases COCKTAIL-DKG targets and is the
+    recommended setting for general-purpose implementations.
+
+  Above the SHOULD floor, the choice of `MAX_CIPHERTEXT_SIZE` is implementation- and deployment-defined.
+
+  Each ciphertext is wire-framed as a fixed-width length prefix followed by the AEAD ciphertext bytes:
+  $\widetilde{c_{i,j}} = len(c_{i,j}) \parallel c_{i,j}$, where $len(c_{i,j})$ is the byte length of $c_{i,j}$
+  encoded as a **64-bit big-endian unsigned integer**. The framed form $\widetilde{c_{i,j}}$ is what appears in
+  $msg_{1|i}$, $msg_{2|i}$, and the recovery bundle $C^{rec}_i$. Implementations **MUST** reject any framed
+  ciphertext whose length prefix exceeds the implementation's `MAX_CIPHERTEXT_SIZE`.
 
 The full message is the concatenation of these elements:
 
 ```math
-msg_{1|i} = C_i \parallel PoP_i \parallel E_i \parallel c_{i,1} \parallel c_{i,2} \parallel \cdots \parallel c_{i,n}
+msg_{1|i} = C_i \parallel PoP_i \parallel E_i \parallel \widetilde{c_{i,1}} \parallel \widetilde{c_{i,2}} \parallel \cdots \parallel \widetilde{c_{i,n}}
 ```
+
+where each $\widetilde{c_{i,j}}$ is the length-prefixed ciphertext defined above. $C_i$, $PoP_i$, and $E_i$ are
+fixed-length per the ciphersuite and are concatenated without additional framing.
 
 **2. $msg2$ (Coordinator -> All Participants, Round 2)**
 
-This message aggregates the public information from all participants.
+This message aggregates the public information from all participants and the ciphertexts addressed to the recipient.
+It is equivalent to an ordered, recipient-specific projection of all Round 1 messages.
 
-- $C_{j,0}$: The zero-coefficient commitment from participant $j$, an elliptic curve point.
+- $C_j$: The full VSS commitment from participant $j$, which is a list of **exactly** $t$ elliptic curve points.
 - $PoP_j$: The Proof of Possession from participant $j$.
-- $C_{agg}$: The aggregated commitment for non-zero coefficients. This is a list of $t-1$ points.
-  - Format: $C_{agg,1} \parallel \cdots \parallel C_{agg,t-1}$
 - $E_j$: The ephemeral public key from participant $j$.
 - $c_{j,i}$: The ciphertext from participant $j$ intended for participant $i$.
 
 The message broadcast to participant $i$ is structured as:
 
 ```math
-msg_{2|i} = (C_{1,0} \parallel PoP_1) \parallel \cdots \parallel (C_{n,0} \parallel PoP_n) \parallel C_{agg} \parallel E_1 \parallel \cdots \parallel E_n \parallel c_{1,i} \parallel \cdots \parallel c_{n,i}
+msg_{2|i} = (C_1 \parallel PoP_1 \parallel E_1 \parallel \widetilde{c_{1,i}}) \parallel \cdots \parallel (C_n \parallel PoP_n \parallel E_n \parallel \widetilde{c_{n,i}})
 ```
+
+where $\widetilde{c_{j,i}}$ is the length-prefixed framed ciphertext defined under $msg_{1|i}$ above. Concrete encodings
+**MUST** preserve the participant ordering; $C_j$, $PoP_j$, and $E_j$ are fixed-length per the ciphersuite, and each 
+$\widetilde{c_{j,i}}$ carries its own 64-bit big-endian length prefix, so the full message parses unambiguously.
+
+Implementations **MAY** instead broadcast the complete ordered list of all $msg_{1|j}$ messages to every participant.
 
 **3. $sig_i$ (Participant -> Coordinator, CertEq Phase)**
 
@@ -202,37 +272,105 @@ This section describes the COCKTAIL-DKG protocol in detail.
 
 Each participant $i$ is assumed to have:
 
-- A unique identifier $i$ from $1$ to $n$. Identifiers **MUST NOT** be $0$ or congruent to $0$ modulo the group order
-  $q$, as this would allow a [zero share attack](https://www.zkdocs.com/docs/zkdocs/protocol-primitives/verifiable-secret-sharing/).
-- The parameters $n$ (total participants) and $t$ (threshold).
+- A unique identifier $i$ from $1$ to $n$. Identifiers **MUST** be the contiguous integers $1, 2, \ldots, n$ assigned to
+  participants in a canonical, agreed-upon ordering, and all participants **MUST** agree on this ordering before the DKG
+  begins; disagreement **MUST** be treated as a setup failure. The ordering is the same ordering used to list
+  $P_1, \ldots, P_n$ throughout the protocol and the transcript. Identifiers **MUST NOT** be $0$ or congruent to $0$ 
+  modulo the group order $q$, as this would allow a [zero share attack](https://www.zkdocs.com/docs/zkdocs/protocol-primitives/verifiable-secret-sharing/).
+- The parameters $n$ (total participants) and $t$ (threshold). Both **MUST** satisfy $1 \le t \le n$ and
+  $n \le 2^{32} - 1$ (the maximum representable in the transcript's `uint32_le` encoding of $n$ and $t$). $t = 1$
+  corresponds to a $1$-of-$n$ deployment where any single participant can sign on behalf of the group; this is a 
+  permitted-but-application-discouraged degenerate case (a single compromised participant can sign unilaterally, which
+  defeats the threshold property). $t > n$, $t = 0$, $n = 0$, and any encoding that exceeds the 32-bit bound are invalid
+  setups and participants **MUST** abort before Round 1.
 - A long-term static key pair $(d_i, P_i)$.
-- A list of the static public keys of all other participants, ${P_1, ..., P_n}$.
+- The ordered list of static public keys of all participants, ${P_1, P_2, \ldots, P_n}$ (including $P_i$ at index $i$).
+  All $P_j$ **MUST** be distinct, valid prime-order subgroup points; participants **MUST** abort if any duplicate or 
+  otherwise invalid public key is observed during setup.
 - A ciphersuite defining the elliptic curve group, hash function, and AEAD scheme.
-- A `context` string, which **MUST** be unique to the DKG session to prevent replay attacks. It is RECOMMENDED that this
-  string be constructed by hashing a domain separation tag, the session ID, and the list of participant public keys,
-  for example: `context = H("COCKTAIL-DKG-CONTEXT" || session_id || P_1 || P_2 || ... || P_n)`. The `session_id` should
-  be a value that is unique to the session, such as a high-entropy random byte string or a timestamp. All participants
-  **MUST** validate that they agree on the `context` string before proceeding.
+- A `context` string. The `context` is a normative input to several security properties of the protocol, including the
+  freshness of ECDH-derived encryption keys, the prevention of cross-session replay, and the cross-protocol distinctness
+  of PoP and CertEq signatures, so it **MUST** satisfy three requirements:
+
+  1. **Session uniqueness.** The `context` **MUST** be unique to the DKG session, so that no two distinct DKG
+     sessions ever share the same `context` value. Implementations typically achieve this by including a
+     high-entropy random byte string, a timestamp, or a session ID in the `context` construction.
+  2. **Participant binding.** The `context` **MUST** cryptographically bind the ordered participant identity
+     set $(P_1, P_2, \ldots, P_n)$, so that an attempt to alter $n$, the participant ordering, or any $P_j$
+     yields a different `context` value. This binding is what enables the PoP and CertEq signatures to be
+     domain-separated from any other use of the participants' keys and prevents a malicious coordinator from
+     reusing protocol messages across mismatched participant sets.
+  3. **Ciphersuite binding.** The `context` **MUST** cryptographically bind the canonical `ciphersuite_id`
+     byte string from the [Ciphersuite Definitions](#ciphersuite-definitions) normative table, so that
+     ciphersuite confusion (the same byte material being reinterpreted under a different ciphersuite) is
+     prevented. Implementations **MUST** use the exact `ciphersuite_id` byte string from that table (no
+     whitespace normalization, no case folding, no alternate punctuation) wherever `ciphersuite_id` appears
+     in the `context` construction.
+
+  The **RECOMMENDED** construction that satisfies all three requirements is
+
+  ```text
+  context = H( "COCKTAIL-DKG-CONTEXT"
+             || uint64_be(len(session_id))   || session_id
+             || uint64_be(len(ciphersuite_id)) || ciphersuite_id
+             || uint32_le(n)
+             || P_1 || P_2 || ... || P_n )
+  ```
+
+  where $H$ is the ciphersuite's hash function, `session_id` is the session-unique byte string, the
+  variable-length `session_id` and `ciphersuite_id` fields are each prefixed with their 64-bit big-endian byte
+  length (the same wire-framing convention used for ciphertexts elsewhere in this spec), $n$ is included so
+  the participant-list length is unambiguous, and each $P_j$ is encoded in the ciphersuite's compressed point
+  encoding (fixed-length per ciphersuite). Any equivalent construction is permitted **provided** it satisfies
+  all three MUSTs above; that is, it produces a distinct `context` per session, it unambiguously binds the
+  ordered participant set with no tuple-boundary ambiguity between any two of its components, and it
+  cryptographically binds the canonical `ciphersuite_id` byte string verbatim from the
+  [Ciphersuite Definitions](#ciphersuite-definitions) table. Constructions that omit `ciphersuite_id`
+  entirely from the hash preimage, normalize its bytes before hashing (e.g., lowercasing, whitespace
+  collapsing, alternate punctuation), or substitute any other representation are **non-conformant**.
+  Hashing the recommended preimage above, which contains the verbatim `ciphersuite_id` bytes as one of its
+  length-framed inputs, is the recommended way to satisfy this MUST and is *not* an "omit/normalize" case.
+  All participants **MUST** validate that they agree on the exact `context` byte string before proceeding;
+  disagreement is a setup failure.
 
 ### Round 1: Commitment and Encryption
 
 1. **Generate Polynomial:** Participant $i$ generates a secret polynomial $f_i(x)$ of degree $t-1$:
    $f_i(x) = a_{i,0} + a_{i,1}x + \cdots + a_{i,t-1}x^{t-1}$.
-   The coefficients $a_{i,k}$ are chosen as random scalars. $a_{i,0}$ is the participant's primary secret share.
+   
+   The coefficients $a_{i,k}$ are chosen as random scalars via $RandomScalar()$. $a_{i,0}$ is the participant's
+   primary secret share. If any sampled coefficient equals $0$ (probability $\approx 2^{-\lceil \log_2 q \rceil}$
+   per coefficient, negligible in practice), implementations **MUST** resample that coefficient before continuing,
+   so that every $C_{i,k} = a_{i,k} \cdot B$ is a non-identity point and the parsing rule at
+   [Primitive Types](#primitive-types) rejecting identity VSS commitment points does not cause an honest abort.
 2. **Compute VSS Commitment:** Participant $i$ computes a VSS commitment $C_i$ to their polynomial by creating a public
    commitment for each coefficient:
    $C_i = (C_{i,0}, C_{i,1}, \cdots, C_{i,t-1})$, where $C_{i,k} = a_{i,k} * B$.
-3. **Generate Ephemeral Key:** Participant $i$ generates a fresh ephemeral key pair $(e_i, E_i)$ for this session.
+3. **Generate Ephemeral Key:** Participant $i$ generates a fresh ephemeral key pair $(e_i, E_i)$ for this session
+   with $e_i \leftarrow RandomScalar()$ and $E_i = e_i \cdot B$. If $e_i = 0$ (negligible probability),
+   implementations **MUST** resample, so that $E_i$ is a non-identity point and the parsing rule at
+   [Primitive Types](#primitive-types) rejecting identity ephemeral public keys does not cause an honest abort.
 4. **Compute Proof of Possession (PoP):** Participant $i$ computes a digital signature $PoP_i$ over a concatenation of
    the `context` string, their VSS commitment $C_i$, and their ephemeral public key $E_i$. The signature is created
    using the secret $a_{i,0}$ as the private key and $C_{i,0}$ as the public key. The message to be signed is
-   `context || C_i || E_i`. The specific signature algorithm is defined by the ciphersuite.
+   `context || C_i || E_i`, where $C_i$ is encoded as the byte concatenation
+   $C_{i,0} \parallel C_{i,1} \parallel \cdots \parallel C_{i,t-1}$ (each point in the ciphersuite's compressed
+   encoding, identical to its encoding in $msg_{1|i}$). The signature algorithm is the Schnorr scheme defined in
+   [Schnorr Signature Scheme](#schnorr-signature-scheme). If `Sign` aborts at its step 3 due to $k = 0$
+   (probability $\approx 2^{-\lceil \log_2 q \rceil}$, negligible), participant $i$ **MUST** treat this DKG
+   session as locally failed: it **MUST NOT** send $msg_{1|i}$, **MUST NOT** publish any partially-derived
+   value, and **MUST** abandon this session. To retry, participant $i$ joins a fresh DKG session with a
+   different `context` string (which changes the `Sign` message $m$ and therefore the deterministic nonce $k$);
+   simply resampling $a_{i,0}$ within the same context would require restarting Round 1 from step 1 and is
+   indistinguishable from the participant dropping out, so a fresh-context retry is the recommended path. This
+   is not a blameable misbehavior. The other participants observe only that participant $i$ failed to deliver
+   $msg_{1|i}$ within the agreed timeout.
 5. **Compute and Encrypt Shares:** For each participant $j$ from $1$ to $n$ (including $j = i$, the self-share):
     1. **Compute Share:** Participant $i$ computes the secret share $s_{i,j} = f_i(j)$.
     2. **Derive Key:** Participant $i$ computes two ECDH shared secrets: one with their ephemeral key and the
        recipient's static public key, and one with their static key and the recipient's static public key:
        $S^{(e)}_{i,j} = e_i * P_j$ and $S^{(d)}_{i,j} = d_i * P_j$. It then derives a symmetric key and nonce for the AEAD.
-        - If the hash function has an output length at least 480 bits long:
+        - If the hash function has an output length of at least 56 bytes (448 bits):
             - $tmp = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, context)$.
             - $k_{i,j} = tmp[0:32]$
             - $iv_{i,j} = tmp[32:56]$
@@ -260,14 +398,15 @@ steps:
       participant $i$ **MUST** abort, identifying participant $j$ as malicious. This check prevents
       [threshold elevation attacks](https://blog.trailofbits.com/2024/02/20/breaking-the-shared-key-in-threshold-signature-schemes/).
 2. **Verify All PoPs:** For each participant $j$ from $1$ to $n$:
-    - Participant $i$ verifies the proof of possession $PoP_j$. The signature is checked against the message
-      `context || C_j || E_j`, using participant $j$'s public commitment $C_{j,0}$ as the public key.
+    - Participant $i$ verifies the proof of possession $PoP_j$ using the Schnorr `Verify` algorithm. The signature is
+      checked against the message `context || C_j || E_j` (with $C_j$ encoded as in Round 1), using participant $j$'s
+      public commitment $C_{j,0}$ as the public key.
     - If any $PoP_j$ is invalid, participant $i$ **MUST** abort, identifying participant $j$ as malicious.
 3. **Decrypt and Verify Shares:** For each participant $j$ from $1$ to $n$ (including the self-share $j = i$):
     1. **Derive Key:** Participant $i$ computes two ECDH shared secrets: one with the sender's ephemeral public key
        and their static key, and one with the sender's static public key and their static key:
        $S^{(e)}_{j,i} = d_i * E_j$ and $S^{(d)}_{j,i} = d_i * P_j$. They then derive the symmetric key and nonce:
-        - If the hash function has an output length at least 480 bits long:
+        - If the hash function has an output length of at least 56 bytes (448 bits):
             - $tmp = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, context)$.
             - $k_{j,i} = tmp[0:32]$
             - $iv_{j,i} = tmp[32:56]$
@@ -278,9 +417,13 @@ steps:
             - Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
     2. **Decrypt Plaintext:** Participant $i$ decrypts the ciphertext sent to them from participant $j$:
        $plaintext_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
-       If decryption fails, participant $i$ **MUST** abort, identifying $j$ as malicious.
+       If decryption fails, participant $i$ **MUST** abort and report a decryption failure for the ciphertext
+       attributed to participant $j$.
     3. **Parse Plaintext:** Participant $i$ parses the plaintext to extract the secret share $s_{j,i}$ (the first
        scalar-sized portion) and any optional application payload $payload_{j,i}$ (the remainder).
+       If the plaintext is shorter than the ciphersuite's scalar encoding size, or if the leading scalar-sized
+       portion does not decode to a valid scalar in $[0, q-1]$, participant $i$ **MUST** abort, identifying $j$
+       as malicious.
     4. **Verify Share:** Participant $i$ verifies the decrypted share $s_{j,i}$ against $j$'s VSS commitment:
        $s_{j,i} * B = \sum_{k=0}^{t-1} i^k * C_{j,k}$
        If the check fails, participant $i$ **MUST** abort, identifying $j$ as malicious.
@@ -294,7 +437,7 @@ steps:
        $C_{agg,k} = \sum_{j=1}^{n} C_{j,k}$.
        Then, $Y_i = \sum_{k=0}^{t-1} i^k * C_{agg,k}$.
     4. **Final Check:** Participant $i$ performs a final self-consistency check:
-       $x_i * B = Y_i$. If this check fails, the participant must abort. Note: This check is mathematically
+       $x_i * B = Y_i$. If this check fails, the participant **MUST** abort. Note: This check is mathematically
        guaranteed to pass if all VSS share verifications in step 3.4 succeeded. It serves as a defense-in-depth
        measure to catch implementation bugs in the share summation or verification share computation.
 
@@ -304,23 +447,34 @@ This round ensures that all honest participants have arrived at the same public 
 
 1. **Construct Transcript:** Each participant $i$ constructs a canonical byte representation of the final public
    transcript, $T$. The transcript **MUST** be constructed by concatenating the following elements in this exact order:
-    1. $len(context)$: The length of the context string as a little-endian 64-bit unsigned integer.
-    2. $context$: The context string bytes.
-    3. $n$: The number of participants as a little-endian 32-bit unsigned integer.
-    4. $t$: The threshold as a little-endian 32-bit unsigned integer.
-    5. For $j$ from $1$ to $n$: $P_j$ (the static public key of participant $j$, in its standard encoding).
-    6. For $j$ from $1$ to $n$: $C_j$ (the full VSS commitment of participant $j$: $C_{j,0} \parallel \cdots \parallel C_{j,t-1}$).
-    7. For $j$ from $1$ to $n$: $PoP_j$ (the Proof of Possession signature from participant $j$).
-    8. For $j$ from $1$ to $n$: $E_j$ (the ephemeral public key from participant $j$).
-    9. $len(ext)$: The length of the application-specific extension as a little-endian 64-bit unsigned integer.
-    10. $ext$: The application-specific extension bytes (may be empty).
+    1. $len(ciphersuite\_id)$: The length of the ciphersuite identifier string (e.g., `COCKTAIL(Ristretto255, SHA-512)`)
+       as a little-endian 64-bit unsigned integer.
+    2. $ciphersuite\_id$: The ciphersuite identifier as its UTF-8 byte representation. Including the ciphersuite
+       identifier in the transcript makes the success certificate self-describing and prevents cross-ciphersuite
+       confusion in audit and recovery tooling.
+    3. $len(context)$: The length of the context string as a little-endian 64-bit unsigned integer.
+    4. $context$: The context string bytes.
+    5. $n$: The number of participants as a little-endian 32-bit unsigned integer.
+    6. $t$: The threshold as a little-endian 32-bit unsigned integer.
+    7. For $j$ from $1$ to $n$: $P_j$ (the static public key of participant $j$, in its standard encoding).
+    8. For $j$ from $1$ to $n$: $C_j$ (the full VSS commitment of participant $j$: $C_{j,0} \parallel \cdots \parallel C_{j,t-1}$).
+    9. For $j$ from $1$ to $n$: $PoP_j$ (the Proof of Possession signature from participant $j$).
+    10. For $j$ from $1$ to $n$: $E_j$ (the ephemeral public key from participant $j$).
+    11. $len(ext)$: The length of the application-specific extension as a little-endian 64-bit unsigned integer.
+    12. $ext$: The application-specific extension bytes (may be empty).
 
    All participants **MUST** produce identical transcripts. Any difference indicates a split-view attack or implementation bug.
-2. **Sign Transcript:** Participant $i$ signs the transcript $T$ with their long-term static private key $d_i$,
-   producing a signature $sig_i$.
+2. **Sign Transcript:** Participant $i$ signs the transcript $T$ with their long-term static private key $d_i$ using
+   the Schnorr `Sign` algorithm, producing a signature $sig_i$. If `Sign` aborts at its step 3 due to $k = 0$
+   (negligible probability), participant $i$ **MUST NOT** publish any partially-derived value and **MUST**
+   treat this session as locally failed (analogous to the Round 1 PoP `k = 0` handling). Since the transcript
+   $T$ is identical across all honest participants, restarting CertEq within the same DKG session would
+   reproduce the same $(d_i, T)$ inputs to `Sign` and therefore the same $k = 0$ result; the only safe retry
+   path is a fresh DKG session with a different `context` (which yields a different $T$).
 3. **Broadcast Signature:** Participant $i$ sends $sig_i$ to the coordinator.
 4. **Verify Certificate:** The coordinator broadcasts the set of all signatures ${sig_1, \cdots, sig_n}$ to everyone.
-   Each participant $i$ verifies every signature $sig_j$ on the transcript $T$ against the public key $P_j$.
+   Each participant $i$ verifies every signature $sig_j$ on the transcript $T$ against the public key $P_j$ using the
+   Schnorr `Verify` algorithm.
 5. **Success:** If all signatures are valid, the DKG is successful. The participant stores their secret share $x_i$ and
    the group public key $Y$. The collection of $T$ and all $n$ signatures on it is called a "success certificate" and
    can be stored for auditing.
@@ -350,7 +504,7 @@ Applications **MAY** use the extension field for different purposes. Two common 
    party could have predicted or biased. This is useful for protocols that need distributed randomness as a byproduct
    of the DKG.
 
-These use cases are not compatible with each other—an application must choose one approach. The extension semantics
+These use cases are not compatible with each other; an application must choose one approach. The extension semantics
 are entirely application-defined; COCKTAIL-DKG simply ensures that all participants agreed on the extension value
 before the protocol completes.
 
@@ -360,10 +514,13 @@ When applications use the optional payloads in the encryption step (see [Optiona
 they **MAY** derive the extension from those payloads to ensure all participants agree on the exchanged data. A recommended
 approach is to compute a hash of the participant-ordered payloads:
 
-1. For each participant $j$ from $1$ to $n$, collect their payload contributions.
+1. For each participant $j$ from $1$ to $n$, collect their payload contributions. To produce a consistent extension
+   across all participants, the application **MUST** ensure every recipient observes the same $payload_j$ from
+   participant $j$ (e.g., by having $j$ broadcast the same payload to every recipient).
 2. Compute the extension as:
    $ext = H(n \parallel len(payload_1) \parallel payload_1 \parallel \cdots \parallel len(payload_n) \parallel payload_n)$
-   Where $n$ is encoded as a little-endian 64-bit unsigned integer and each $len(payload_j)$ is a little-endian 64-bit unsigned integer.
+   Where $H$ is the ciphersuite's hash function (the same $H$ used by $H6$), $n$ is encoded as a little-endian
+   64-bit unsigned integer, and each $len(payload_j)$ is a little-endian 64-bit unsigned integer.
 
 This ensures that any disagreement about the payloads will result in different transcripts and failed signature verification.
 
@@ -398,12 +555,17 @@ The following categories cover the most common errors:
 2. **Cryptographic Verification Failures**:
     - **Description**: These errors occur when a cryptographic check fails. This category includes:
         - An invalid Proof-of-Possession ($PoP_j$).
-        - A VSS share verification failure ($s_{j,i}G \ne \sum_{i}^{k} C_{j,k}$).
+        - A VSS share verification failure ($s_{j,i} \cdot B \ne \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$).
         - A failed decryption of an encrypted share ($c_{j,i}$).
         - An invalid signature on the final transcript ($sig_j$).
     - **Action**: A cryptographic failure is a clear indication that a participant is behaving maliciously or has a
-      serious bug. The protocol **MUST** be aborted immediately. The participant who sent the invalid data **MUST** be
-      identified and blamed. For example, if $PoP_j$ is invalid, participant $j$ is at fault.
+      serious bug. The protocol **MUST** be aborted immediately. For public failures such as an invalid PoP, invalid
+      VSS share, or invalid transcript signature, the participant who sent the invalid data **MUST** be identified and
+      blamed. A decryption failure is locally attributable to the sender's ciphertext, but it is **not** publicly
+      verifiable in the same way as a VSS or PoP failure: the AEAD key derives from the recipient's static private
+      key. See [Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript) for the option set:
+      Options 1 and 2 establish only that a specific ciphertext was sent (ciphertext binding), while only Option 3
+      provides public verification of the decryption outcome itself.
 3. **Protocol Logic Errors**:
     - **Description**: These errors relate to violations of the protocol's state machine or rules, such as:
         - A participant sending a message at the wrong time.
@@ -414,13 +576,25 @@ The following categories cover the most common errors:
 ### Blame-Finding and Reporting
 
 A key feature of a secure DKG protocol is the ability to identify malicious participants. When an error occurs, the
-protocol **MUST** not only terminate but also output information about who caused the failure. This is crucial for
-accountability in decentralized systems.
+protocol **MUST** terminate and, when evidence permits, output information about who caused the failure. This is crucial
+for accountability in decentralized systems.
 
-- **Coordinator's Role**: The coordinator is in a unique position to detect errors in $msg_{1|i}$ messages. If the
-  coordinator receives a malformed message or one with an invalid PoP from participant $i$, it **MUST** immediately abort
-  the protocol and broadcast a blame message identifying participant $i$ as faulty, including the malformed message as
-  evidence.
+- **Coordinator's Role**: The coordinator is positioned to *detect* errors in $msg_{1|i}$ messages early, but it
+  is **not** trusted to *attribute* those errors, and the spec does not assume the coordinator is honest. When
+  the coordinator receives a malformed $msg_{1|i}$ or one with an invalid PoP from participant $i$, it **MUST**
+  abort the protocol and broadcast a blame message; however, the public verifiability of that blame depends on
+  which part of $msg_{1|i}$ failed:
+  - For an invalid $PoP_i$ or an invalid commitment-length check on $C_i$, the coordinator's blame can be
+    publicly verified by any third party from the broadcast $C_i$, $PoP_i$, $E_i$, and the agreed `context`
+    (the PoP signs $context \parallel C_i \parallel E_i$ under $C_{i,0}$, and the commitment-length check is
+    purely structural). The coordinator's blame is therefore third-party-checkable evidence in this case.
+  - For a malformed ciphertext frame in $msg_{1|i}$ (an out-of-range length prefix, undersize ciphertext,
+    etc.) the coordinator cannot publicly attribute the malformation to participant $i$ without an
+    application-level ciphertext-byte authentication mechanism (see
+    [Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript)). The coordinator's blame in
+    this case is unilateral and **MUST NOT** be relied upon as third-party-checkable evidence; participant
+    $i$ may have sent a well-formed message that the coordinator subsequently modified. Applications
+    requiring publicly-attributable malformed-ciphertext blame **MUST** layer such authentication.
 - **Participant's Role and Public Proofs**: Participants **MUST** validate all data they receive.
   - If participant $i$ fails to verify a share $s_{j,i}$ from participant $j$, it **MUST** abort. To prove that $j$
     is cheating, participant $i$ can broadcast a blame message containing $j$'s index and the invalid share $s_{j,i}$.
@@ -429,6 +603,14 @@ accountability in decentralized systems.
     using the public commitment $C_j$. A failure of this equation is a public and undeniable proof of $j$'s misbehavior.
   - Similarly, if a PoP from participant $j$ is invalid, this is also a publicly verifiable proof of misbehavior,
     since the PoP, the message it signs, and the public key $C_{j,0}$ are all public.
+  - In contrast, a **decryption failure** at recipient $i$ for $c_{j,i}$ is *not* publicly verifiable in the same
+    way: the AEAD verification requires the key $k_{j,i}$, which is derived from $i$'s static private key $d_i$
+    and is not public. Recipient $i$ can locally attribute the failure to participant $j$'s ciphertext, but
+    cannot produce a non-interactive proof that any third party can independently check from public data alone.
+    Applications requiring publicly verifiable decryption-failure blame **MUST** use Option 3 from
+    [Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript) (the dispute-evidence channel
+    providing a non-interactive proof of decryption outcome); Options 1 and 2 establish only ciphertext
+    binding and are not by themselves sufficient for public verification of the decryption outcome.
 - **Resolving Disputes and Coordinator Malice**: The final certification round is essential for detecting a malicious
   coordinator and resolving disputes.
   - **Split-View Attack**: If a coordinator sends different messages to different participants, their final
@@ -437,26 +619,48 @@ accountability in decentralized systems.
     An honest participant $i$ who fails to verify $sig_j$ can initiate a dispute by broadcasting their $T_i$ and $sig_i$.
     - If participant $j$ responds with a different $T_j$ and a valid $sig_j$ over it, the discrepancy between $T_i$ and
       $T_j$ serves as undeniable proof of a split-view attack by the coordinator.
-  - **Framing a Participant**: If a coordinator attempts to frame participant $j$ by modifying their $msg_{1|j}$ before
-    broadcasting it, the PoP will fail for all other participants, who will blame $j$. However, in Round 3,
-    participant $j$ will construct a transcript based on their *original*, valid $msg_{1|j}$. Their signature $sig_j$
-    will be valid for their transcript but not for the altered transcript held by others. When this signature
-    mismatch is detected, participant $j$ can reveal their original $msg_{1|j}$ (with its valid PoP) and their 
-    transcript signature. This evidence proves their honesty and definitively identifies the coordinator as malicious.
+  - **Framing a Participant**: If a coordinator attempts to frame participant $j$ by modifying the
+    PoP-bound portion of $msg_{1|j}$ (i.e., the VSS commitment $C_j$, the ephemeral public key $E_j$, or
+    the PoP itself) before broadcasting it to the other participants, the modified PoP will fail PoP
+    verification for all receivers, who will then abort Round 2 and broadcast a blame message naming $j$.
+    Coordinator modifications restricted to the *ciphertext* portion of $msg_{1|j}$ (which the PoP does not
+    sign; see [Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript)) do **not** cause
+    PoP failure; they cause Round 2 framing-format or decryption failures whose attribution paths require
+    Option 1 or Option 2 ciphertext-byte authentication for public blame. The rest of this paragraph addresses
+    the PoP-bound-modification case only.
+
+    The protocol does not reach Round 3, so the PoP-framing dispute cannot be resolved via the CertEq
+    transcript-signature pathway. Instead, dispute resolution is **out-of-band evidence publication**:
+    participant $j$, who locally still holds the original valid $msg_{1|j}$ (including its valid PoP signed
+    under $C_{j,0}$), can publish that original message as a public refutation of the blame. Any third
+    party can then verify the PoP against $C_{j,0}$ using the message bytes participant $j$ published; if
+    it verifies, the conclusion is that the version received by other participants must have been altered
+    in transit, definitively identifying the coordinator as malicious. This dispute-resolution channel is
+    therefore a property of how the DKG embeds in the
+    surrounding system (some broadcast surface participant $j$ can use to publish evidence), not a property of
+    the in-protocol message flow. Applications that require automated, in-protocol dispute resolution
+    **SHOULD** define such a refutation channel as part of their integration of COCKTAIL-DKG.
 
 ## Ciphersuites
 
 This section describes the ciphersuites that are specified for use with COCKTAIL. The current scope includes both
 [RFC 9591](https://www.rfc-editor.org/rfc/rfc9591.html#name-ciphersuites) and [ZIP-0312](https://zips.z.cash/zip-0312#ciphersuites).
 
-Each ciphersuite defines a key derivation function $H6(x, pk1, pk2, extra)$, an encryption method $Enc(plain, key, iv)$,
-and a decryption method $Dec(cipher, key, iv)$. Ciphersuites **SHOULD** use an AEAD mode for $Enc()$ and $Dec()$.
+Each ciphersuite defines a key derivation function $H6(x, E, P_s, P_r, extra)$, an encryption method
+$Enc(plain, key, iv)$, and a decryption method $Dec(cipher, key, iv)$. Ciphersuites **MUST** use an AEAD mode for
+$Enc()$ and $Dec()$. The protocol's confidentiality, ciphertext-integrity, blame-finding, and optional-payload
+authentication properties all rely on AEAD; a non-AEAD $Enc()/Dec()$ pair is not a valid COCKTAIL-DKG ciphersuite.
 
-The choice of AEAD is guided by the principle of preventing nonce reuse. For ciphersuites where the underlying hash
-function provides a large enough output (at least 480 bits; e.g., SHA-512), we can derive both the 256-bit key and a 
-24-byte (192-bit) nonce (which is long enough to be generated randomly with a negligible chance of collision).
+The choice of AEAD is guided by the principle of preventing nonce reuse. **All COCKTAIL-DKG AEAD nonces are
+deterministically derived via $H6$** (see [Round 1: Commitment and Encryption](#round-1-commitment-and-encryption));
+implementations **MUST NOT** sample nonces randomly. The 24-byte (192-bit) nonce width was chosen so that the
+$H6$-derived nonces have a negligible probability of collision across distinct $(sender, recipient, session)$
+triples even though they are not random; i.e., the width is a safety margin for deterministic derivation,
+not a license to sample nonces independently. For ciphersuites where the underlying hash function provides a
+large enough output (at least 56 bytes / 448 bits; e.g., SHA-512), we can derive both the 256-bit key and the
+24-byte nonce directly from a single $H6$ output.
 
-For ciphersuites based on SHA-256, where the output is smaller than 480 bits, we use $H6()$ to derive an Input Keying
+For ciphersuites based on SHA-256, where the output is smaller than 56 bytes, we use $H6()$ to derive an Input Keying
 Material (IKM), which is then used with the underlying hash function with two different prefixes. For the key, we use
 $Sha256("COCKTAIL-derive-key" \parallel ikm)$. For the nonce, we use the most significant 192 bits of 
 $Sha256("COCKTAIL-derive-nonce" \parallel ikm)$. The AEAD of choice for the SHA-256 based ciphersuites we specify here is
@@ -465,9 +669,9 @@ $Sha256("COCKTAIL-derive-nonce" \parallel ikm)$. The AEAD of choice for the SHA-
 The $H6$ function is used to derive a symmetric key and nonce from ECDH shared secrets. Unless otherwise specified,
 it is defined as:
 
-$H6(x, E, P_s, P_r, extra) = CH(prefix \parallel x \parallel E \parallel P_s \parallel P_r \parallel len(extra) \parallel extra)$
+$H6(x, E, P_s, P_r, extra) = H(prefix \parallel x \parallel E \parallel P_s \parallel P_r \parallel len(extra) \parallel extra)$
 
-- $CH$: The specified cryptographic hash function (e.g., SHA-512, BLAKE2b-512).
+- $H$: The specified cryptographic hash function (e.g., SHA-512, BLAKE2b-512).
 - $prefix$: A ciphersuite-specific byte string (e.g., `COCKTAIL-DKG-Ed25519-SHA512-H6`).
 - $x$: The concatenation of two ECDH shared secrets: $S^{(e)}$ (ephemeral-to-static) and $S^{(d)}$ (static-to-static).
 - $E$: The sender's ephemeral public key.
@@ -478,32 +682,219 @@ $H6(x, E, P_s, P_r, extra) = CH(prefix \parallel x \parallel E \parallel P_s \pa
 
 The output of $H6$ is used to derive the key and nonce for the AEAD.
 
+### ECDH Shared-Secret Encoding
+
+Each ECDH shared secret $S = s \cdot P$ (the scalar-mult result that is fed into $H6$ as part of
+$x = S^{(e)} \parallel S^{(d)}$) is encoded as a fixed-length byte string per the ciphersuite, so that the
+concatenation $x$ is unambiguously parsed and reproducible across implementations:
+
+| Ciphersuite                     | ECDH encoding of $S = s \cdot P$                                                                                      | Size |
+|---------------------------------|-----------------------------------------------------------------------------------------------------------------------|------|
+| COCKTAIL(Ed25519, SHA-512)      | Canonical Ristretto255 encoding of $S$ ([RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2)) | 32 B |
+| COCKTAIL(Ristretto255, SHA-512) | Canonical Ristretto255 encoding of $S$ ([RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2)) | 32 B |
+| COCKTAIL(Ed448, SHAKE256)       | RFC 8032 compressed Ed448 encoding of $S$                                                                             | 57 B |
+| COCKTAIL(P-256, SHA-256)        | SEC1 compressed point encoding of $S$                                                                                 | 33 B |
+| COCKTAIL(secp256k1, SHA-256)    | SEC1 compressed point encoding of $S$                                                                                 | 33 B |
+| COCKTAIL(JubJub, BLAKE2b-512)   | ZIP-0312 `SerializeElement` of $S$ (32-byte little-endian, y-parity)                                                  | 32 B |
+| COCKTAIL(Pallas, BLAKE2b-512)   | Halo2/Orchard compressed encoding of $S$ (32-byte little-endian, y-parity)                                            | 32 B |
+
+For **Curve25519-family ciphersuites** (COCKTAIL(Ed25519, SHA-512), COCKTAIL(Ristretto255, SHA-512)), the ECDH
+shared secret is the canonical 32-byte Ristretto255 encoding of $S = s \cdot P$ as defined in [RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2).
+Both ciphersuites operate internally over Ristretto255 (see
+[Working with curves with small subgroups](#working-with-curves-with-small-subgroups)) and therefore produce
+byte-identical ECDH shared secrets for equal scalar/point inputs; the ciphersuites are domain-separated only via
+their distinct $H6$, $H7$, and nonce prefixes.
+
+For **Ed448 ciphersuites** (COCKTAIL(Ed448, SHAKE256)), the ECDH shared secret is the 57-byte RFC 8032
+compressed Ed448 encoding of $S = s \cdot P$. Because all decoded protocol points are required to be non-identity
+prime-order subgroup points, $S$ is computed inside the prime-order subgroup and has a unique compressed Ed448
+encoding. Decaf448-internal implementations use the deterministic Decaf448-to-Ed448 output mapping defined in the
+COCKTAIL(Ed448, SHAKE256) ciphersuite definition before feeding $S$ into $H6$.
+
+For **Weierstrass-curve ciphersuites** (COCKTAIL(P-256, SHA-256), COCKTAIL(secp256k1, SHA-256)), the ECDH shared
+secret is the SEC1 compressed encoding of $S = s \cdot P$: a one-byte tag $\{0x02, 0x03\}$ indicating the parity
+of $S$'s $y$-coordinate, followed by the 32-byte big-endian encoding of $S$'s $x$-coordinate.
+
+For **Zcash-family ciphersuites** (COCKTAIL(JubJub, BLAKE2b-512), COCKTAIL(Pallas, BLAKE2b-512)), the ECDH
+shared secret is the standard Zcash compressed encoding of $S$, with conventions that differ between JubJub and
+Pallas:
+
+- **JubJub** (a twisted Edwards curve): use the Edwards-style 32-byte encoding defined by
+  [ZIP-0312](https://zips.z.cash/zip-0312) (`repr_J` / `SerializeElement`), which encodes the affine
+  $y$-coordinate of $S$ as a 32-byte little-endian integer with the sign bit of $x$ packed into the high bit of
+  the encoded $y$. This is the same encoding used for Jubjub elements throughout Zcash Sapling.
+- **Pallas** (a short-Weierstrass curve on the Pasta cycle): use the Halo2/Orchard `to_bytes` convention, which
+  encodes the affine $x$-coordinate of $S$ as a 32-byte little-endian integer with the sign bit of $y$ packed
+  into the high bit of the encoded $x$.
+
+Both are 32-byte canonical encodings; implementations **MUST** use the curve-appropriate convention and **MUST
+NOT** confuse them.
+
+In every case, the encoding **MUST** be canonical (a single byte representation per element); non-canonical
+encodings **MUST** be rejected by the recipient on decode of $S$ when $S$ is exchanged outside this protocol.
+Within COCKTAIL-DKG itself, each side computes its own $S$ locally and encodes it deterministically, so the
+encoded value is byte-identical on the sender and recipient sides by construction.
+
 ### Ciphersuite Definitions
 
+Each ciphersuite is identified by a **canonical `ciphersuite_id` string**. The `ciphersuite_id` is
+consensus-critical: it is bound into the session `context`, the canonical transcript $T$, the test-vector
+labeled-hash derivation, and per-implementation domain separation. Implementations **MUST** use the exact
+byte representations below (no whitespace normalization, no case folding, no alternate punctuation); the
+strings are UTF-8 encoded but happen to be pure ASCII.
+
+| Ciphersuite group              | `ciphersuite_id` byte string                                 |
+|--------------------------------|--------------------------------------------------------------|
+| Ed25519 / SHA-512              | `COCKTAIL(Ed25519, SHA-512)`                                 |
+| Ristretto255 / SHA-512         | `COCKTAIL(Ristretto255, SHA-512)`                            |
+| Ed448 / SHAKE256               | `COCKTAIL(Ed448, SHAKE256)`                                  |
+| P-256 / SHA-256                | `COCKTAIL(P-256, SHA-256)`                                   |
+| secp256k1 / SHA-256            | `COCKTAIL(secp256k1, SHA-256)`                               |
+| JubJub / BLAKE2b-512           | `COCKTAIL(JubJub, BLAKE2b-512)`                              |
+| Pallas / BLAKE2b-512           | `COCKTAIL(Pallas, BLAKE2b-512)`                              |
+
+Implementations **MUST** reject any transcript whose `ciphersuite_id` field, which appears as explicit
+length-prefixed bytes at the head of $T$ (see [Round 3: Certification](#round-3-certification)), does not
+exactly match one of the byte strings above. For the session `context`, which under the recommended
+construction is a hash digest over a preimage that includes `ciphersuite_id` rather than the raw
+`ciphersuite_id` bytes, the corresponding check is structural: implementations **MUST** ensure their own
+`context` preimage uses the exact `ciphersuite_id` byte string for the ciphersuite they believe they are
+running, and **MUST** abort if any participant's reconstructed `context` value disagrees with the one they
+themselves derived (cf. [Setup](#setup), where context-agreement is already a MUST). For implementations
+using a non-hashing `context` construction in which `ciphersuite_id` appears as an explicit substring, the
+direct byte-string match above applies.
+
 - **COCKTAIL(Ed25519, SHA-512)**
+  - **Group (mathematical)**: the prime-order subgroup of order $L$ of Edwards25519. Implementations **MAY**
+    realize this group via either of two equivalent strategies: the choice is local and does not affect
+    interoperability, because both produce byte-identical outputs for byte-identical inputs:
+    - **(a) Ristretto255-internal.** Represent group elements as Ristretto255 elements (RFC 9496). All scalar
+      arithmetic and ECDH operations execute over Ristretto255, which mathematically abstracts away Edwards25519's
+      cofactor structure. Inputs received as 32-byte RFC 8032 Ed25519 byte strings are decoded to
+      `CompressedEdwardsY`, decompressed, and the resulting Edwards point is **then** required to be in the
+      prime-order subgroup (see "Input requirements" below); only those prime-order-subgroup points have a
+      meaningful Ristretto255 representative. Outputs for Ed25519 consumers are emitted via the deterministic
+      three-step output mapping defined below.
+    - **(b) Raw-Edwards-with-subgroup-check.** Represent group elements as Edwards25519 points directly. All
+      scalar arithmetic and ECDH operations execute on the prime-order subgroup of order $L$, which is closed
+      under the protocol's operations. All decoded input points **MUST** be checked to be in the prime-order
+      subgroup before use (see "Input requirements" below); raw cofactor-bearing Edwards points are rejected
+      on input. Outputs are emitted via direct RFC 8032 Ed25519 encoding of the resulting prime-order Edwards
+      point.
+
+    Strategies (a) and (b) are byte-equivalent: Ristretto255 is the canonical bijection between the prime-order
+    subgroup of Edwards25519 and the Ristretto255 group, so scalar arithmetic in either form produces the same
+    Edwards point, and the RFC 8032 encoding of that Edwards point is the same in either case. The
+    Ristretto255-internal strategy (a) has the advantage that prime-order safety is structural: non-prime-order
+    elements cannot even be represented as Ristretto255 values, so the subgroup check is implicit; the
+    raw-Edwards strategy (b) is simpler to implement on top of existing Ed25519 libraries but requires explicit
+    subgroup checks on every decoded input.
+
+  - **Input requirements**: regardless of implementation strategy, every decoded Edwards25519 input point
+    (static public keys $P_i$, ephemeral public keys $E_i$, VSS commitment points $C_{i,k}$, Schnorr commitment
+    points $R$) **MUST** be verified to lie in the prime-order subgroup of order $L$. The check is either
+    explicit (multiply by $L$ and assert identity, or use a library-provided `is_torsion_free` predicate) or
+    implicit via the Ristretto255 abstraction (decode failure when the candidate Edwards point is not the
+    canonical Ristretto255 representative). Implementations **MUST** abort on subgroup-check failure.
+
+  - **Output format**: the group public key $Y$ and verification shares $Y_i$ are emitted as 32-byte
+    RFC 8032 Ed25519 compressed point encodings (the affine $y$-coordinate as a 32-byte little-endian integer
+    with the sign bit of $x$ packed into the high bit of the last byte). Strategy (b) implementations encode
+    the result directly. Strategy (a) implementations **MUST** apply the following deterministic three-step
+    output mapping (which produces the same bytes), and **MUST NOT** substitute an implementation-internal
+    Edwards representative or any older cofactor-clearing formula:
+
+    1. Encode the Ristretto255 element $R$ to its canonical 32-byte Ristretto255 encoding per [RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2).
+    2. Decode those 32 bytes per [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1)
+       (the canonical decoding procedure). RFC 9496's decoding returns a specific Edwards point on Edwards25519
+       in the prime-order subgroup of order $q$. This Edwards point is the canonical Ed25519 representative of 
+       $R$ and is uniquely determined by the Ristretto255 byte encoding from step 1.
+    3. Encode that Edwards point as the standard 32-byte [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html) 
+       Ed25519 compressed point encoding: the affine $y$-coordinate written as a 32-byte little-endian integer 
+       with the sign bit of $x$ packed into the high bit of the last byte.
+
+    Because step 1 and step 2 are both canonical and deterministic, two independent implementations that
+    compute the same Ristretto255 element internally (regardless of their internal Edwards representative)
+    will produce byte-identical 32-byte Ed25519 outputs. The generic cofactor-clearing identity discussed in
+    [Working with curves with small subgroups](#working-with-curves-with-small-subgroups) is **not** part of
+    this output lift and **MUST NOT** be substituted for the RFC 9496-based procedure above; the Edwards
+    point returned by [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1) is already
+    in the prime-order subgroup, and using a separate cofactor-clearing step would also fail to pin down a 
+    canonical Edwards representative across implementations.
+
+    Secret shares $x_i$ are scalars and **MUST** be emitted in the 32-byte little-endian RFC 8032 Ed25519
+    scalar encoding without transformation (the numerical scalar is the same as the underlying Ristretto255
+    scalar; only the byte ordering matches RFC 8032's little-endian convention).
   - **`H6` Hash**: SHA-512
-  - **`H6` Prefix**: `COCKTAIL-DKG-Ed25519-SHA512-H6`
+  - **`H6` Prefix**: `COCKTAIL-DKG-Ed25519-SHA512-H6` (distinct from the Ristretto255 ciphersuite below)
   - **Key/Nonce**: The first 32 bytes of the `H6` output are the key, and the next 24 bytes are the nonce.
   - **AEAD**: XChaCha20-Poly1305
 
 - **COCKTAIL(Ristretto255, SHA-512)**
+  - **Group**: Ristretto255 (RFC 9496). All scalar arithmetic, ECDH operations, and outputs (group public key,
+    verification shares) are encoded as Ristretto255 elements. No cross-abstraction lift to raw Ed25519 is
+    performed; this ciphersuite is for consumers that natively use Ristretto255.
   - **`H6` Hash**: SHA-512
-  - **`H6` Prefix**: `COCKTAIL-DKG-Ristretto255-SHA512-H6`
+  - **`H6` Prefix**: `COCKTAIL-DKG-Ristretto255-SHA512-H6` (distinct from the Ed25519 ciphersuite above)
   - **Key/Nonce**: The first 32 bytes of the `H6` output are the key, and the next 24 bytes are the nonce.
   - **AEAD**: XChaCha20-Poly1305
 
 - **COCKTAIL(Ed448, SHAKE256)**
-  - **`H6` Hash**: SHAKE256 (with a 56-byte output)
+  - **Group**: the prime-order subgroup of Edwards448, with RFC 9591 / RFC 8032 encodings. This ciphersuite is
+    intended for interoperability with RFC 9591 `FROST(Ed448, SHAKE256)` key material. Implementations **MAY**
+    realize this group via either of two equivalent strategies:
+    - **(a) Decaf448-internal.** Represent group elements internally as Decaf448 elements (RFC 9496). Received
+      57-byte RFC 8032 Ed448 point encodings are decoded as Edwards448 points, required to be in the prime-order
+      subgroup, and then represented in the Decaf448 quotient. Outputs are emitted via the deterministic output
+      mapping below.
+    - **(b) Raw-Edwards-with-subgroup-check.** Represent group elements as Edwards448 points directly. All decoded
+      input points **MUST** be checked to be in the prime-order subgroup before use. Outputs are emitted via direct
+      RFC 8032 Ed448 encoding of the resulting prime-order Edwards point.
+
+    Strategies (a) and (b) are byte-equivalent for all protocol outputs. The prime-order Edwards448 subgroup maps
+    isomorphically to Decaf448, and the output mapping below projects the Decaf448 result back to that subgroup
+    before RFC 8032 encoding.
+  - **Input requirements**: every decoded Ed448 input point (static public keys $P_i$, ephemeral public keys $E_i$,
+    VSS commitment points $C_{i,k}$, Schnorr commitment points $R$, group public key $Y$, and verification shares
+    $Y_i$ when imported) **MUST** be verified to lie in the prime-order subgroup of order $q$ and **MUST NOT** be
+    the identity. Implementations **MUST** abort on subgroup-check failure. Cofactor clearing alone is not an
+    acceptable substitute for subgroup validation.
+  - **Output format**: the group public key $Y$ and verification shares $Y_i$ are emitted as 57-byte RFC 8032
+    Ed448 compressed point encodings, matching RFC 9591 `SerializeElement`. Strategy (b) implementations encode
+    the result directly. Strategy (a) implementations **MUST** apply the following deterministic output mapping:
+
+    1. Encode the Decaf448 element $D$ to its canonical 56-byte Decaf448 encoding per [RFC 9496 §5.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.2).
+    2. Decode those 56 bytes per [RFC 9496 §5.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.1).
+       RFC 9496's decoding procedure returns a specific internal Edwards448 representative `P = (x, y, 1, t)` 
+       of the Decaf448 element.
+    3. Project that representative into the prime-order Edwards448 subgroup:
+       $P' = [4^{-1} \bmod q] \cdot ([4] \cdot P)$.
+    4. Encode $P'$ as the standard 57-byte RFC 8032 Ed448 compressed point encoding.
+
+    Because steps 1 through 3 are canonical and deterministic, two independent Decaf448-internal implementations
+    that compute the same Decaf448 element will produce byte-identical 57-byte Ed448 outputs in the prime-order
+    subgroup. Plain cofactor clearing $[4] \cdot P$ is **not** this output lift and **MUST NOT** be substituted for
+    the projection above, because it would multiply the prime-order component by 4 rather than recover the RFC
+    9591-compatible subgroup representative.
+  - **Scalar encoding**: 57-byte little-endian scalar encoding, matching RFC 9591 `SerializeScalar`. Encoded scalars
+    **MUST** be canonical values in $[0, q-1]$.
+  - **`H6` Hash**: SHAKE256 invoked at 56-byte output. (SHAKE256 is an XOF; $HashToScalar$ for this ciphersuite
+    invokes SHAKE256 at 114 bytes, which is a separate use of the same primitive. See
+    [Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction).)
   - **`H6` Prefix**: `COCKTAIL-DKG-Ed448-SHAKE256-H6`
-  - **Key/Nonce**: The first 32 bytes of the `H6` output are the key, and the next 24 bytes are the nonce.
+  - **Key/Nonce**: The 56-byte $H6$ output is the key (first 32 bytes) followed by the nonce (next 24 bytes).
   - **AEAD**: XChaCha20-Poly1305
+  - **RFC 9591 compatibility note**: the DKG outputs (group public key $Y$, verification shares $Y_i$, and secret
+    shares $x_i$) use the same raw Ed448 point and scalar encodings as RFC 9591. The additional COCKTAIL-DKG
+    Schnorr signatures used for PoPs and transcript certification remain COCKTAIL-specific and are domain-separated
+    from RFC 9591 signing.
 
 - **COCKTAIL(P-256, SHA-256)**
   - **`H6` Hash**: SHA-256
   - **`H6` Prefix**: `COCKTAIL-DKG-P256-SHA256-H6`
   - **Key/Nonce**: The output of `H6` is used as an input key material.
-    - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
-    - The nonce shall the first 24 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+    - The key **MUST** be `SHA-256("COCKTAIL-derive-key" || IKM)` (the full 32-byte SHA-256 output).
+    - The nonce **MUST** be the first 24 bytes of `SHA-256("COCKTAIL-derive-nonce" || IKM)`.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(secp256k1, SHA-256)**
@@ -512,28 +903,37 @@ The output of $H6$ is used to derive the key and nonce for the AEAD.
     [Differences from ChillDKG](#differences-from-chilldkg) below).
   - **`H6` Definition**: A BIP-340-style tagged hash with the tag `COCKTAIL-DKG/H6`.
     The message is $x \parallel E \parallel P_s \parallel P_r \parallel extra$.
+    Note that this deviates from the default `H6` formula above by omitting `len(extra)`. This is safe in COCKTAIL-DKG
+    because $extra$ is always the session `context` and is fixed across every $H6$ call within a session, so no
+    parsing ambiguity can arise. Applications **MUST NOT** repurpose this $H6$ with variable-length `extra` inputs
+    without re-introducing length prefixing.
   - **Key/Nonce**: The output of `H6` is used as an input key material.
-    - The key shall the SHA256 of the string `COCKTAIL-derive-key` followed by the IKM.
-    - The nonce shall the first 24 bytes SHA256 of the string `COCKTAIL-derive-nonce` followed by the IKM.
+    - The key **MUST** be `SHA-256("COCKTAIL-derive-key" || IKM)` (the full 32-byte SHA-256 output).
+    - The nonce **MUST** be the first 24 bytes of `SHA-256("COCKTAIL-derive-nonce" || IKM)`.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
   - **Bitcoin Taproot Warning**: When using this ciphersuite for Bitcoin Taproot outputs, applications **MUST** be aware
-    that a malicious participant could attempt to embed a hidden Taproot script path commitment in the threshold public
-    key. Applications intending to use the group public key $Y$ as a Taproot output **SHOULD** apply an additional
-    unspendable script path tweak (as described in ChillDKG) or use the key only for key-path spending with appropriate
-    safeguards. This consideration is specific to Bitcoin Taproot and does not apply to other uses of this ciphersuite.
+    that a malicious participant could attempt to embed a hidden Taproot script-path commitment in the threshold public
+    key. Applications intending to use the group public key $Y$ as a Taproot output **MUST** apply the BIP-341
+    unspendable-script-path tweak (as described in ChillDKG) when constructing the Taproot output key from $Y$. This
+    is the only mitigation specified by this document; an operational policy of "only spend via the key path" is
+    **not** sufficient, because once $Y$ is published as the Taproot output key, an attacker who knows the hidden
+    script path can spend via that path without the operator's involvement. This consideration is specific to Bitcoin
+    Taproot and does not apply to other uses of this ciphersuite.
 
 - **COCKTAIL(JubJub, BLAKE2b-512)**
   - **Note**: Compatible with [ZIP-0312](https://zips.z.cash/zip-0312#ciphersuites).
-  - **`H6` Hash**: BLAKE2b-512 (with a 56-byte output)
+  - **`H6` Hash**: BLAKE2b-512 (full 64-byte output; $H6$ uses the first 56 bytes).
   - **`H6` Prefix**: `COCKTAIL-DKG-JubJub-BLAKE2b-H6`
   - **Key/Nonce**: The first 32 bytes of the `H6` output are the key, and the next 24 bytes are the nonce.
+    The trailing 8 bytes of the BLAKE2b-512 output are unused for $H6$.
   - **AEAD**: XChaCha20-Poly1305
 
 - **COCKTAIL(Pallas, BLAKE2b-512)**
   - **Note**: Compatible with [ZIP-0312](https://zips.z.cash/zip-0312#ciphersuites).
-  - **`H6` Hash**: BLAKE2b-512 (with a 56-byte output)
+  - **`H6` Hash**: BLAKE2b-512 (full 64-byte output; $H6$ uses the first 56 bytes).
   - **`H6` Prefix**: `COCKTAIL-DKG-Pallas-BLAKE2b-H6`
   - **Key/Nonce**: The first 32 bytes of the `H6` output are the key, and the next 24 bytes are the nonce.
+    The trailing 8 bytes of the BLAKE2b-512 output are unused for $H6$.
   - **AEAD**: XChaCha20-Poly1305
 
 ### Schnorr Signature Scheme
@@ -548,65 +948,156 @@ A signature consists of two components:
 - $R$: A compressed elliptic curve point (the commitment)
 - $z$: A scalar (the response)
 
-The signature is encoded as the concatenation of the compressed point encoding of $R$ followed by the scalar encoding 
-of $z$. The total signature size is the point size plus the scalar size (e.g., 64 bytes for Ristretto255/Ed25519, 65 
-bytes for P-256/secp256k1).
+The signature is encoded as the concatenation of the compressed point encoding of $R$ followed by the scalar encoding
+of $z$. The total signature size is the point size plus the scalar size for the ciphersuite's group:
 
-#### Schnorr Sign Algorithm (Prove Possession)
+| Ciphersuite group              | Point size | Scalar size | Signature size |
+|--------------------------------|-----------:|------------:|---------------:|
+| Ristretto255 / Ed25519         | 32 bytes   | 32 bytes    | 64 bytes       |
+| Ed448                          | 57 bytes   | 57 bytes    | 114 bytes      |
+| P-256 / secp256k1              | 33 bytes   | 32 bytes    | 65 bytes       |
+| JubJub                         | 32 bytes   | 32 bytes    | 64 bytes       |
+| Pallas                         | 32 bytes   | 32 bytes    | 64 bytes       |
+
+#### Schnorr Sign Algorithm
 
 Given a secret key $sk$ (a scalar) and a message $m$ (a byte string):
 
 1. Compute the public key: $pk = sk * B$
-2. Compute a deterministic nonce: $k = H(sk \parallel m)$ reduced to a scalar
-3. Compute the commitment: $R = k * B$
-4. Compute the challenge: $c = H(R \parallel pk \parallel m)$ reduced to a scalar
-5. Compute the response: $z = k + c * sk$
-6. Return the signature $(R, z)$
+2. Compute a deterministic nonce: $k = HashToScalar(prefix_{nonce} \parallel encode(sk) \parallel m)$
+3. **Reject $k = 0$**: if $k = 0$ (probability $\approx 2^{-\lceil \log_2 q \rceil}$, negligible),
+   implementations **MUST** abort signing immediately and **MUST NOT** reveal any further derived value. A $k = 0$
+   would yield $R = O$ (the identity), which the `Verify` algorithm rejects at step 2, but the response
+   $z = k + c \cdot sk = c \cdot sk$ would also be computable from the signer's outputs and would directly leak
+   $sk$ to any observer who saw $z$. Since the nonce is deterministic, a signer who hits this branch on a given
+   $(sk, m)$ pair **MUST NOT** simply retry with the same inputs; this is treated as an unrecoverable signing
+   failure for this $(sk, m)$ pair. Applications **MAY** introduce an additional disambiguator (e.g., a 32-byte
+   counter mixed into $prefix_{nonce}$) as an out-of-band recovery mechanism, but the base scheme aborts.
+4. Compute the commitment: $R = k * B$
+5. Compute the challenge: $c = HashToScalar(prefix_{H7} \parallel R \parallel pk \parallel m)$
+6. Compute the response: $z = k + c \cdot sk \bmod q$
+7. Return the signature $(R, z)$
 
 Where:
 
-- $H$ is the ciphersuite's hash function (SHA-512 for Ed25519/Ristretto255, SHA-256 for P-256/secp256k1)
-- The hash output is reduced to a scalar using wide reduction (mod $q$) for 64-byte hashes, or direct reduction for 32-byte hashes
-- $B$ is the generator point of the elliptic curve group
+- $prefix_{nonce}$ and $prefix_{H7}$ are ciphersuite-specific UTF-8 byte strings (e.g.,
+  `COCKTAIL-DKG-Ed25519-SHA512-NONCE` and `COCKTAIL-DKG-Ed25519-SHA512-H7`). They provide domain separation between
+  COCKTAIL-DKG signatures and any standard signature scheme that uses the ciphersuite's underlying hash, so that
+  COCKTAIL-DKG signatures cannot be re-verified by a verifier of the ciphersuite's underlying signature scheme
+  (e.g., EdDSA, BIP-340).
+- $encode(\cdot)$ uses the ciphersuite's compressed point encoding for points and the ciphersuite's scalar encoding
+  for scalars.
+- $B$ is the generator point of the elliptic curve group.
+- $HashToScalar$ is defined per ciphersuite in [Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction)
+  and has a fully specified, deterministic structure per ciphersuite. For most ciphersuites this is a single
+  hash invocation followed by wide modular reduction; for P-256 specifically, $HashToScalar$ is a 48-byte
+  expansion via two SHA-256 invocations with distinct one-byte prefixes (see the P-256 row of
+  [Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction)), and for secp256k1 it is a single
+  SHA-256 invocation reduced modulo $q$ (BIP-340 conventions). In every case, the byte string passed into
+  $HashToScalar$ is consumed by the ciphersuite's defined hash structure exactly once before reduction; no
+  additional outer/inner hash wrap is applied by `Sign` or `Verify`.
 
-#### Schnorr Verify Algorithm (Verify Proof of Possession)
+#### Schnorr Verify Algorithm
 
 Given a signature $(R, z)$, a public key $pk$, and a message $m$:
 
-1. Compute the challenge: $c = H(R \parallel pk \parallel m)$ reduced to a scalar
-2. Compute the left-hand side: $lhs = z * B$
-3. Compute the right-hand side: $rhs = R + c * pk$
-4. Return `true` if $lhs = rhs$, otherwise return `false`
+1. Reject if $z$ does not decode to a canonical scalar in $[0, q-1]$.
+2. Reject if $R$ does not decode to a valid prime-order subgroup point that is not the identity.
+3. Compute the challenge: $c = HashToScalar(prefix_{H7} \parallel R \parallel pk \parallel m)$
+4. Compute the left-hand side: $lhs = z * B$
+5. Compute the right-hand side: $rhs = R + c * pk$
+6. Return `true` if $lhs = rhs$, otherwise return `false`
+
+#### Schnorr Prefix Strings
+
+The ciphersuite-specific values for $prefix_{H7}$ and $prefix_{nonce}$ are:
+
+| Ciphersuite                     | $prefix_{H7}$                         | $prefix_{nonce}$                         |
+|---------------------------------|---------------------------------------|------------------------------------------|
+| COCKTAIL(Ed25519, SHA-512)      | `COCKTAIL-DKG-Ed25519-SHA512-H7`      | `COCKTAIL-DKG-Ed25519-SHA512-NONCE`      |
+| COCKTAIL(Ristretto255, SHA-512) | `COCKTAIL-DKG-Ristretto255-SHA512-H7` | `COCKTAIL-DKG-Ristretto255-SHA512-NONCE` |
+| COCKTAIL(Ed448, SHAKE256)       | `COCKTAIL-DKG-Ed448-SHAKE256-H7`      | `COCKTAIL-DKG-Ed448-SHAKE256-NONCE`      |
+| COCKTAIL(P-256, SHA-256)        | `COCKTAIL-DKG-P256-SHA256-H7`         | `COCKTAIL-DKG-P256-SHA256-NONCE`         |
+| COCKTAIL(secp256k1, SHA-256)    | (BIP-340 tagged hash; see below)      | (BIP-340 tagged hash; see below)         |
+| COCKTAIL(JubJub, BLAKE2b-512)   | `COCKTAIL-DKG-JubJub-BLAKE2b-H7`      | `COCKTAIL-DKG-JubJub-BLAKE2b-NONCE`      |
+| COCKTAIL(Pallas, BLAKE2b-512)   | `COCKTAIL-DKG-Pallas-BLAKE2b-H7`      | `COCKTAIL-DKG-Pallas-BLAKE2b-NONCE`      |
+
+For the secp256k1 ciphersuite, the nonce and challenge derivations use BIP-340 tagged hashes directly and
+**MUST** override (not wrap) the generic `Sign` step 2 and step 5 formulas above. The $k = 0$ rejection rule from
+`Sign` step 3 also applies (and aborts under the same conditions):
+
+- **Nonce** (replaces step 2): $k = OS2IP(taggedHash(\text{`COCKTAIL-DKG/NONCE'}, encode(sk) \parallel m)) \bmod q$.
+- **Challenge** (replaces step 5): $c = OS2IP(taggedHash(\text{`COCKTAIL-DKG/H7'}, R \parallel pk \parallel m)) \bmod q$.
+
+Where $taggedHash(tag, msg) = SHA256(SHA256(tag) \parallel SHA256(tag) \parallel msg)$ as defined in BIP-340, $tag$ is
+encoded as its UTF-8 byte representation, $encode(sk)$ is the 32-byte big-endian secp256k1 scalar encoding, and
+$OS2IP$ interprets the 32-byte tagged-hash output as a big-endian integer. The same `Verify` step 3 substitution
+applies. The resulting scalar bias is approximately $2^{-128}$ (specifically $\approx 1.27 \cdot 2^{-128}$) for
+secp256k1 because $q \approx 2^{256} - 2^{128}$.
 
 #### Schnorr Hash-to-Scalar Reduction
 
-For ciphersuites using SHA-512 (Ed25519, Ristretto255), the 64-byte hash output is reduced to a scalar using
-wide modular reduction (reducing a 512-bit integer modulo the group order $q$).
+$HashToScalar$ takes a byte string $input$ and reduces it to a scalar in $[0, q-1]$. The construction depends on the
+ciphersuite's hash output length and on the ratio between $2^{8L}$ (where $L$ is the hash output byte-length) and $q$:
 
-For ciphersuites using SHA-256 (P-256, secp256k1), the 32-byte hash output is reduced to a scalar by interpreting
-the hash as a big-endian integer and reducing modulo the group order $q$.
+- **SHA-512 (Ed25519, Ristretto255)**: invoke SHA-512 on $input$ to produce 64 bytes; interpret the bytes as the
+  ciphersuite's scalar endianness and apply wide reduction modulo $q$. Bias $\le 2^{-128}$.
+- **SHAKE256 (Ed448)**: invoke SHAKE256 on $input$ with a 114-byte output (chosen so the input to the
+  reduction is at least $\lceil \log_2 q \rceil + 128$ bits); interpret as little-endian and apply wide reduction
+  modulo $q$. Bias $\le 2^{-128}$. Note that SHAKE256 is an extendable-output function; H6 invokes SHAKE256 at
+  56 bytes for AEAD key/nonce derivation, while $HashToScalar$ invokes SHAKE256 at 114 bytes. These are independent
+  uses of the same primitive at different output lengths.
+- **BLAKE2b-512 (JubJub, Pallas)**: invoke BLAKE2b-512 on $input$ to produce 64 bytes; interpret as little-endian and
+  apply wide reduction modulo $q$. Bias $\le 2^{-128}$.
+- **SHA-256, P-256**: P-256's order is $q \approx 2^{256} - 2^{224}$, so direct mod-$q$ reduction of a 32-byte hash
+  has statistical distance from uniform of $\approx 2^{-32}$, which is too large for a 128-bit security target.
+  $HashToScalar$ for P-256 therefore expands to 48 bytes before reduction:
+  $HashToScalar(input) = OS2IP\bigl(SHA256(\mathtt{0x01} \parallel input) \parallel SHA256(\mathtt{0x02} \parallel input)[0{:}16]\bigr) \bmod q$,
+  where $OS2IP$ interprets the 48-byte string as a big-endian integer. Bias $\le 2^{-128}$. This matches the spirit
+  of `hash_to_field` from RFC 9380 used by RFC 9591's FROST(P-256, SHA-256).
+- **SHA-256, secp256k1**: secp256k1's order is $q \approx 2^{256} - 2^{128}$, so direct mod-$q$ reduction of a
+  32-byte hash has bias $\approx 1.27 \cdot 2^{-128}$ (i.e., the leftover $2^{256} \bmod q$ divided by $2^{256}$).
+  $HashToScalar(input) = OS2IP(SHA256(input)) \bmod q$, interpreted big-endian. This matches BIP-340 conventions
+  and is acceptable for 128-bit security targets.
 
 #### Schnorr Security Notes
 
-- The deterministic nonce generation ($k = H(sk \parallel m)$) prevents nonce-reuse attacks that would leak the 
-  secret key.
-- The challenge includes $R$, $pk$, and the full message, binding the signature to all inputs.
-- This signature scheme is NOT the same as EdDSA (RFC 8032), ECDSA, or BIP-340. Implementations **MUST** use the
-  scheme specified here to ensure interoperability with COCKTAIL-DKG.
+- **Domain separation from underlying signatures**: The challenge is computed by hashing $prefix_{H7}$ together
+  with $R \parallel pk \parallel m$ via $HashToScalar$, rather than hashing $R \parallel pk \parallel m$ alone with
+  the ciphersuite's plain hash. Without the prefix, the COCKTAIL Proof of Possession challenge $H(R \parallel pk
+  \parallel m)$ would be byte-identical to an EdDSA challenge over the same inputs, and an off-the-shelf EdDSA
+  verifier would accept the signature. Implementations **MUST** include $prefix_{H7}$ as the first bytes of the
+  challenge input (or, for secp256k1, use the BIP-340 tagged-hash construction defined above).
+- **Deterministic nonce**: The nonce $k$ is derived deterministically from $sk$ and $m$ via a tagged prefix, which
+  prevents nonce-reuse attacks across distinct messages.
+- **Fault-injection caveat**: Pure deterministic nonces are vulnerable to fault-injection adversaries who can induce
+  two signatures over the same message with different internal state. Implementations operating in environments where
+  physical fault injection is plausible **SHOULD** mix in fresh randomness (e.g., feed an additional 32-byte random
+  string into the nonce hash input).
+- **Public-key binding**: The challenge includes $R$, $pk$, and the full message $m$, binding the signature to all
+  inputs.
+- **Not RFC-compatible**: This signature scheme is NOT the same as EdDSA (RFC 8032), ECDSA, or BIP-340.
+  Implementations **MUST** use the scheme specified here to ensure interoperability with COCKTAIL-DKG.
 
 ## Security Considerations
 
-- **Coordinator Role**: The coordinator is trusted for availability and to correctly broadcast messages, but is not
-  trusted with the confidentiality of any secret data. A malicious coordinator can disrupt the protocol by refusing to
-  broadcast messages or by sending different messages to different participants, but it cannot learn the secret shares
-  or the final group secret key. The final certification round (Round 3) is designed to detect such split-view attacks.
+- **Coordinator Role**: The coordinator is **not trusted for any security property**. The protocol relies on the
+  coordinator only for **liveness** (i.e., for messages to make forward progress through the rounds) and even
+  this is a best-effort assumption: a misbehaving coordinator can degrade availability (by refusing to broadcast)
+  or attempt a split-view attack (by sending different messages to different participants), but neither breaks
+  any cryptographic property of the protocol. A malicious coordinator cannot learn participants' secret shares or
+  the final group secret key (confidentiality), cannot forge a successful protocol run (soundness), and cannot
+  cause honest participants to accept divergent outputs (consistency): the CertEq phase in Round 3 detects any
+  split-view, and recovery procedures bind to the agreed-upon transcript. Implementers **MUST NOT** treat the
+  coordinator as having any privileged role beyond message routing.
 - **Proof of Possession (PoP)**: The PoP in Round 1 prevents a malicious participant from performing a rogue key attack.
   By signing their commitment $C_{i,0}$ with the corresponding secret $a_{i,0}$, each participant proves they actually
   know the secret key they are contributing. Without this, an attacker could contribute a public key for which they
   don't know the private key, leading to an unusable group key. The PoP message includes the context string (which
-  contains all participant public keys), the full VSS commitment $C_i$, and the ephemeral key $E_i$. The participant
-  index $i$ is not explicitly included in the PoP message because it is implicitly bound through the context string
-  (which includes all $P_j$) and through the position of the message in the broadcast.
+  cryptographically binds the ordered participant set $(P_1, \ldots, P_n)$ per the Setup MUSTs), the full VSS
+  commitment $C_i$, and the ephemeral key $E_i$. The participant index $i$ is not explicitly included in the PoP
+  message because it is implicitly bound through the context string (which binds all $P_j$ in order) and through
+  the position of the message in the broadcast.
 - **Verifiable Secret Sharing (VSS)**: Feldman's VSS scheme ensures that even if a participant is malicious and sends
   incorrect shares, they will be caught. The VSS verification check in Round 2 (step 3.4) allows each participant to
   verify that the share they received is consistent with the public commitment. This prevents a malicious participant
@@ -618,18 +1109,22 @@ the hash as a big-endian integer and reducing modulo the group order $q$.
   from tampering with the shares. The encryption key is derived using two ECDH shared secrets: one from the sender's
   ephemeral key with the recipient's static key ($S^{(e)}_{i,j} = e_i * P_j$), and one from the sender's static key
   with the recipient's static key ($S^{(d)}_{i,j} = d_i * P_j$). This approach provides:
-  - **Forward secrecy**: Compromise of long-term keys does not reveal past session secrets, due to the ephemeral 
-    component.
-  - **Robust blame-finding**: If decryption fails, the recipient can prove the sender misbehaved using only public
-    information. Since both parties can independently compute both ECDH shared secrets (the recipient computes
-    $d_i * E_j$ and $d_i * P_j$), a third party with access to the sender's public keys $E_j$ and $P_j$ can verify
-    blame claims without requiring the recipient to reveal their private key.
+  - **Limited post-compromise protection**: The ephemeral component prevents compromise of the sender's long-term
+    static key alone from decrypting past ciphertexts after the sender erases $e_i$. This is not full forward secrecy:
+    compromise of a recipient's static key $d_j$, together with the transcript and archived ciphertexts, allows recovery
+    of that recipient's historical shares.
+  - **Operational blame-finding**: If decryption fails, the recipient can identify which sender's ciphertext failed
+    locally. This failure is not publicly verifiable from public keys alone. Public dispute resolution requires
+    selecting one of the options enumerated in
+    [Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript): Options 1 and 2 provide only
+    ciphertext binding (which ciphertext was sent), while Option 3 provides public verification of the decryption
+    outcome itself.
   - **Sender authentication**: The inclusion of the static-to-static ECDH binds the ciphertext to the sender's identity,
     preventing an attacker from replaying or modifying ciphertexts without detection.
 - **Cofactor Security**: As noted in the [working with curves with small subgroups](#working-with-curves-with-small-subgroups)
   section, curves like Ed25519 and Ed448 have small cofactors. It is critical that implementations use prime-order group
-  abstractions like Ristretto255 and Decaf448 to prevent small subgroup attacks, where an attacker could submit a 
-  low-order point to leak information.
+  abstractions where available, or enforce explicit prime-order subgroup validation on every decoded point, to prevent
+  small subgroup attacks where an attacker could submit a low-order point to leak information.
 - **Participant Authentication**: Throughout the protocol, participants are authenticated to each other via their
   long-term static key pairs. The pairwise ECDH key agreement used to encrypt shares in Round 1 provides deniable
   authentication; only the owner of the corresponding static private key can derive the correct symmetric key to decrypt
@@ -651,17 +1146,67 @@ efficient arithmetic. The downside to these curves is that they have an order wh
 small value $h$ and large prime $q$. If an attacker can select a point $P$ of order $h$ they can potentially leak
 partial information about the secret scalars from the output of $[s] P$. (They specifically learn $s \bmod h$).
 
-Two curves in these families we consider are ed25519 with $h = 8$ and edwards448 with $h = 4$. When these curves are
-required, use the safe abstractions (Ristretto255 and Decaf448 respectively) which internally handle cofactor clearing.
+Curves in these families we consider include ed25519 with $h = 8$, edwards448 with $h = 4$, and JubJub with $h = 8$.
+For Ed25519, COCKTAIL-DKG uses Ristretto255 internally and emits Ed25519 outputs via a canonical lift. For Ed448,
+COCKTAIL-DKG emits raw RFC 9591-compatible Ed448 outputs, but implementations may still use Decaf448 internally as
+an implementation strategy as long as they apply the specified Decaf448-to-Ed448 output mapping and enforce the same
+prime-order input validation. In all cases, decoded protocol points on cofactor-bearing curves **MUST** be rejected
+unless they are valid, non-identity, prime-order subgroup points.
 
-However, for some use cases, ed25519 and edwards448 might be used directly. Here, users MUST ensure all points are in
-the prime order subgroup q through proper cofactor clearing.
+The "cofactor clearing then check for identity" shortcut ($[h] \cdot P \stackrel{?}{=} O$) tests only that $P$ is
+not a small-subgroup point and does **NOT** establish prime-order subgroup membership for mixed-order points. It
+**MUST NOT** be used as a substitute for explicit subgroup-membership checks. Separately, cofactor clearing on input
+does not define a canonical raw-curve output representative; any ciphersuite that uses an internal prime-order
+abstraction but emits raw curve encodings must specify its output lift explicitly, as COCKTAIL-DKG does for Ed25519
+and Ed448.
 
-In the case that a protocol requires both the abstractions (Ristretto255 and Decaf448) as well as points on the curves
-themselves, then the lifted points must have their potential cofactors cleared. This should be done by computing
-$P^{\prime} = [1/h] [h] P$ where $P$ is a point in the group abstraction. The point $P^{\prime}$ can then be safely
-used on the curve itself as it will either be a point of order q or when P is the point at infinity, then $P^{\prime}$
-will be too.
+JubJub does not have an analogous prime-order group abstraction in widespread use. For COCKTAIL-DKG implementations
+using the JubJub ciphersuite, validating that a decoded byte string represents a valid curve point is **not**
+sufficient. All decoded protocol points (static public keys $P_i$, ephemeral public keys $E_i$, VSS commitment points
+$C_{i,k}$, and Schnorr commitment points $R$) **MUST** be verified to lie in the prime-order subgroup of order $q$
+by an explicit subgroup-membership check: compute $[q] \cdot P$ and abort if the result is not the identity element.
+The "cofactor clearing then check for identity" alternative ($[h] \cdot P \stackrel{?}{=} O$) tests only that $P$ is
+not a small-subgroup point and does **NOT** establish prime-order subgroup membership for mixed-order points; it
+**MUST NOT** be used as a substitute for the explicit subgroup-membership check. Raw cofactor-8 JubJub points that
+fail the subgroup check **MUST NOT** be accepted as protocol points.
+
+COCKTAIL-DKG handles abstractions and underlying raw curves on a per-ciphersuite basis:
+
+- **COCKTAIL(Ristretto255, SHA-512)**: operates entirely within the Ristretto255 abstraction and emits Ristretto255
+  outputs. No lift to raw Ed25519 is performed.
+- **COCKTAIL(Ed25519, SHA-512)**: operates over Ristretto255 internally (for cofactor safety), but emits Ed25519
+  outputs. The cross-abstraction lift at output time is performed by the deterministic three-step output mapping 
+  defined in the [COCKTAIL(Ed25519, SHA-512) ciphersuite definition](#ciphersuite-definitions); namely, encode the
+  Ristretto255 element per [RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2),
+  decode it per [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1) to obtain the
+  canonical Edwards point in the prime-order subgroup, and encode that Edwards point per RFC 8032.
+  
+  The generic cofactor-clearing identity discussed in this section is **not** part of that mapping and **MUST NOT** 
+  be used to emit Ed25519 outputs; the [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1)
+  procedure already returns a prime-order-subgroup point, so the cofactor-clearing step is redundant and would also
+  fail to pin down the canonical Edwards representative (different implementations would emit different bytes for 
+  the same Ristretto255 element).
+
+  Secret shares $x_i$ are scalars in $[0, q-1]$ and are emitted in the Ed25519 scalar encoding without
+  further transformation.
+- **COCKTAIL(Ed448, SHAKE256)**: may operate over Decaf448 internally (for cofactor safety), but emits Ed448
+  outputs. The cross-abstraction lift at output time is performed by the deterministic output mapping defined in
+  the [COCKTAIL(Ed448, SHAKE256) ciphersuite definition](#ciphersuite-definitions): encode the Decaf448 element
+  per [RFC 9496 §5.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.2), decode it per 
+  [RFC 9496 §5.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.1) to obtain a canonical Edwards448
+  representative, project that representative into the prime-order subgroup as 
+  $P' = [4^{-1} \bmod q] \cdot ([4] \cdot P)$, and encode $P'$ per [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html).
+  Raw-Edwards implementations instead perform explicit subgroup checks on every decoded point and encode
+  outputs directly.
+- For all ciphersuites, the H6 and H7/nonce prefixes are ciphersuite-specific (e.g.,
+  `COCKTAIL-DKG-Ed25519-SHA512-H6` vs `COCKTAIL-DKG-Ristretto255-SHA512-H6`), so the Schnorr signatures, AEAD
+  encryption keys, and transcripts produced by COCKTAIL(Ed25519) and COCKTAIL(Ristretto255) are domain-separated
+  even though their internal arithmetic operates over the same prime-order group.
+
+Implementations that need to interoperate with separate protocols using raw curves not covered by the lift rules
+above **MUST** treat any such cross-abstraction lift as out-of-band and specify the canonical-representative
+selection there; cofactor clearing alone is not sufficient when the raw curve is not directly addressed by this
+document.
 
 ### Optional Application Payloads
 
@@ -716,20 +1261,17 @@ $S^{(e)}_{i,j} = e_i * P_j$ and $S^{(d)}_{i,j} = d_i * P_j$
 
 **Why this matters:**
 
-Our approach significantly improves blame-finding when decryption fails. 
+Including the sender's static key in the derivation binds each ciphertext to the sender and recipient identities, in
+addition to the sender's ephemeral key. This prevents ciphertexts from being replayed across senders, recipients, or
+sessions with the same ephemeral public key and context.
 
-With ChillDKG's ephemeral-only approach, if participant $i$ claims that participant $j$'s ciphertext failed to decrypt,
-proving this claim requires $i$ to demonstrate they correctly computed the ECDH shared secret. However, since only $j$
-knows the ephemeral secret $e_j$, participant $i$ cannot prove to a third party that they used the correct shared secret
-without revealing their own long-term private key $d_i$.
-
-With COCKTAIL-DKG's  approach, the encryption key depends on both parties' long-term public keys, which are
-publicly known. A third party can verify that participant $i$ correctly derived the key by checking that:
-
-- The ephemeral component matches: $d_i * E_j$ (verifiable if $i$ reveals the result)
-- The static component matches: This is deterministic from public keys $P_i$ and $P_j$
-
-This enables more robust blame attribution without requiring participants to reveal their long-term secrets.
+This change does not make decryption-failure blame publicly verifiable by itself. A third party cannot compute or
+verify Diffie-Hellman shared secrets from public keys alone without an additional proof mechanism. The full set
+of options for an application that needs public resolution of decryption disputes is documented in
+[Differences from ChillDKG](#5-ciphertexts-not-bound-by-the-transcript) and is divided there into two
+sub-properties (ciphertext binding vs public decryption verification); the static-static ECDH binding introduced
+in this section only prevents *ciphertext replay* across senders/recipients/sessions, which is a complementary
+property to either binding or decryption verification.
 
 #### 2. Extended H6 Function
 
@@ -741,6 +1283,163 @@ public key $P_r$: $H6(x, E, P_s, P_r, extra)$ instead of $H6(x, E, P_r, extra)$.
 COCKTAIL-DKG allows optional application-defined data to be included in the encrypted share ciphertexts, which
 ChillDKG does not support.
 
+#### 4. Multi-Ciphersuite Scope (No Taproot Tweak)
+
+ChillDKG is specified only over secp256k1 and additionally specifies a Taproot-safe BIP-341 key tweak that ensures
+the resulting group public key $Y$ is safe to use as a Bitcoin Taproot output (preventing a malicious participant
+from embedding a hidden Taproot script-path commitment).
+
+COCKTAIL-DKG covers seven ciphersuites (most of which are not cryptocurrency-specific and therefore have no Taproot
+analogue) and therefore **does not specify a built-in Taproot tweak**. 
+
+Applications using COCKTAIL(secp256k1, SHA-256) as the input to a Bitcoin Taproot deployment **MUST** apply the
+externally-applied mitigation defined in the [Bitcoin Taproot Warning in the COCKTAIL(secp256k1, SHA-256) ciphersuite definition](#ciphersuite-definitions);
+that warning is the single normative source for the mitigation requirement.
+
+#### 5. Ciphertexts Not Bound by the Transcript
+
+ChillDKG's CertEq transcript binds all participants' encrypted shares so that the success certificate cryptographically
+attests to the exact ciphertexts each participant received, which in turn makes decryption failure blame publicly
+verifiable from the certificate alone.
+
+COCKTAIL-DKG's CertEq transcript binds only the ciphersuite identifier, context, parameters, static public keys, VSS
+commitments, PoPs, ephemeral public keys, and application-specific extension; but **not** the ciphertexts. This is a
+deliberate trade-off in favour of a smaller, simpler transcript and a smaller success certificate. The cost is that
+decryption failures are not publicly verifiable from the certificate alone, because the AEAD verification key 
+$k_{j,i}$ is derived from recipient $i$'s static private key $d_i$ and is therefore not public.
+
+Decryption-failure attribution has two distinct sub-properties:
+
+- **Ciphertext binding:** publicly establishing *which* ciphertext bytes sender $j$ actually addressed to recipient $i$,
+  so that the ciphertext under dispute is unambiguous and non-repudiable.
+- **Public decryption verification:** publicly establishing *whether* that ciphertext does or does not decrypt to a
+  valid share under the key derived from $(d_i, E_j, P_j, P_i, context)$; note $E_j$ (public ephemeral key), not $e_j$
+  (the sender's ephemeral private key, which the recipient does not have).
+
+The options below split along this axis. Applications that need ciphertext binding only (i.e., that are willing to trust
+the recipient's self-attested decryption outcome once the ciphertext is binding) **MUST** select option 1 or option 2.
+Applications that additionally need independent public verification of the decryption outcome itself **MUST** combine 
+option 3 with option 1 or option 2. Option 3 is not, by itself, sufficient because it proves the decryption outcome for 
+*some* claimed ciphertext but does not pin down *which* ciphertext sender $j$ actually addressed to recipient $i$. 
+
+Note that "fully-non-interactive certificate-only" adjudication (i.e., adjudication using only the signed success 
+certificate, with no additional out-of-band material) is only achievable via the combination option 1 + option 3;
+option 2 + option 3 also yields third-party-verifiable blame, but requires an out-of-band republished $msg_{1|j}$
+and its application-layer authentication material in addition to the certificate.
+
+The three options also differ in *when* they apply. Option 1 binds ciphertexts via the success certificate, so it is 
+only available **after** a successful DKG run (e.g., for recovery-time disputes when an archived ciphertext fails 
+decryption). Options 2 and 3 are usable both during an active session (a Round 2 abort where no success certificate
+exists yet) and after a successful run; for active-session disputes, option 1 is not available and applications **MUST**
+rely on option 2, option 3, or some application-level transport authentication described separately.
+
+1. **Commit to ciphertexts via the application-specific extension** *(ciphertext binding only; success-path disputes
+   only).* Place a binding commitment to all $msg_{1|j}$ ciphertexts (e.g., a hash of the participant-ordered
+   concatenation of the framed ciphertexts) in the application-specific extension bytes that feed the transcript.
+   The success certificate then binds the ciphertexts via the signed transcript; an after-the-fact dispute can reference
+   the certificate to fix the ciphertext under dispute. This requires the DKG to have completed successfully 
+   (a certificate to exist) and does **not** by itself let a third party verify the decryption outcome; for that,
+   combine with option 3 or accept the recipient's self-attestation.
+2. **Preserve the original Round 1 messages out-of-band** *(ciphertext binding only; requires an application-level
+   transport-authentication layer).* Each participant durably stores their own $msg_{1|j}$ outside the protocol's
+   required artifacts. A framed participant can later republish their original message. **The COCKTAIL-DKG PoP signs
+   only `context || C_j || E_j` and does NOT sign the ciphertexts**, so the bare republished $msg_{1|j}$ plus the
+   transcript's public material is *insufficient* to bind the ciphertexts to sender $j$: a third party cannot
+   distinguish the original ciphertexts from substituted ones on PoP/transcript evidence alone.
+   
+   To make option 2 sound, the application **MUST** layer some independent authentication over the $msg_{1|j}$ bytes.
+    - For example, a sender-signed transport envelope that signs the full message (including ciphertexts), a
+      per-participant signature over the framed ciphertext bundle, or a broadcast layer whose receipts are bound to
+      specific bytes.
+   With such a layer in place, this establishes which ciphertext was sent; without it, option 2 is not sufficient.
+3. **Define a separate dispute-evidence channel** *(public decryption-outcome verification; ciphertext binding must come
+   from Option 1 or Option 2).* Define an application-level mechanism that produces a non-interactive proof that
+   recipient $i$'s claimed Round 2 decryption outcome for $c_{j,i}$ is correct.
+   
+   This option attests only to the **decryption outcome**; it does not by itself attest to which ciphertext bytes were
+   originally sent. Option 3 therefore **MUST** be combined with Option 1 or Option 2 to produce a complete,
+   third-party-verifiable decryption-failure blame chain (Option 1/2 fixes the disputed ciphertext bytes; Option 3
+   proves what happens when those bytes are AEAD-processed under the recipient's private key). Option 3 is scoped
+   specifically to Round 2 **decryption-related** aborts (AEAD failure, non-canonical plaintext, VSS mismatch).
+   
+   The remaining Round 2 abort conditions fall into two buckets:
+
+   - **Transcript-verifiable aborts**: invalid commitment length and invalid PoP. Both $C_j$ and $PoP_j$ are part of the
+     transcript and are therefore bound by the CertEq signatures (when a transcript exists) or directly observable from
+     the broadcast (during an active session); a third party can independently check $|C_j| \neq t$ or that $PoP_j$ does
+     not verify against $C_{j,0}$ over $context \parallel C_j \parallel E_j$, using only public data. These aborts do
+     not require Option 3.
+   - **Ciphertext-dependent aborts**: framing-format failures (a malformed length prefix on a framed ciphertext) and the
+     decryption-related aborts covered by Option 3. Because the ciphertexts themselves are not bound by the transcript,
+     these aborts are **not** publicly verifiable from the transcript and Round 1 messages alone; public blame for
+     either kind requires Option 1 (extension commitment) or Option 2 (out-of-band republication with application-level
+     authentication) to first establish which ciphertext bytes are under dispute. With ciphertext bytes thereby fixed,
+     a framing-format failure is locally checkable by any third party from the bytes themselves; a decryption-related
+     failure additionally requires Option 3 for public verification of the decryption outcome.
+
+   The Round 2 final self-consistency check ($x_i \cdot B \neq Y_i$) is mathematically guaranteed to pass when the VSS
+   share verification has passed. So it is a defense-in-depth check against implementation bugs rather than a
+   public-blame scenario, and is therefore not addressed by any of the three options above.
+
+   The proof system is application-defined, but the public statement it **MUST** establish is precisely as follows:
+
+   - **Public inputs** (visible to the verifier): the ciphersuite identifier; the framed ciphertext
+     $\widetilde{c_{j,i}}$ that is the subject of the dispute; the sender's ephemeral public key $E_j$; the sender's
+     static public key $P_j$; the recipient's static public key $P_i$; the recipient's participant index $i$; the
+     sender's full VSS commitment $C_j = (C_{j,0}, \ldots, C_{j,t-1})$; the session `context`; and a tag identifying
+     which of the three Round 2 decryption-related failure modes is being proved (`AEAD-fail` /
+     `non-canonical-plaintext` / `VSS-mismatch`).
+
+     The sender index $j$, the recipient index $i$, the framed ciphertext $\widetilde{c_{j,i}}$, and the failure-mode
+     tag are **never** recoverable from $T$ alone (they identify *what* is being disputed), so they **MUST** always
+     appear as explicit public inputs. When the proof is additionally bound to a published success certificate signed
+     under transcript $T$, the remaining inputs ($E_j$, $P_j$, $C_j$ from $T$ at the j-th positions in the ordered
+     participant lists; $P_i$ from $T$ at the i-th position; and `context` from the ciphersuite_id-prefixed `context`
+     field at the head of $T$) are recoverable from $(T, j, i)$ and the proof **MAY** take
+     $(T, j, i, \widetilde{c_{j,i}}, \text{tag})$ as a more compact public input and require the verifier to extract
+     those values from $T$ before evaluating the relation.
+   - **Private witness** (held by the recipient): the recipient's static private key $d_i$.
+   - **Relation proved**: the witness $d_i$ satisfies $d_i \cdot B = P_i$ (witness-binding to the named recipient key;
+     without this, an arbitrary scalar could produce a fake AEAD outcome for some other recipient's key), **and**
+     deriving $S^{(e)}_{j,i} = d_i \cdot E_j$ and $S^{(d)}_{j,i} = d_i \cdot P_j$, encoding them per
+     [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding), and computing the AEAD key and nonce via
+     $H6(\cdot)$ with the ciphersuite's $prefix_{H6}$, $E_j$, $P_j$, $P_i$, and `context`, produces an AEAD outcome on
+     the inner $c_{j,i}$ consistent with the claimed failure-mode tag:
+     - **AEAD-fail tag**: AEAD authentication of $c_{j,i}$ fails.
+     - **Non-canonical-plaintext tag**: AEAD authentication succeeds, but the recovered plaintext is shorter than the
+       ciphersuite's scalar encoding size, **or** its leading scalar-sized portion does not decode to a canonical scalar
+       in $[0, q-1]$ per [Primitive Types](#primitive-types).
+     - **VSS-mismatch tag**: AEAD authentication succeeds, the leading portion decodes to a canonical scalar $s$, and
+       $s \cdot B \neq \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$.
+
+   These three tags correspond exactly to the three Round 2 abort conditions for decryption-related
+   failures, so any honest Round 2 decryption-failure abort can be backed by a proof under this option. The
+   verifier learns the failure-mode tag and the identity of the framed ciphertext, but learns **no
+   information about $d_i$** beyond what is already implied by $P_i$. The specific zero-knowledge proof
+   system (e.g., a Bulletproofs- or PLONK-style circuit over AEAD verification, or a sigma-protocol-based
+   DH+AEAD proof) is out of scope for this document; any sound, zero-knowledge, non-interactive argument for
+   the statement above is sufficient.
+
+   When combined with Option 1 (extension commitment binds $\widetilde{c_{j,i}}$ via the success
+   certificate) or Option 2 (republished original $msg_{1|j}$ supplies $\widetilde{c_{j,i}}$ from an
+   application-authenticated binding source), Option 3 produces complete, third-party-verifiable
+   decryption-failure blame without requiring further participant cooperation. The combined evidence is
+   *certificate-only* only when paired with Option 1, because Option 1 binds the disputed ciphertext via the
+   signed transcript itself; the Option 2 + Option 3 combination produces blame that is third-party-verifiable
+   but **not** certificate-only; it additionally requires the out-of-band $msg_{1|j}$ and its application-
+   layer authentication material to be made available to the verifier. Option 3 alone, without 1 or 2, proves
+   the decryption outcome for *some* claimed ciphertext but does not bind the disputed ciphertext to a
+   particular sender's Round 1 message and is therefore insufficient on its own for end-to-end public blame.
+
+#### 6. Recovery Requires Both Common Data and a Per-Participant Encrypted Share Bundle
+
+In ChillDKG, recovery is possible from the participant's static secret key plus the common recovery data
+(transcript and certificate) alone.
+
+In COCKTAIL-DKG, recovery additionally requires a per-participant **encrypted share bundle** $C^{rec}_i$ 
+(the ordered, length-framed Round 1 ciphertexts addressed to the recovering participant). See
+[Backup Requirements](#backup-requirements) for the full backup set.
+
 ### Share Recovery
 
 COCKTAIL-DKG inherits a key feature from ChillDKG: the ability to recover DKG outputs from minimal backup material.
@@ -748,36 +1447,58 @@ This eliminates the need for participants to store session-specific secrets and 
 
 #### Recovery Data
 
-The **recovery data** for a successful DKG session consists of:
+The **common recovery data** for a successful DKG session consists of:
 
 1. **Transcript ($T$):** The canonical byte representation of the protocol transcript, as constructed in Round 3.
 2. **Success Certificate:** The collection of all $n$ signatures on the transcript: $sig_1, sig_2, \ldots, sig_n$.
 
-The recovery data is identical for all participants and contains no confidential information. It can be safely:
+This common recovery data is identical for all participants and contains no confidential information. It can be safely:
 
 - Stored with untrusted backup providers
 - Obtained from any cooperative participant or the coordinator
 - Shared publicly without compromising security
 
+Recovering participant $i$ additionally needs their **participant-specific encrypted share bundle**:
+
+```math
+C^{rec}_i = \widetilde{c_{1,i}} \parallel \widetilde{c_{2,i}} \parallel \cdots \parallel \widetilde{c_{n,i}}
+```
+
+where each $\widetilde{c_{j,i}}$ is the length-prefixed framed Round 1 ciphertext from participant $j$ to
+participant $i$ (length encoded as a 64-bit big-endian unsigned integer, as defined under $msg_{1|i}$ above), in
+participant order. This bundle is not identical for all participants. The bundle is encrypted, but implementations
+should treat it as sensitive backup material because compromise of $d_i$ plus $C^{rec}_i$ allows decryption of
+participant $i$'s historical shares.
+
 #### Backup Requirements
 
-A complete backup for any participant $i$ consists of only two components:
+A complete backup for any participant $i$ consists of three components:
 
 1. **Static Secret Key ($d_i$):** The participant's long-term static private key.
-2. **Recovery Data:** The transcript and success certificate from each DKG session the participant joined.
+2. **Common Recovery Data:** The transcript and success certificate from each DKG session the participant joined.
+3. **Encrypted Share Bundle ($C^{rec}_i$):** The ordered, length-framed ciphertexts
+   $\widetilde{c_{1,i}}, \ldots, \widetilde{c_{n,i}}$ (each prefixed with its 64-bit big-endian length, as defined
+   in [Protocol Messages](#protocol-messages) under $msg_{1|i}$) for each DKG session.
+
+If an application does not store $C^{rec}_i$ directly in the participant's backup, it **MUST** ensure the exact
+ciphertexts can be retrieved later from durable coordinator or application storage. Recovery is impossible if the
+participant loses both their local encrypted share bundle and every durable copy of those ciphertexts.
 
 This is a significant simplification compared to traditional DKG backup schemes, which typically require storing
 session-specific secrets for each key generation ceremony.
 
 #### Recovery Algorithm
 
-Given the static secret key $d_i$ and the recovery data, a participant can deterministically reconstruct all DKG outputs:
+Given the static secret key $d_i$, the common recovery data, and the participant-specific encrypted share bundle, a
+participant can deterministically reconstruct all DKG outputs:
 
 **Input:**
 
 - $d_i$: The participant's static secret key.
 - $T$: The transcript from a successful DKG session.
 - $\{sig_1, \ldots, sig_n\}$: The success certificate.
+- $C^{rec}_i = \widetilde{c_{1,i}} \parallel \ldots \parallel \widetilde{c_{n,i}}$: The ordered, length-framed Round 1
+  ciphertexts sent to participant $i$ (each framed with a 64-bit big-endian length prefix).
 
 **Output:**
 
@@ -787,9 +1508,11 @@ Given the static secret key $d_i$ and the recovery data, a participant can deter
 
 **Steps:**
 
-1. **Validate Certificate:** Verify each signature $sig_j$ on the transcript $T$ against the public key $P_j$ extracted
-   from the transcript. If any signature is invalid, abort with an error.
-2. **Extract Parameters:** Parse the transcript to obtain:
+1. **Extract Parameters:** Parse the transcript to obtain:
+   - The ciphersuite identifier string. Implementations **MUST** verify that the ciphersuite identifier matches the one
+     expected by the recovery routine; mismatch indicates the wrong recovery codepath and **MUST** abort. This step
+     occurs before signature verification because the signature scheme (Schnorr `Verify`, `HashToScalar`, point/scalar
+     encodings, etc.) is ciphersuite-dependent.
    - The context string and its length
    - The number of participants $n$ and threshold $t$
    - All static public keys $P_1, \ldots, P_n$
@@ -797,17 +1520,32 @@ Given the static secret key $d_i$ and the recovery data, a participant can deter
    - All Proofs of Possession $PoP_1, \ldots, PoP_n$
    - All ephemeral public keys $E_1, \ldots, E_n$
    - The application-specific extension (if any)
-3. **Determine Participant Index:** Find the index $i$ such that $P_i = d_i * B$. If no such index exists, abort.
+2. **Validate Certificate:** Using the ciphersuite parsed above, verify each signature $sig_j$ on the transcript
+   $T$ against the public key $P_j$ extracted from the transcript using the Schnorr `Verify` algorithm. If any
+   signature is invalid, abort with an error.
+3. **Determine Participant Index:** Find the unique index $i$ such that $P_i = d_i * B$. If zero or more than one
+   matching index exists, abort.
 4. **Reconstruct Encryption Keys:** For each participant $j$ from $1$ to $n$:
    1. Compute the ECDH shared secrets:
       - $S^{(e)}_{j,i} = d_i * E_j$ (using the sender's ephemeral key)
       - $S^{(d)}_{j,i} = d_i * P_j$ (using the sender's static key)
-   2. Derive the symmetric key $k_{j,i}$ and nonce $iv_{j,i}$ using H6, following the same derivation as Round 1.
-5. **Obtain Ciphertexts:** The recovering participant must request the ciphertexts $c_{j,i}$ from other participants
-   or the coordinator. This cooperative step ensures that recovery requires active participation from the group,
-   preventing unilateral recovery from backup alone.
+   2. Derive the symmetric key $k_{j,i}$ and nonce $iv_{j,i}$ using H6, with the same sender/recipient ordering used
+      in Round 2.
+5. **Load Ciphertexts:** Parse $C^{rec}_i$ as the concatenation of exactly $n$ length-framed ciphertexts: for each $j$
+   from 1 to $n$, read the next 8 bytes as a 64-bit big-endian unsigned integer $L_j$, then read the next $L_j$ bytes as
+   the AEAD ciphertext $c_{j,i}$. Abort if any of the following hold: the bundle terminates before all $n$ ciphertexts
+   are recovered; any $L_j$ exceeds the implementation's maximum-ciphertext-size policy; any $c_{j,i}$ is shorter than
+   the ciphersuite's minimum ciphertext size (scalar encoding size plus AEAD authentication tag size); or there are any
+   bytes remaining in $C^{rec}_i$ after the $n$th framed ciphertext has been read. The recovery bundle **MUST** parse
+   exactly, with no trailing data.
 6. **Decrypt and Verify Shares:** For each participant $j$, decrypt $c_{j,i}$ using $k_{j,i}$ and $iv_{j,i}$ to obtain
-   $s_{j,i}$. Verify each share against the VSS commitment: $s_{j,i} * B = \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$.
+   $plaintext_{j,i}$. If AEAD decryption fails, abort. If $plaintext_{j,i}$ is shorter than the ciphersuite's scalar
+   encoding size, or if the leading scalar-sized portion does not decode to a canonical scalar in $[0, q-1]$, abort.
+   Set $s_{j,i}$ to the decoded leading scalar. Verify each share against the VSS commitment:
+   $s_{j,i} * B = \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$.
+   If the equation does not hold for any $j$, the recovery procedure **MUST** abort with an error. Successful recovery
+   requires every share to verify against the transcript-bound VSS commitment, mirroring the Round 2 share-verification
+   MUST.
 7. **Compute Final Share:** $x_i = \sum_{j=1}^{n} s_{j,i}$.
 8. **Compute Public Outputs:**
    - Group public key: $Y = \sum_{j=1}^{n} C_{j,0}$.
@@ -815,32 +1553,43 @@ Given the static secret key $d_i$ and the recovery data, a participant can deter
 
 #### Privacy Considerations
 
-Users should be aware that recovery data reveals:
+Users should be aware that common recovery data reveals:
 
 - Session parameters (threshold $t$ and number of participants $n$)
 - All participants' static public keys ($P_1, \ldots, P_n$)
 - The group public key ($Y$) and public verification shares
 - The application-specific extension (if used)
 
+The participant-specific encrypted share bundle additionally reveals ciphertext sizes, and ciphertext sizes may reveal
+application payload sizes. If the participant's static secret key is later compromised, the encrypted share bundle can
+be decrypted to recover that participant's historical shares and any encrypted payloads.
+
 This information may create correlations between participants and their threshold setup. For privacy-sensitive
-applications, the recovery data **SHOULD** be encrypted before storage with untrusted providers. A recommended approach
-is to derive an encryption key from the static secret key using the ciphersuite's hash function:
+applications, the recovery material **SHOULD** be encrypted before storage with untrusted providers. A recommended
+approach is to derive an encryption key from the static secret key using the ciphersuite's hash function:
 
 $$k_{backup} = H(\text{"COCKTAIL-BACKUP-KEY"} \parallel d_i)$$
 
 #### Security Considerations for Recovery
 
-1. **Timing of Key Usage:** Participants **MUST NOT** use the group public key $Y$ until they have confirmed that all
-   participants possess the recovery data. A catastrophic scenario could otherwise occur: one participant deems the
-   session successful and begins using the threshold key, but they are the only one with recovery data. If that
-   participant's storage fails, the key becomes unrecoverable and any data or operations depending on it are lost.
+1. **Timing of Critical Key Use:** Participants **MUST NOT** rely on the group public key $Y$ for **critical
+   operations** (operations whose loss-of-access consequences are catastrophic; e.g., long-lived asset custody,
+   irreversible signatures, anchored production deployments) until they have confirmed that all participants
+   possess the common recovery data and their own participant-specific encrypted share bundles. A catastrophic
+   scenario could otherwise occur: one participant deems the session successful and begins using the threshold
+   key for critical operations, but they are the only one with complete recovery material. If that participant's
+   storage fails, the key becomes unrecoverable and any data or operations depending on it are lost. Non-critical
+   use (e.g., low-stakes test signatures, internal protocol-correctness exchanges, or short-lived ceremonies that
+   can be replayed) is allowed before confirmation; see item 3.
 
-2. **Explicit Confirmations:** Before using a threshold public key, applications **SHOULD** obtain explicit confirmations
-   from all participants that they have successfully stored the recovery data.
+2. **Explicit Confirmations:** Before using a threshold public key for critical operations, applications
+   **SHOULD** obtain explicit confirmations from all participants that they have successfully stored the common
+   recovery data and their own encrypted share bundles.
 
-3. **Recovery Without Confirmations:** If a participant receives recovery data after a session but cannot verify other
-   participants' completion, they **MAY** still recover their outputs for future signing participation. However, they
-   **SHOULD NOT** rely on that threshold key for critical operations until all participants have confirmed storage.
+3. **Recovery Without Confirmations:** If a participant receives complete recovery material after a session but
+   cannot verify other participants' completion, they **MAY** still recover their outputs for non-critical future
+   signing participation. However, they **MUST NOT** rely on that threshold key for critical operations until all
+   participants have confirmed storage.
 
 ## Alternatives
 
@@ -853,6 +1602,12 @@ $$k_{backup} = H(\text{"COCKTAIL-BACKUP-KEY"} \parallel d_i)$$
 
 This appendix provides a series of algorithms that describe the COCKTAIL-DKG protocol in a high-level,
 implementation-agnostic manner. The notation is meant to be illustrative rather than strictly formal.
+
+> [!NOTE]
+> **Implementation note:** All scalar arithmetic in the pseudocode below (polynomial evaluation, share summation,
+> index powers, etc.) is performed in $\mathbb{F}_q$. The pseudocode does not always show explicit `mod q` for
+> brevity; implementations using arbitrary-precision integer types **MUST** reduce modulo $q$ before encoding any
+> scalar to bytes, per the Scalar primitive type definition.
 
 ### Algorithm 1: Polynomial Generation and VSS Commitment
 
@@ -872,7 +1627,7 @@ implementation-agnostic manner. The notation is meant to be illustrative rather 
 1. Initialize an empty polynomial f.
 2. Initialize an empty list of commitments C.
 3. For k from 0 to t-1:
-    1. Generate a random scalar a_k in the range [0, q-1].
+    1. Generate a random scalar a_k in the range [0, q-1]. If a_k == 0 (negligible probability), resample.
     2. Add the term a_k * x^k to the polynomial f.
     3. Compute the commitment C_k = a_k * B.
     4. Append C_k to the list C.
@@ -887,6 +1642,8 @@ function GeneratePolynomial(t, G, q):
 
     for k from 0 to t-1:
         a_k = RandomScalar(q)
+        while a_k == 0:                  # negligible probability; ensures C_k != identity
+            a_k = RandomScalar(q)
         f.add_coefficient(a_k)
 
         C_k = a_k * B
@@ -997,7 +1754,8 @@ function DeriveKeyAndNonce(cs, ecdh_secret, E, P_sender, P_recipient, context):
 - `context`: A session-specific context string.
 - `d_i`: The static private key of participant `i`.
 - `P_i`: The static public key of participant `i`.
-- `P_j`: The static public key of every other participant `j`.
+- `P_j`: The static public key of each participant `j` from 1 to `n` (the ordered list `AllPublicKeys` used below
+  includes `P_i` at index `i`; the algorithm iterates over all `j` including `j = i`, which produces a self-share).
 - `payloads`: (Optional) A map from participant index `j` to application-defined payload bytes.
 
 **Output:**
@@ -1010,27 +1768,30 @@ function DeriveKeyAndNonce(cs, ecdh_secret, E, P_sender, P_recipient, context):
 1. Generate Polynomial and VSS Commitment:
     1. (f_i, C_i) = Algorithm1(t, cs.Group.G, cs.Group.q)
 2. Generate Ephemeral Key:
-    1. e_i = cs.Group.RandomScalar()
+    1. e_i = cs.Group.RandomScalar(); while e_i == 0: e_i = cs.Group.RandomScalar()    # negligible probability
     2. E_i = e_i * cs.Group.G
 3. Compute Proof of Possession (PoP):
     1. Let a_i_0 be the constant term of f_i.
     2. Let C_i_0 be the first commitment in C_i.
-    3. PoP_i = Sign(private_key=a_i_0, message=context || C_i || E_i) (using a scheme compatible with C_i_0).
+    3. PoP_i = Sign(private_key=a_i_0, message=context || C_i || E_i)
+       (using the Schnorr scheme; the public key is C_i_0; C_i is encoded as the concatenation of the t compressed
+       point encodings, identical to its encoding in msg1_i).
 4. Compute and Encrypt Shares:
     1. Initialize an empty list encrypted_shares.
     2. For j from 1 to n:
         1. s_i_j = Algorithm2(f_i, j).
-        2. Derive ECDH key using both ephemeral and static secrets:
-            - ecdh_ephemeral = e_i * P_j
-            - ecdh_static = d_i * P_j
+        2. Derive ECDH key using both ephemeral and static secrets. Each scalar-mult result is encoded as a
+           ciphersuite-specific fixed-length byte string per [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding):
+            - ecdh_ephemeral = ecdh_encode(e_i * P_j)
+            - ecdh_static = ecdh_encode(d_i * P_j)
             - ecdh_secret = ecdh_ephemeral || ecdh_static
-            - If the hash function used has an output size fewer than 480 bits, use the output
-              of H6 as an Input Keying Material to two more hash function calls, which will be used
-              to derive a nonce and key. (Here, H() refers to, e.g., sha256):
+            - If the hash function used has an output size fewer than 56 bytes, use the output of H6 as an Input Keying
+              Material to two more hash function calls, which will be used to derive a nonce and key. (Here, H() refers
+              to, e.g., sha256):
               - ikm = H6(ecdh_secret, E_i, P_i, P_j, context)
               - key = H("COCKTAIL-derive-key" || ikm)
               - nonce = H("COCKTAIL-derive-nonce" || ikm)\[0:24]
-            - If the hash function used has an output size greater than equal to 480 bits, just split them:
+            - If the hash function used has an output size greater than or equal to 56 bytes, just split it:
               - tmp = H6(ecdh_secret, E_i, P_i, P_j, context)
               - key = tmp[0:32] (32 bytes)
               - nonce = tmp[32:56] (24 bytes)
@@ -1039,7 +1800,8 @@ function DeriveKeyAndNonce(cs, ecdh_secret, E, P_sender, P_recipient, context):
             - plaintext = s_i_j || payload_i_j
         4. Encrypt plaintext:
             - c_i_j = Encrypt(key, nonce, plaintext)
-        5. Append c_i_j to encrypted_shares.
+        5. Wire-frame the ciphertext as `framed_c_i_j = uint64_be(len(c_i_j)) || c_i_j`, then append `framed_c_i_j` to
+           `encrypted_shares` (the list stores the on-wire framed bytes, not raw ciphertexts).
 5. Construct Message:
     1. msg1_i = (C_i, PoP_i, E_i, encrypted_shares)
 6. Store State:
@@ -1053,18 +1815,24 @@ function Round1(i, t, n, cs, context, d_i, P_i, AllPublicKeys, payloads={}):
     (f_i, C_i) = GeneratePolynomial(t, cs.Group.G, cs.Group.q)
     a_i0 = f_i.coefficient(0)
     e_i = cs.Group.RandomScalar()
+    while e_i == 0:                       # negligible probability; ensures E_i != identity
+        e_i = cs.Group.RandomScalar()
     E_i = e_i * cs.Group.G
     PoP_i = Sign(private_key=a_i0, message=context || C_i || E_i)
 
-    encrypted_shares = new List<Ciphertext>()
+    encrypted_shares = new List<FramedCiphertext>()
     for j from 1 to n:
         s_ij = EvaluatePolynomial(f_i, j)
         P_j = AllPublicKeys[j]
-        ecdh_secret = (e_i * P_j) || (d_i * P_j)
+        # ecdh_secret = canonical_encode(e_i * P_j) || canonical_encode(d_i * P_j),
+        # per "ECDH Shared-Secret Encoding"; each side is a fixed-length byte string for the ciphersuite.
+        ecdh_secret = ecdh_encode(cs, e_i * P_j) || ecdh_encode(cs, d_i * P_j)
         (key, nonce) = DeriveKeyAndNonce(cs, ecdh_secret, E_i, P_i, P_j, context)
         payload_ij = payloads.get(j, empty_bytes)
         c_ij = Encrypt(key, nonce, s_ij || payload_ij)
-        encrypted_shares.append(c_ij)
+        # Wire-frame with a 64-bit big-endian length prefix; encrypted_shares stores framed bytes.
+        framed_c_ij = uint64_be(len(c_ij)) || c_ij
+        encrypted_shares.append(framed_c_ij)
 
     msg1_i = new Round1Message(C_i, PoP_i, E_i, encrypted_shares)
     internal_state = new State(f_i, e_i)
@@ -1103,27 +1871,35 @@ function Round1(i, t, n, cs, context, d_i, P_i, AllPublicKeys, payloads={}):
             - valid_pop = Verify(public_key=C_j_0, signature=PoP_j, message=context || C_j || E_j)
             - If valid_pop is false, abort and blame participant j.
         3. Decrypt Plaintext:
-            - Let c_j_i be the encrypted ciphertext from j for i.
+            - Take $encrypted\_shares\_j[i]$ as the framed ciphertext $\widetilde{c_{j,i}} = uint64\_be(L_{j,i}) \parallel c_{j,i}$.
+              Unwrap with bounds checks: if $len(\widetilde{c_{j,i}}) < 8$, or $L_{j,i}$ exceeds the implementation's
+              maximum-ciphertext-size policy, or $len(\widetilde{c_{j,i}}) \neq 8 + L_{j,i}$, or
+              $L_{j,i} < scalar\_size + AEAD\_TAG\_SIZE$, abort and blame participant $j$. Let $c_{j,i}$ be the
+              unwrapped AEAD ciphertext.
             - Let P_j = AllPublicKeys\[j\].
-            - Derive ECDH key using both ephemeral and static secrets:
-                - ecdh_ephemeral = d_i * E_j
-                - ecdh_static = d_i * P_j
+            - Derive ECDH key using both ephemeral and static secrets. Each scalar-mult result is encoded as a
+              ciphersuite-specific fixed-length byte string per
+              [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding):
+                - ecdh_ephemeral = ecdh_encode(d_i * E_j)
+                - ecdh_static = ecdh_encode(d_i * P_j)
                 - ecdh_secret = ecdh_ephemeral || ecdh_static
-                - If the hash function used has an output size fewer than 480 bits, use the output
+                - If the hash function used has an output size fewer than 56 bytes, use the output
                   of H6 as an Input Keying Material to two more hash function calls, which will be used
                   to derive a nonce and key. (Here, H() refers to, e.g., sha256):
                   - ikm = H6(ecdh_secret, E_j, P_j, P_i, context)
                   - key = H("COCKTAIL-derive-key" || ikm)
                   - nonce = H("COCKTAIL-derive-nonce" || ikm)\[0:24]
-                - If the hash function used has an output size greater than equal to 480 bits, just split them:
+                - If the hash function used has an output size greater than or equal to 56 bytes, just split it:
                   - tmp = H6(ecdh_secret, E_j, P_j, P_i, context)
                   - key = tmp\[0:32\] (32 bytes)
                   - nonce = tmp\[32:56\] (24 bytes)
             - Decrypt:
                 - plaintext = Decrypt(key, nonce, ciphertext=c_j_i)
-                - If decryption fails, abort and blame participant j.
+                - If decryption fails, abort and report a decryption failure for participant j's ciphertext.
         4. Parse Plaintext:
-            - s_j_i = plaintext\[0:scalar_size\] (the secret share)
+            - If `len(plaintext) < scalar_size`, abort and blame participant j.
+            - s_j_i = decode_scalar(plaintext\[0:scalar_size\]); if decoding fails (i.e., the bytes do not represent
+              a canonical scalar in [0, q-1]), abort and blame participant j.
             - payload_j_i = plaintext\[scalar_size:\] (any remaining bytes are the optional payload)
             - received_payloads\[j\] = payload_j_i
         5. Verify Share:
@@ -1142,7 +1918,8 @@ function Round1(i, t, n, cs, context, d_i, P_i, AllPublicKeys, payloads={}):
     4. Final Check:
         - If x_i * cs.Group.G != Y_i, abort (protocol failure).
 5. Prepare for Round 3:
-    1. transcript_data = (all_msg1s, context, all_static_public_keys)
+    1. transcript_data = (cs.id, all_msg1s, context, all_static_public_keys), where cs.id is the ciphersuite
+       identifier string (e.g., "COCKTAIL(Ristretto255, SHA-512)").
 6. Return (x_i, Y, Y_i, received_payloads, transcript_data).
 
 **Pseudocode:**
@@ -1162,14 +1939,30 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
         if not Verify(public_key=C_j[0], signature=PoP_j, message=context || C_j || E_j):
             abort("Invalid PoP", j)
 
-        c_ji = msg1_j.encrypted_shares[i]
-        ecdh_secret = (d_i * E_j) || (d_i * P_j)
+        # encrypted_shares[i] is the framed bytes uint64_be(len(c_ji)) || c_ji; unwrap with full bounds checks
+        # before any slicing.
+        framed_c_ji = msg1_j.encrypted_shares[i]
+        if len(framed_c_ji) < 8:
+            abort("Framed ciphertext shorter than 8-byte length prefix", j)
+        L_ji = uint64_be_decode(framed_c_ji[0:8])
+        if L_ji > MAX_CIPHERTEXT_SIZE:
+            abort("Framed ciphertext length exceeds policy maximum", j)
+        if len(framed_c_ji) != 8 + L_ji:
+            abort("Framed ciphertext length mismatch (trailing bytes or short read)", j)
+        c_ji = framed_c_ji[8:8 + L_ji]
+        if len(c_ji) < scalar_size + AEAD_TAG_SIZE:
+            abort("Ciphertext below minimum size", j)
+        ecdh_secret = ecdh_encode(cs, d_i * E_j) || ecdh_encode(cs, d_i * P_j)
         (key, nonce) = DeriveKeyAndNonce(cs, ecdh_secret, E_j, P_j, P_i, context)
         plaintext = Decrypt(key, nonce, ciphertext=c_ji)
         if plaintext is null:
-            abort("Decryption failed", j)
+            abort("Decryption failed for participant j's ciphertext", j)
 
-        s_ji = plaintext[0:scalar_size]
+        if len(plaintext) < scalar_size:
+            abort("Plaintext shorter than scalar size", j)
+        s_ji = decode_scalar(plaintext[0:scalar_size])
+        if s_ji is null:
+            abort("Invalid scalar encoding", j)
         received_payloads[j] = plaintext[scalar_size:]
 
         if not VerifyShare(s_ji, i, C_j, cs.Group.G, t):
@@ -1186,7 +1979,7 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
     if (x_i * cs.Group.G) != Y_i:
         abort("Final check failed")
 
-    transcript_data = new TranscriptData(all_msg1s, context, AllPublicKeys)
+    transcript_data = new TranscriptData(cs.id, all_msg1s, context, AllPublicKeys)
     return (x_i, Y, Y_i, received_payloads, transcript_data)
 ```
 
@@ -1196,9 +1989,12 @@ function Round2(i, all_msg1s, internal_state, d_i, P_i, AllPublicKeys, cs, conte
 
 - `i`: The index of the current participant.
 - `d_i`: The static private key of participant `i`.
-- `P_j`: The static public key of every other participant `j`.
+- `P_j`: The static public key of each participant `j` from 1 to `n` (the ordered list `AllPublicKeys` used below
+  includes `P_i` at index `i`; the signature-verification loop iterates over all `j` from 1 to `n` including
+  `j = i`, verifying every CertEq signature on the shared transcript $T$).
 - `transcript_data`: The public data from Round 2.
   The transcript includes:
+  - len(ciphersuite_id) as uint64_le, ciphersuite_id bytes (UTF-8)
   - len(context) as uint64_le, context bytes
   - n as uint32_le, t as uint32_le
   - All static public keys P_j
@@ -1246,6 +2042,8 @@ function Round3(i, d_i, AllPublicKeys, transcript_data, extension=empty_bytes):
 
 function CanonicalEncode(transcript_data, extension):
     T = empty_bytes
+    T = T || uint64_le(len(transcript_data.ciphersuite_id))
+    T = T || transcript_data.ciphersuite_id
     T = T || uint64_le(len(transcript_data.context))
     T = T || transcript_data.context
     T = T || uint32_le(transcript_data.n)
@@ -1281,6 +2079,12 @@ All secret values are derived using a labeled hash with ciphersuite and threshol
 derived_bytes = H(seed || ciphersuite_id || uint32_le(t) || uint32_le(n) || label)
 ```
 
+> **Note:** This labeled-hash construction is a deterministic test-vector seed expansion only. It is distinct from
+> the protocol's $HashToScalar$ (used in the Schnorr scheme), which performs a near-uniform reduction with bias
+> bounded by $\approx 2^{-128}$ (see [Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction)). The test
+> vectors use direct mod-$q$ reduction here purely for reproducibility; production deployments **MUST NOT** reuse
+> this routine for protocol-level scalar derivation.
+
 Where:
 
 - `H` is the ciphersuite's hash function (e.g., SHA-512 for Ristretto255, SHA-256 for P-256)
@@ -1291,21 +2095,28 @@ Where:
 
 #### Labels
 
-| Value | Label Format | Example |
-|-------|-------------|---------|
-| Static secret key for participant i | `static_secret_key_{i}` | `static_secret_key_1` |
+| Value                                | Label Format             | Example                |
+|--------------------------------------|--------------------------|------------------------|
+| Static secret key for participant i  | `static_secret_key_{i}`  | `static_secret_key_1`  |
 | Round 1 RNG stream for participant i | `round1_participant_{i}` | `round1_participant_1` |
-| Payload for participant i | `payload_{i}` | `payload_1` |
+| Payload for participant i            | `payload_{i}`            | `payload_1`            |
 
 #### Scalar Reduction
 
-For ciphersuites with 32-byte scalars and SHA-256 hash (P-256, secp256k1):
+This is the seed-expansion-only reduction used to derive test-vector secret scalars from the labeled-hash
+output above; it is **distinct** from the protocol's `HashToScalar` (see
+[Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction)) and exists only to make the test
+vectors reproducible:
 
-- The 32-byte hash output is reduced modulo the group order
-
-For ciphersuites with 64-byte hash output (SHA-512, SHAKE256, BLAKE2b-512):
-
-- Wide reduction is used (64 bytes reduced modulo the group order)
+- For ciphersuites with 32-byte scalars and SHA-256 hash (P-256, secp256k1): the 32-byte hash output is
+  reduced modulo the group order.
+- For ciphersuites with SHA-512 or BLAKE2b-512 (Ed25519/Ristretto255, JubJub, Pallas): the 64-byte hash output
+  is wide-reduced modulo the group order.
+- For COCKTAIL(Ed448, SHAKE256) test-vector seed expansion: SHAKE256 is invoked with a **64-byte output** for
+  this reduction (a single fixed length, distinct from the 56-byte $H6$ invocation and the 114-byte
+  $HashToScalar$ invocation used elsewhere in the protocol); that 64-byte output is wide-reduced modulo the
+  group order. The seed-expansion bias from a 64-byte input to a $\sim 446$-bit Ed448 scalar order is at
+  most $2^{-128}$, which is sufficient for test-vector determinism.
 
 This allows any developer to independently reproduce the test vectors by:
 
@@ -1314,16 +2125,27 @@ This allows any developer to independently reproduce the test vectors by:
 
 #### Context String Format
 
-The context string for test vectors follows the pattern:
-```
-"COCKTAIL-DKG-TEST-VECTOR-{t}-OF-{n}"
+To satisfy all three Setup `context` MUSTs (session uniqueness, ordered participant binding, and verbatim
+`ciphersuite_id` binding; see [Setup](#setup)), the test vectors use a context construction that includes
+the test-vector tag, the canonical `ciphersuite_id` byte string, and the seed-derived participant public
+keys:
+
+```text
+session_tag      = "COCKTAIL-DKG-TEST-VECTOR-{t}-OF-{n}"
+context          = H( "COCKTAIL-DKG-CONTEXT"
+                   || uint64_be(len(session_tag))   || session_tag
+                   || uint64_be(len(ciphersuite_id)) || ciphersuite_id
+                   || uint32_le(n)
+                   || P_1 || P_2 || ... || P_n )
 ```
 
-For example:
-
-- 2-of-3: `"COCKTAIL-DKG-TEST-VECTOR-2-OF-3"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d322d4f462d33`)
-- 3-of-5: `"COCKTAIL-DKG-TEST-VECTOR-3-OF-5"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d332d4f462d35`)
-- 7-of-14: `"COCKTAIL-DKG-TEST-VECTOR-7-OF-14"` (hex: `434f434b5441494c2d444b472d544553542d564543544f522d372d4f462d3134`)
+where $H$ is the ciphersuite's hash function and `ciphersuite_id` matches the test-vector header (e.g.,
+`"COCKTAIL(Ristretto255, SHA-512)"`). When the test vectors are regenerated, each entry **MUST** record the
+bare `session_tag` (as a `session_tag` field) alongside the derived `context` byte string (as a `context`
+field or equivalent), so that implementations can independently reconstruct the `context` from $H$,
+`session_tag`, `ciphersuite_id`, $n$, and the $P_j$ list, and verify byte-for-byte that their result matches
+the published `context`. This is the same recommended construction described under [Setup](#setup); test
+vectors do **not** use a separate context format from production deployments.
 
 ### Test Vector Types
 
@@ -1337,807 +2159,47 @@ Each ciphersuite includes the following test vector types:
    ext = H(uint64_le(n) || uint64_le(len(payload_1)) || payload_1 || ... || uint64_le(len(payload_n)) || payload_n)
    ```
 
-3. **Recovery vectors** (2-of-3): Each 2-of-3 configuration includes recovery test data for participant 1.
-   The recovery data contains:
-   - The ciphertexts $c_{j,1}$ from each participant $j$ to participant 1
-   - The expected recovered secret share $x_1$
-   - The expected recovered verification share $Y_1$
+3. **Recovery vectors**: The 2-of-3 configuration of each ciphersuite includes recovery test data for participant 1
+   (the 3-of-5 and 7-of-14 configurations omit recovery data).
+   The participant-specific encrypted share bundle contains:
+   - For each participant $j$ from 1 to $n$, the raw AEAD ciphertext $c_{j,1}$ from participant $j$ to
+     participant 1, **listed in the table rows below as `Ciphertext from P{j}` and shown in bare (unframed)
+     hex form**. To assemble the on-wire bundle $C^{rec}_1$ from these table rows, implementations
+     concatenate the framed forms $\widetilde{c_{j,1}} = \mathrm{uint64\_be}(\mathit{len}(c_{j,1})) \parallel c_{j,1}$
+     in participant order, as defined in [Protocol Messages](#protocol-messages) under $msg_{1|i}$. The table
+     omits the length prefixes because (a) every ciphertext in these basic test vectors is the same fixed
+     length (scalar encoding size plus AEAD authentication tag size, e.g. 48 bytes), so the prefixes carry no
+     test-discriminating information, and (b) listing bare ciphertexts keeps the vectors aligned with the
+     analogous JSON files in [CCTV](https://github.com/C2SP/CCTV/tree/main/cocktail-dkg).
+   - The expected recovered secret share $x_1$.
+   - The expected recovered verification share $Y_1$.
 
    These values enable implementers to verify their recovery implementation produces correct outputs when
-   decrypting ciphertexts using participant 1's static secret key and the transcript from the DKG session.
-
-Full test vectors in JSON format are also available in [CCTV](https://github.com/C2SP/CCTV/tree/main/cocktail-dkg).
-
-The following sections provide test vectors for 2-of-3, 3-of-5, and 7-of-14 threshold configurations for each
-ciphersuite.
-
-### COCKTAIL(Ristretto255, SHA-512)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `8232337dffa583f214e2ead7f19c37b482f77171194ed6984a715353e086d20e` | `e86e416c45160b32c774ebac802906548d94b3327517178c3c743226dd594d32` |
-| 2 | `f7b358f26668f0733363b309c435bc16f7670ec5850e4860c5d25e049e7d060d` | `c003305ceb27d887d9391f85138fc34edae9c963951a4e9c950bed8509ba2b5e` |
-| 3 | `fc2df6b164cac912a8c2d294b528f5e3261f1724d510f9fd1c2bae5e76308d0b` | `e4dad4d96d6e507ac59aa539a42c8185618b51941f4497af246cfaa9d1912b18` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304` | `5e130c137d31a445d1b8df391b41db0dbf6a9e13649abb40d68d3fa955eca22d` |
-| 2 | `7db7ccef4df8fb157766082728cd2f072c0ec3af6d352a3d0af49919daf9950b` | `2c9a0c7d2a8e3c37c7b1ebb5d40bad2e9127151ad160a8b7d0782482fd790007` |
-| 3 | `04e3c4216570bdbdf8f4006a6f5b279cdefea07997f862e3eb71320ebaccf802` | `b434b345762decb04e5d9937cc5aee03b828808ea8d5500ea7c06c684712e143` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `688801fc10825c8c317a69bf7720f5a1e9deda663658dcd8d49c75fae3c8ff24d0e8cbbee95e3b9d85a48c512863a3d2f484c572ff2229c1e9bb70ab9aea6609`
-
-#### Final Output
-
-- **Group Public Key**: `0a1592f555f20d3a3b3c7bc032ebe4b46cb2870da141404873e5fc8d4136120f`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `9123460b09df36e1e8b23c5ab8716568874481343bb647109941484c4a0b77243e9057ea3e6e39b394f3e97abd09e407` |
-| Ciphertext from P2 | `5f4432d0349118d57dd893d08094fe9732574887ae1f6ad0c723c5ec95a5a25973b7e974f221667f86547833f62abfe4` |
-| Ciphertext from P3 | `7c72d167a3a1ae7a7d1afb3970a16e7433af7a9a9d17e7ba1f1dae334889b989dcb9fae5dd17d70952953d03858f1b98` |
-| Recovered Secret Share | `09b8de601c1d28161f3b18410245595d791de5e54372f19628760125fa263304` |
-| Recovered Verification Share | `5e130c137d31a445d1b8df391b41db0dbf6a9e13649abb40d68d3fa955eca22d` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `0532c882c5e72dc374dd3bf221e641b5634ec4316a5c96a7eb168510d2379a08` | `fc8ff6d9a852fbc3f4b673be37e52d65beb4afbbf86d217572bc2d55dc82c37a` |
-| 2 | `33531cd0046f315ba42e9c451c130bb934773852b5a3227e516f34aaf99d780a` | `4c40c03b25a8029931c33a11d965df4494a6adc126b04f937e1243dde572877e` |
-| 3 | `2628761a926ec29d7b593ccea04cc799a5066d746b07a025436300b580931a07` | `64490433b5b6d3217311bc99d01b84a158f31232fae5545f1058a77632776a4f` |
-| 4 | `c2355a62f365346e9577fd32e436b3fffa22a917a188f576919e86ac65236a09` | `ee106ab40ff4e2cae74a1d0a12b8bcae46b8f85a2285cbcf93357519fc060e44` |
-| 5 | `82eacb16d6b34573e3836b214481e0fc4e885ea8bbbfb6bf80d6d4e37ad9630d` | `a4ebab43a8b6baa1842d7afd5e2354401b7c4caef9a7edab8ad5b4d9ffdb8813` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `653535bf967662ac857d654764a1b9550abe0809f415b378ab7ada025b4c2802` | `be53f58edb38e3ad67964229124f804350ef7b1665a1b2dd6a20eb2b04829160` |
-| 2 | `5d69230ed12c9e7d43e62b58540fff1a951e5a0dfdb119190f86339f3dae6b0c` | `dc3f9543e44f2b1db3ea4506cd5e0bc54162cb9f4e1144e7beaa89f499b3a93e` |
-| 3 | `0f3a902905dfa28f9a303b21ca3729b0c3f533850e8ee4e4848cc411018a5d01` | `d27e7ca67ff733af3048c939cc008841a3ec0c761d415ac842fce072f0cd3126` |
-| 4 | `554f67cb67539592379682e8820ef63e9643967028aa13dc0c8e8d5aa5dffd00` | `de380d0925d9b53277d69e3307053745a7d972ad62a7d76ef6219475053d7f52` |
-| 5 | `2fa9a8f3f88975861a1702ae7e9365c70c0881cf4a06a7fea68a8e792aaf4c0b` | `0e0be364b5ed7e1b454b28ef38be3c8c2de44324df78f764247d4c599584514e` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `c80f280bf75822900ae0db5fa3a5a6802d6d3378f5bd931f1c320d2de2cbac6214e2ed9450c2b4090eca486c369cfd9490d7a184f756dc85fb3cc433f21bb23d`
-
-#### Final Output
-
-- **Group Public Key**: `08ee9bb0fc75a34dabe96f9f808d89234a7456d0563bc0887404fc9c0bb7b406`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `730091092abcd19d49aa1c3277dd36ff2d8bb4e6b91963e467dc9b5429e48401` | `9c75faa367177d035128f26e8953b9ce5cf68bb189edbd6d58f1db2c8dad676b` |
-| 2 | `7952975e46574ee2772d67896829e022332d360cf4966c17b895968b332ca505` | `c46adec5d82f467c8ee56872c75ce12f7ac240a65d50c3fff8c85310634fb32b` |
-| 3 | `50789dbe3bcb2a8cbe41d5f535abfc56a609e6453f5736f66a33bc031864d80f` | `2cae87df6ab209f4c3bfd25cf303aed05944184571de8ac81aa987483d4f8062` |
-| 4 | `50fbcd2cdf1f2998a9b0419bdf7197fd962d3e91e879546acd4241bc369e330d` | `2eebf6f81abbd598e49297f2210e0d2b6133a61ae5fd2f40f0da0e54b146491d` |
-| 5 | `af2a5f2917da0feb73154a7f87cf608ae50b35083d2853ff10ba26e133db180b` | `f2b623ce85be496517df79c447d54dc26a45bbfd2622552c73cf108d8c68786b` |
-| 6 | `d5a659c9640847799436aa51503f31a70319a006b9eea946cf1fe32e99c8bd0c` | `9e5522df34c631caac8e30a4fba13d608420598b02394da9ff7646586e5fb240` |
-| 7 | `778db0ae1a01759bc947d48b0ede7fa805c3bbd51fc2845cf4a9f3a309078a08` | `2a077c782fdcfadcfd569ad965d317cd733c72feaaa3da996ccefac5c4b94b1f` |
-| 8 | `4224093484db587c8e28c372343a1dcfd2b528dc36690211d059b5d67491a908` | `e6204385f19b7f1d2f69feabc033cb416299bab36eba32abf9fc13a54bce6a7b` |
-| 9 | `950d4e827b4155528b4d473baf8543f1a932c0c28e6fc901e14a6287fcb94e06` | `dcc3518ecd3b596c99d849c7670b708b1e7a5601539312fb7625af408a5b2729` |
-| 10 | `233abff49c6f626d63645e0b7e158928a20256e4dbb8c3b00ce0fb1129ead00c` | `ba0d0c4030c2baba4ca96512bce0317d135b3118fa68b43f55bc30ddcc75b602` |
-| 11 | `15452dce3d48fec02cb2edef3f070719cfcd907767bcc63132d1813830e8000b` | `eaf74ed6300e8fdcf04c32ede1cfbc7cd1caaa9243da90a463f3841114dcca4e` |
-| 12 | `70faec6c97ba6e919269bc3cbd296053e2678b246cd6608d2b435ba91d766f09` | `34a1222b4d714f514dcb50ff9a145e961a29462c33f2f04c42fe37bcae90b660` |
-| 13 | `841952d79b7c9e7cf26430ca840dd508620e44efd48f42ad31224c51df246e0c` | `b4afc08660a033b2036b2a0d480fce0f03278b4a74351af6bb6e41b2a06d2363` |
-| 14 | `d63e9f455f758b7946d888402a9790a66b3fe4fce7db3dd04de5c4dc4b9ac903` | `b25ac7ad672ae828780b229ebe0a9ef97626cf5d9f975693ab3aedb5db54846f` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `7fd318c7a71d543ed87e2b8df70d434f3bd4406a0e754069d4317327a02d430a` | `9a8493d78c60dc0caaa2aa294777d9f4db157e4b002de4f1d5e5fdba7750b24b` |
-| 2 | `302e7de8da8bafd705aa75a1dd830603fcf72c0f28e8e6be16cdc7adfc4bf304` | `9aa8f5385334269aca711a4e71f0592483aa2360c3a348cd082b79115739507a` |
-| 3 | `3105eeb75e94d6b40a61a734864367a4bae92d3a61442aec086da74d2fd31e0c` | `b893029dcba9b6613f04a2ad54e526b1e229862bd73ae49c741b1a4e5f232b2a` |
-| 4 | `53b15dad58d84400a99f358b930494dd6169d9023f38c3289b7f4921b638c40c` | `10491f9a381145194bb1c08cb751d4ff83b6af889ec3614c76c99fd4868d8a6c` |
-| 5 | `0e0472f3a660a898a43501fa72fc7f35d9a9a54d489399d0646a98eb9d021e05` | `f0c445435f26fb3ae44196056f8c764cf14f7c4d0a332b0ba2d07c5fdbc8df6e` |
-| 6 | `0b7fd92a2a2f819a672e81d62794a3934e60b30ba4b5b478a86d8b0c25b6cb0d` | `3243e6ad68e9e1eba8225d08736319419d758658127c4e3679cf939018836f00` |
-| 7 | `3106d473ce3ab2485942391420b74a60167b0c1fa5585ed8f568e98c43980d08` | `12ba2e8f7f2606d88eb9067e00b3856ec4402c24da72848d64e2880cfe491e68` |
-| 8 | `f21e42ea136b3c2d23bced61db523fa4238057e343b077866981744118401301` | `f2b087c15d8443e6697d4b5da85ecf8d536c266355dd0aee17a8d3a4ec779173` |
-| 9 | `542e065107d5b39025913c0b008264861693ff5a85e5008b8aa97e053bfb5c0a` | `480451e16cad12724b533d3189323a6d496adb3727396625d424fd66ffecb90b` |
-| 10 | `1e5566d47d520209ce9358b6d2313acee122d100d0e9d2c4c50ae70cf4033007` | `ded3e9b85023d366ad0ba39562a0bf62fe0443c7c574c646435722bab8a2a745` |
-| 11 | `6b3109859b522f902fe0925bc304ff3b083f0b3e2ea38b238750804d58891d0f` | `8cd5e93754f4f7ec37b19e3e8ec0d6a98b4c615a2abf0c20ab9845e2bc56622f` |
-| 12 | `454f6d8e605f989170086b75edf846eb6f94e5847e71acb5f0d4dfff4a899c05` | `084cf1aef59d65efe562275be46805314a9d0820d670fbf425f4130949d71423` |
-| 13 | `5aced299ea6878dfd3ee4bf62733acdecd118b0f910ceb8a2faf9537647cb606` | `600f2bca29f1032979928a8f51062fed90350cb74ff896db952b1767c5e83923` |
-| 14 | `b9b69fecbcc5df9e975fcf76088ef495a733894333bbb46a6ea3cd92bcd3c608` | `6a35d79048f6d9759da160dde1f6597ccdb3f9230a649eca0b07801fa2e33e7e` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `c14900732438c02af052e6e5d4f25b445f45576ae4dd014a4e43e3ca9218fc04bf3d29d54be73ae00799c46d02cf06736819d96853373b7d04b51eb614e58666`
-
-#### Final Output
-
-- **Group Public Key**: `5056c3b4570be4c8afa7301347edea1de395810df72afccf576cc076a46d6a07`
-
-### COCKTAIL(Ed25519, SHA-512)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `976f8781ac89edb9b14f00b42915f36add6fb01f795ad7048e88a7246ab35304` | `2f35ea108d2b43a27d2dd17f3f0d0e44422514d91d667af850fa206a85cde4f3` |
-| 2 | `b00aff74021d100b0eb587ca406fd4c1af2ffef9146454a4c35f547f709e8403` | `d34665a229edcb3a8b822179868138c097bbf51316cbea636e6626b152742812` |
-| 3 | `5d3df9bdd5e6ff1e43f07d2d81791cda76e44e6fdbba980b1231a9ff39e1ee02` | `e4f58f6834e2315cc79cbb142ffa2ae0700f835ddb581818e10553679c32fafa` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `c11e69ce202b5f0edb662e870c506269016bf9113f5b66af4cc01fdf1482860c` | `8a45d3e10b89c0937e323c8456b9eae9bf939c3277a653f2c800df70a03fccc2` |
-| 2 | `6723b951f1a81f143f11eea4ec31413e76669d049b962b8946a78a35cf97cf0c` | `0c37616b618d49bc5ce2db1cc0ec4177890bbefa2caed8aeb2cc20aa5e872ecb` |
-| 3 | `0d2809d5c126e019a3bbadc2cc132013eb6141f7f6d1f062408ef58b89ad180d` | `9b992f1e668431df2531c8a29defe7d7a5897862648c8efc92bfd9464dbed5c9` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `c271c24bac1aef846815a8c43fc6618bb6d4367edece0c0937be417c3948ed69671629784f0950e43d63b0c2af66a5259ec2fd0b27e70b1d0cf49a127fca1970`
-
-#### Final Output
-
-- **Group Public Key**: `ec21f5ee46aa6e11ddc8d3f42af51e6636b86de0243229d848da48c3b604964d`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `c4d2fe0e35aabb3b681fa607b2f317327d84f59e55e778c11cd84bf1c822d0d82d2892ef746f3c01f1912de0a5343152` |
-| Ciphertext from P2 | `b628bd68a7e39dd414e99d2926868537cd9f54d3cd26cf789a70a5c03ec8c8b55b936a12042ae97979e33803a7008418` |
-| Ciphertext from P3 | `edb0c868a4f15eda0dfe55e1af46a5567f942d72fabf8fc43d45daea676ed725bb1c0e5f16cc6e336d8b45af967b8e0d` |
-| Recovered Secret Share | `c11e69ce202b5f0edb662e870c506269016bf9113f5b66af4cc01fdf1482860c` |
-| Recovered Verification Share | `8a45d3e10b89c0937e323c8456b9eae9bf939c3277a653f2c800df70a03fccc2` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `72553463294cecf2b05391d0b4697c7e5dd42e6fd8e3e779ab8dbcd762a1c701` | `e38cc6776d91cce01937aa23469caf8c019298136055e2c8f4002f2e0d4b1d30` |
-| 2 | `784418850a415959dcd16f114e96b7e300865107391bc737f39d2e1c3f70420f` | `b89c8543454c361cf07cbb8fb62d29186b2d82b716f642e61e42f45e3fc603d8` |
-| 3 | `82893224a1af1dcf0e1884a15885937af1018ef07b9d70ec6a14dfef21d97203` | `5f3e9f0f8deb3160261d5534431375ff66d5c305aa734801d6ea3c78a393af31` |
-| 4 | `2e102fbfe8593ae24446eca8635a81f91e16a53d8deedb73ec8b1e473f6f8f0b` | `6c4ce9698663429e3327c203937d509f00ebd8cf889f5af090d7a4762bcd31c9` |
-| 5 | `37bb7ef244c9f1d5ccac85fd9a01c881b44b50049652a7f50082e6c59aa80c0f` | `1535febfa522cc03fc9c2d67cd731263b93fe0d0795cbb6c599f922e9bf0319c` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `089205ddc8931a7778eb588b836756bc5f10a650bb9c3c6f23646c6303426f05` | `279636be807557633c8acd8161d452e8a9542f280463a643703184ef0bc88c22` |
-| 2 | `e8d9ed60a8df0d5f99459a1fe71ace6bc84c81773b25f84da8e6743816ad040f` | `20381dd73762ae08cce6f825178ad70a08636426c4caa4e797d06eec28f8c821` |
-| 3 | `b4d8f5ab9fa5ab1ff885e83885f37ffa59a540a3c09b1be8a6fb011736a77603` | `fa64620863ba443af3ac17968b550e221b7914b11892f831824839c036960925` |
-| 4 | `46360978e3ab186941e6321d1be52992141ae4d34a00a73d1fa313ff6230c502` | `42a70b7244644cd6acff8a2ccd9c105767dae4fc5a69f93ac588dabf2cf82e77` |
-| 5 | `9ef227c573f2543b756679cca8efcb32f8aa6b09da529a4e11dda9f09c48f00c` | `bb3e7a3a1a08d17197d41cbb3fb247380c5e6b2c85d92208d281896c1cc958e8` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `f8309b2d74d773466af7263f6341e05993171e7a05a405fed9d4bf890199a881805641a89396da1f868f14b4e73b5952ff854b8a5c5c7c45061c77e5ac77f2cf`
-
-#### Final Output
-
-- **Group Public Key**: `334d3d0229f6c32ae6b77e9bfd13bb72f565a1fead8aab11e06ecc55f0c4d4a4`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `b6090806188eb1cd2222c9f180561e3b8bac09fb672f5b0de705170929048b09` | `421a26a59527dcc8db396279fea139514903d6632872c6bd25592c94ae5eb191` |
-| 2 | `a1128fa24af9852c08790928825ab0845892a9b2d3133f7058e9d7706d70100d` | `164d1d596b00488600758f2d591d6682ebbc548d6c0ac91cd5ca6810afcb50a6` |
-| 3 | `6dafbb3e7cad284a0f8510c6736dc0b0aede00ebad9f265eaad2837dfe4d2c03` | `9f5a2c1959d25a72fe2275b8a8d9ddb4232e31bf81f99073241dd739cdbbdb5f` |
-| 4 | `a4396d6729b6e19331d4e58e43e278907858c7c7f2cd9fcb1bb84495b95d2f04` | `95b2ca39493be7974327815009509820f88323250ae5206735d35dec1626c8dc` |
-| 5 | `a606911a4a0de0376efa44fd072a6fad150d056dde32ba4115a2804e5077440e` | `e0a805b8cc81e67002acbc41046b1e069a9143c64f7d4bd77cf5845a6c3fe81d` |
-| 6 | `56d529262e1d6fa4e6a7db8bb9f61bcea14833cc88040b5fea23a7cd6fba6404` | `dce5dfc8c734a2edae38c4c2e6fda4e096eb3d544ec8d6619a895f9fd3ca9b61` |
-| 7 | `f4e3554295a31835c68f81479877c90cf4c1340961ce1f3d3f07ab4ec5737404` | `60177138f0d98f7e7083b718339daeab4fc44c370bba05cb946bb2de62ce2f13` |
-| 8 | `97559b3d6c9a433e9bcbc29b6c747b170d1e50865a875913f514ea96f77d050e` | `a18e2c39bed98bfbe05eb5ef8a629b48ecf45eaabda7e55501b7c3c4966fff77` |
-| 9 | `b67bcab764b7900ad51c912ef6e6ffe8799fec6032a045401c15102eda158d06` | `24c2f04cf1a9e81e0ea3f5701c3dc76df93ce872fd04aa1b1293c368bbddee6b` |
-| 10 | `55ed81fa6989d8b8c36edad9ff6c86166ec156c1cbcf9edc739ff9367599ff0e` | `2656186197fa97728aba52c27e9ed50384e996ed9c8e491906ed2ab64db456a9` |
-| 11 | `738a92c61738eff1c6657144213655448d4ed176bcdc898a89422189c932580c` | `08ea6307aafb5ef6b20f023eb4edf2a5fb912661855e3b6dde327dc58bad5049` |
-| 12 | `a48375bdd1e9fada7f72648458dbf46c2c9b4f885c072203c25f52c8f371dd02` | `f69dbdee18af719ac59dff612e28043a19476b164574d24bb908ba201a8ebe90` |
-| 13 | `fdbcc18d4bde352980ae363ee736f014d54dafbf8b63fa95fd0e9df673fe180a` | `4fa1de61f77b0a1a796506680fd14a1d25d9890a56a34e164af8fc102e71ee1d` |
-| 14 | `d9947c89c8a60154e690f679a17037ae7529e00557061dcbd20d04f9a3615604` | `d31f8c2e0d22455a40cfe819737605223f1add340a442fde18e4c2071a9b5d4d` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `5ae8e4e94395ba0838c4ba4a8849130645206e71aee6c9bdc12fb56edbfcfe0c` | `fa590716e0023453938b48e08717ba09446c3619431c69c777c20988fcacc619` |
-| 2 | `c69d4ac4d26e43318de29812ca720a5140e3bb7469105ef4e4d841ac987e3202` | `3889ff3155acdd6d481605ddd4ee63e1b080956186c055b19534ca97c8d42405` |
-| 3 | `52d315dcd6af952d6859db1bd796f90ad21117a4fc0c775d30810d2ef9ef9300` | `722e79c780637a20bfa188c09dab21ac2495c78927b768aa08e57557b3b708f4` |
-| 4 | `900b3bb6eef0c1b9a21196153b93431fcf4154a24c7fbafcf766eee40782de00` | `3b41c48d577cd28a2953ea1c1933c63e91f05317f15d21d21b2b19df84142f8f` |
-| 5 | `5aedb52a15bf785ba6b7b3c8cea04614162f1b1c2460c7d8e003986628d7de0b` | `205c0151dcd7d9bf04c75938ed0cd1342ab1f3ad35e61e81d62e5740c112a4ed` |
-| 6 | `4473e33ddb76fa45376158f2c6d28763a8ee43ffa75bfabd38c5639fef67b902` | `07d279f5bb2427088e56ca772e155c9f81e68e81a4d598756b73ce876f059717` |
-| 7 | `db1e9d5f393aea86ac4535ee3596b774c9b958525ec4b14d8632aad83e347c0a` | `28f08574232f539352bb1fbddcc667531b3792621ac32f34e9f5eaf25839a208` |
-| 8 | `8c7d13fc645338e2a6379f4642cbc83121513cacc71b115a5182ac13a1c0fb0a` | `b498cd2daff4fd916e84526bc308dbf0e5d248bae30ae72543c880d7e40aa28f` |
-| 9 | `1f2d4b898cdb26ffb7077dfd6bcc7d7ce4f7f44b8b30448e239d0eb9ea5ffb00` | `35231bef16e2991f532a42bd50f50e237be8c58ad4f0b25e704a43d26425d058` |
-| 10 | `1c79f3879fad1db5e7c8a41839d2bd0d02079cd035d24163c18ee19c1bc9a003` | `939c672f7382b03ce0826d6fecbfc8abe0e540a72b51aecbc5c8d5e1bd93a8d2` |
-| 11 | `07658cd43c0860d0ed939f1428ad91d3531872918a1a0e619b653e5783f9320d` | `022583f552659100e1b7bad7cc8aba80227a1b73d3fb646a83004275376fe37f` |
-| 12 | `dbc28a309af7360fd3af9055dda4bf74d5c91796674c7cac778071f127632407` | `b9ed1bfb7844a158685780659e2c018884b76a35387289914f849acb8750114b` |
-| 13 | `d78184a64a247eff228348f3ac8227e5df18eb2e3c4870e1534ab6e76e676809` | `cf098dad4e88dae95a64c6b3a2cc057134df15251d6ad09783bd68fcfafc419f` |
-| 14 | `8146df6da761b69ba2f3e73c11116b106955892d12969f397f64837f081e140d` | `058b5bdeb82562287d086a103007a7524cd778613d1fcf574b9970d45f6cfada` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `42d65bfd93ad920dfcb048b90ff5a4b45d7e4d48e559c7aa89573d18d50758ad24bf3242bd87f445623aea08aee37edff4b45d2ddf2e6431d170b8a80caeb7c7`
-
-#### Final Output
-
-- **Group Public Key**: `d3bd4888ca21d85a346d97ff7a95f07a22f2060f8566ce4228e61f214de7730d`
-
-### COCKTAIL(P-256, SHA-256)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `fd69cd069d3ececc5e003e20ce25dd968c7da87e017bdf6afeffbae9a3b3f943` | `0312a3ddd4c2f5d497e0ef6865495e6ee0076a1afc367b6a8f66ce889d8ecbfb8d` |
-| 2 | `6d29dd621960b35d24d0091634fae965c424acd714907dbbcb26d7f4515bd3bf` | `0311dea5e8bff958621b81640579565e19cf457ae4d4dfcc4f22d1273f7f482de6` |
-| 3 | `56fbd9a1e45d2a3563a97f3618b1d8f71d5bf4974a44a49da41f13080c006ee0` | `0312236aa188f8c9f51f58cf70c2add13d9fce8f8bddcc8f330eadcb3ec48e7373` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `112ffc75c88657968c290f46bea1573996cd4825c79d1422b2a430dcde0863af` | `0314bd10010bd552adee76a83db3042a17021244f0871cb2abdd1648686f55f662` |
-| 2 | `2a3da9df516e7993acf0e14b2174e4eb88a6b7c7f0e2ee700905462d7f3b6629` | `02ccce2880c58feebbbb42ab5a665402854792a59c5e38989c14277c621dd40d52` |
-| 3 | `434b5748da569b90cdb8b34f8448729d7a80276a1a28c8bd5f665b7e206e68a3` | `03b58d6f976b6481b808674b1ff6e424d38d74f6e37d8654a7c8847b0406fce7c8` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `9f20db533b5adefda4da156725577441ed2b5f51f8ebce23b5558e79012cde69`
-
-#### Final Output
-
-- **Group Public Key**: `02a8b67f71bffd8c6c2e529027aad586c1f544ad42f7ea7048b0eaebf233c4352a`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `7e8cb8ef817b78873a7eeb00fba8bbced71124951500ccdb2a287ac8c27e9619cb3e3e5957811dda27dcd6d463d5b54b` |
-| Ciphertext from P2 | `5d7d7fa5304ca522ce93970dcedb630a9034afc1b06ac864dee3f0ab0661d824b13fe694cc8a6e462bb8472a2236f833` |
-| Ciphertext from P3 | `0793cbe598727514b55731e9410bde1a302cdcf675b69bf44e720b9cef8e2be5274cdd7ce33d227f1752d9a1c8a00809` |
-| Recovered Secret Share | `112ffc75c88657968c290f46bea1573996cd4825c79d1422b2a430dcde0863af` |
-| Recovered Verification Share | `0314bd10010bd552adee76a83db3042a17021244f0871cb2abdd1648686f55f662` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `ff3a16d8079a4c5d7b7c268dbf918587b90aaa0074fbec26d042edde12c3ef67` | `0244cca0af554f634808afeda2fdd375edda81d81d4b3e43c016da72516fed41bb` |
-| 2 | `ff174ec7b2df3e78c93bbcb3ec926d7e5b4d824b08c2d2278dfff476218f0d1a` | `02a831ce1345699bc92f0e3bb250dfdee4657099bf523da3174ca2477665a34b3e` |
-| 3 | `78eae1231856e7fd3e869ac2b1a9dc69f265c6b65d7a5399ee4cfd27a8e15d0f` | `03b4d14158d498a0f33d6b7802ff22c9d2a14aa9333cca62f0b40bba6af8a3ca55` |
-| 4 | `a2f97ccb15ebf279044192add4089b036fdd33e518c65a2f7878faa2bf7a5090` | `035b542715e257ff2aacee6690a48dcf9906ed3d2db09cc6f928da3bd326a430fc` |
-| 5 | `c76e9f4fd52c3e7861efd3c265128c0cc4c46549c1dcfe8cdd9c29397e15a998` | `035bea0735d839da9f31b7b7649d1acac8d48de90761c2066339aa1d28ad23111e` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `4c6edebc35fd4aa03539772a17da1ad68f5d06b8bbba01f83e07b64c9c95e459` | `02406a1e0295b29540fdf7b396644cbcc8a7657d71bc4d7f3be5f397c932f250fd` |
-| 2 | `0f638f2789fa3b213fc791be45149594c088c85224bc44480fdcb14b760bfc3a` | `03a22d5a5e78f9bdadeaa752efd1ae6d7202e61df71a17759fc3fe2ff46c2d8784` |
-| 3 | `72772b3e270cf1b8a6b9289fe63f045f47ddd563181dc659b29491c479d09243` | `03352939ce70ee57b46a3ecf84a0e202ddaf3b1f71ea028b00b5afcf3f386d8ed2` |
-| 4 | `75a9b3010d356e656a0e3bcefb5967366875333deec6e9a832758cf4ab808123` | `02aaebd062bc2459c8d0528decc284afb7cf39e3ae3e62f6dd41a1c5e17f79def5` |
-| 5 | `18fb26703c73b12789c6cb4b8463be1a224ee1e2a8b7ae338f7fa2dc0b1bc8da` | `028915eb785b5c2029df6b8e3e12ae41f608ecb47c92fdcdf3e5ced34cbe72d0c3` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `e07bc2dd3667865e862ebe9534174f6f33af5dee113e1dd835185cdae66aaa70`
-
-#### Final Output
-
-- **Group Public Key**: `0323686a5185b926ffcdb4e90f51687749950aa6f8af76af4141a7a479e0ae9aa7`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `df48ddb52302967fcf09be676f4bbf2bcaada6e4fc1a841bb63314257a04aebb` | `03aa807eb96d36c62ca0a8a0cf97e6ae58902c2a6fce7710881437b8640c6e7907` |
-| 2 | `b2988923fe64d4a74bc5c7cb730027209d3d7e6ee373a770515ff6ebc3ca3d8d` | `0390edb86b74ccc4ac605f823b30402bfb56ec10f27e5d48f6b9a731bc2da31750` |
-| 3 | `b2e73e2da7393c0d96617d9e8bc5d89218370cfd401f7847e01d842aa28214f1` | `0291e3c19583945b7ffa6b73c625ce09d735a59b28381cba5bdf00fa70108406a4` |
-| 4 | `67f60bedac58c66f05af7446dea7a4caf07e6c6c6a30155977fd8782c795717b` | `0267c9ee0cafb6bf7a9f8c12d6e82c0aef07ce1521ea171e3c4dd5e907be62a849` |
-| 5 | `8fa2d058c720b7384d63ac9e6b98092e557f3112ed96b765c05b68dd784b99eb` | `034d15886c597fdddb828705d46d759312f6fcf9eed94fa48c356c5f8032e00243` |
-| 6 | `67c5dd6768f647cfe3424011d6f5e7ac606de3cb5090100c2e3b7cd07ed6e496` | `033c1b886d18143fd8d7192c3e195c31d467ee452fd4b9a02356a7d79d37e53a8a` |
-| 7 | `1fb31a964290539a99761e9f8c3e2e08286b5d256276165927b472bb908cb0cc` | `03bd658ec0a51bf89a2a3784d0a0311d27671cbc4c351570c41ac9a0e8c1f2aa5f` |
-| 8 | `f8685bd161b207d2c530a7617142d6bbcca46678cbcb377e5cdc99b09a0ad5a0` | `02b716027e710c060569e51e03a26cc763aca86a3aaf984fd5a6e6178e98da9622` |
-| 9 | `35cc8256fdabf74599f4f561a71f28b66f06b090584fb290935f39ca3646c66a` | `021cb3fcfe812ba265863244de1edcb7a617ac09ed6efee5c281d5b9833b9823d6` |
-| 10 | `fe3ab4deb2b950d5160dc8aa7d2eb3b017278c6cb7ec860875a602c4b5edd22a` | `022b2cb52b89d45bb2a51d2171114f460a9aa7f17689f6ff99a44511935abd0156` |
-| 11 | `e186e254cb5050d4feeaa3dadcde6ec1f4f2c6fe55a86db21fb78d4e44619b29` | `021b4e3652f13cea01fc1d62ca2b107f1426ca34cdb888facc8c98a40e1dc788a9` |
-| 12 | `7700ce7190c7e11a503c61a12b9e5a654a80bfc06e1833f6189b494dc374fccb` | `022e2c1907f6d02414dacd44dab319784f885ba81708c90dd2e5b6b590f8c9cc13` |
-| 13 | `3ccfbd93113b6ede8ac364365b9a473536ca8044b09c7ea48ec0e8316dc09d2f` | `033e91c0980404de321e8f808122306f963379f3d2ed521ebf4d4ccbca2bc16625` |
-| 14 | `1d0a65973e579e1f9b6a2c480a7d1051ed17565762cd64f64d8c5782621bd38f` | `02ff683668d034da255ff562cbb28b513ccf54f6df4f28c0ab412979ce95467cf4` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `31c11e7b3303511ae5b70236717ee6c996a7d36e32a07e5c7adeca6fb836ed27` | `025b18b60bcb8458af427fe61b52f1dd41a6f22fb1ace7aa5a1c3e22b2a80aa81a` |
-| 2 | `1b8b4d0aa4228283dfa14d07ffefc24a2764f83a69b1cfc7bec04aef7047b791` | `0311fd0213d232f3547188694dbb24793cdfc45da5dfcb19549bad97bd3c69b455` |
-| 3 | `5d7049854b0ec0b266a89d8477d2ce4e189fbeab01304e41d4684b13c027e21b` | `034b45d16c9a72d80f9505fb73b65ba8f4411f4430a21c5b5a5f8f0fba87da05cf` |
-| 4 | `093a2e063c3781459f9ba763bf2da8a338ef0ffc5f9ccb971c97c2e4fdd1bc45` | `02884c654b4f6d19df7c76e5d405d3e028522f7fb1ab35bdde13e2997acf31e113` |
-| 5 | `bffadeef6bdf4af4a78c3407e4f2be2a6466c1f2244ed5a27edf50abb561a92e` | `022e153ba09111011e3339abcd241f32501016a80bc02255a2fb3952c4c5e697e3` |
-| 6 | `4f6f1b2bdbacdad1d0af87ae2b073a4d9cb11bbffdd513827a6a7df8eaa588b3` | `03e4dcb617f646309a202619320639218a62c945cd5d1971955237ff02f0144ca9` |
-| 7 | `1ba7edf31d41da1d968cb1ab914869be47a3b994ca7d9da4f076ee96388a4a65` | `03efaac5e6e29b0ec212dafc12122b45e4bf77ece89483b3c9d75dc5ec656e00ce` |
-| 8 | `54fa822829d7248f4978c7b4e190908264da59250aa03728e798e1902c55e01c` | `02d7ab84edccfc432a43e0876dd86e0f3f8830220c478339c77b3336f0f8c8b6a0` |
-| 9 | `fa3657418ede9f2571610c323cbb334c02952f6a64538def6add46109ba62fd9` | `03988c658d2c966e685b357489654120dc1a6375f0d3eb2ac7f47c306f4444face` |
-| 10 | `a721d7c2efaa9f75e7e2ff9e28a8d41d0aa2f22affd08d33e6fb0df1121bda6f` | `02d1e05274bc9e97100b83806e4a2d7e6a54de0ad10ead869754e03c1580cb6fd3` |
-| 11 | `2f3d5140dc1ae384a9b25cf01f42223591a770084e29184eafa8495a3d66dc2a` | `02e8480ddf1b43092188b4e12c36f9003bdb278ac6dd07f81f1c869d743a4cd81e` |
-| 12 | `04cc4df9fc4f1a165f4d01129e7a9d4f8ad1f19f0c4e5deb3417550f7f726cf9` | `038c041ad40b98aa5ddeb30e7f0c8e88a7c7a5a614c53f3bbed39d7efb79fd6ddc` |
-| 13 | `6c254ffc915efb879cfcbd64b952ac25842233d3623b565e74243c41862c6ff4` | `03915d3038e25f2c08e367b120f3120548a616d0217bad578a459af68968e653ec` |
-| 14 | `7b47eddc4b17f324da27154729d9264577a0109281e4f309e74b22dbf75bdcfa` | `0361dc5bf691cf59bc00db0cd2801d740b8e00cba4404b8daee4ecc6ba3b142282` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `dac02f58675a0646e6d72c46683231f30fb49eb44739b829bbc1c18f70f72b8e`
-
-#### Final Output
-
-- **Group Public Key**: `030354ea2ae5e1eda262283b474f553683dba47f9060275452cd137d2a2c2d4992`
-
-### COCKTAIL(secp256k1, SHA-256)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `b6d8938c60ba5cfbf0ba97ae1c3f99c7a58485344ed7d6f387dc35bc76cacea1` | `02610897b193f5d9ae8c6b6527dfb89481aa9440577b24a96a9378a756542ae20a` |
-| 2 | `ad371a449f8f2734c1d98f4f92dabeab6189953e7f9258a2657743adf4b49fde` | `0325c9e642a8967b6069db110ddb5588d701b89ccebea4b15c277acab087c59129` |
-| 3 | `344ae0d3d664507f90d5cb534c77af20d61e83dfaaa500bc8d27428af3ac1573` | `02fe2400b831d7dc120d4f1f49ede75956782e77ca92aa24f7d1cb88bc584dd1f6` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `78402404ae73ea8795a8af5d5fe1caae5a71abdb62b52bd4be279a05df62bb26` | `02f6c8494a0e242d73696a1635b3839a54a55dc471d3465e719fedcc8bf8f07f11` |
-| 2 | `8e18ea88b0dae913f89c42b21be5f87ebeb801fff8f62a1cdd420d5725b5d7e0` | `0309e433bbcd6cf70a7c3dfdc5e3d44ab629f79568ac8bfa51c4dc118f4507ea20` |
-| 3 | `a3f1b10cb341e7a05b8fd606d7ea264f22fe58248f372864fc5c80a86c08f49a` | `02a91306f8390af207d697260df455bbe89328b1488ad5338271cc2a2019a394cd` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `0d785c00ecb6bde350ea1800ca69121c82be87ace2d7b691cb3d4c91566994b2`
-
-#### Final Output
-
-- **Group Public Key**: `0317763ca657a4d5e1c661b395aa9454ee2d9bdbbe8f2ea57ea0ec5cc0723ed9d9`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `2bdd90da132bb078da821d243212e080d79f4e673872857185e84b604a1cc650615d7d8fbfbc8cbb485b5dd361c93bba` |
-| Ciphertext from P2 | `a14ec908c3cc4ac2805846ca05a20a8244fb7ce3e889ae94ab00768c8bf0e4d309986b00a99484938cb0dfcdc7746636` |
-| Ciphertext from P3 | `f6f277baa4fb9c0affec954d3f5cb147d804b1156b66fb349400adb7908bafc4e6abd1fa76d8a081185791d30bef363a` |
-| Recovered Secret Share | `78402404ae73ea8795a8af5d5fe1caae5a71abdb62b52bd4be279a05df62bb26` |
-| Recovered Verification Share | `02f6c8494a0e242d73696a1635b3839a54a55dc471d3465e719fedcc8bf8f07f11` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `97b9f7468d461d768bfc89ffff0c41efa43d63e915db3b1e9558d0e7d0120b7c` | `021bd81630d7864d25fba41cc05a5e635c7a08e8b190d996a554691ae246062764` |
-| 2 | `917ea30b036b92edd821e7cab12e2d80fdbfaceb994dbf7d864aa4448f54c6b3` | `02d2796cc622bc6cf3a720c78934b9b38d18a3ee5458c499f85d940606413673b8` |
-| 3 | `3fbede422d6df3631340b208e2653c1cbbdab0312745c3f4ad68c387175eaf5b` | `02401aa2db05d19149dd680c4c1638be7b1a2f25b8f990d24029b9b8ef4eaa069f` |
-| 4 | `f06789105aa658a8f8d774242d748e805d429f07e4ba096ffa491ad2b3bd7c62` | `034dd29d0db956fd5330fd68e951f063e42a85dcc0e78c4fd0c5752c3e5154eec8` |
-| 5 | `d3a9721ec87abdc04903dcce30cc56132118a773cc326afff752ed406f3cdc17` | `024f80b54f11083d0462753f835ecb38e34cdb6d695f9213459f54af60bd9bcc1d` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `2aa84b0e28cf945fab50a04b0493026be4a8aac17bdd980915a50830a897cbe7` | `03ffd0727fdb797a7ede721674aeec6080d67dd5667d0b7f11635bd27411eb8955` |
-| 2 | `ff866e4b77f019362eba9b7a7fe51b8fbd89f7c840acd54bfc102340c4dbbdaa` | `02642eb38167a3fb5db09fa1147bacaed15385a1d5288288f3f8300e19676e2235` |
-| 3 | `e8c1b142dcf6f97b12366fcb260179c8564f9938659dc92857afae56ef7d214c` | `03682119ba6fff3195d441ae3a615973bccaae35002319a030c6be0edc56e7d08f` |
-| 4 | `e65a13f457e4352e55c41d3cf6e81d1469a86bf899f913d9e85607fff8b2380e` | `02fea0e231fc509f7984cb568acabee1f489498889b4a7c32f30abf9dfae9ef922` |
-| 5 | `f84f965fe8b7cc4ff963a3cff2990573f7947008ddbeb560ae03303be07b01f0` | `029bb02d4434208c458b2968c0457993403bcbb7c23581831b3386f79639508989` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `7dba0528c2bf18da7afe4a1de2e9283f70f4812569711f18eba3af92dab2469d`
-
-#### Final Output
-
-- **Group Public Key**: `02c4d6153a66c590f2bc546d51cf411b2522ee6b447ed0b0e51275dac238e666f1`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `8f26fe486e7d36a291970961906a799433633e3fbae1ebc0d4f9a07ff6be6539` | `022141199b4c48c897927b0c0fcb4067b4ab33a6fc8f7397a0279293a49440857b` |
-| 2 | `4b256597fee2e04590612eb7d249251a5b75606d503586cae0da143f5ca1fff6` | `033011dcdaf5a066952c31a17816735788ff11f6ddbeedcda7fc70b4eae293f534` |
-| 3 | `c5c499d28c2d66d7cf856cf03bafa15744284f4f11b353ee180a3c0a44eeda22` | `03360bd6cab9f15eba62f9dfe9445c159c7dc84e2b26b0be032de03de9601d0542` |
-| 4 | `326dfe8d3872834414cb082e41e0fd1d6c8baea7eb486c4054451e9f088ae020` | `03f6ec749ca5414704b72d898cf4e86ae272dd8e85070762218f3980df33b878eb` |
-| 5 | `faf07fc615242d7ec53cf92761adf7d5623765ddbe7b62a1a0b43933f41fc309` | `03bca7e4af0c86c440fea15781c50047619d47c24865d9d486428d55152742bfd0` |
-| 6 | `e67645b5eb4394cee403a5a96ff3690f3470cb319590be5bd57bf593e2ad4b3e` | `03d99c3d44fe456d45acf50142ff7f944adbe15b5fa91cf5117663ac9824b849f7` |
-| 7 | `8d7a1d95687dddf48d5d0293d849f6ae4d7d2f9069df47a1c9caf72a4b30ec89` | `0393c4a4f48427921fee93746d8b3179b9597f0aab53d5a7f3a6913c87ca9e4627` |
-| 8 | `49d7506273ba41dd097000aa72a0b16812e2577e00f69f6a5f43ff54699eaa63` | `023ad713c160f31debb869fbc42e5131906e2cae0182bcf2e5d48a7dc963af4852` |
-| 9 | `9bf7cf72481d1ca181f1e75a3f3d672a2382a218070e33e57f5b8b43bdfefff0` | `037aea9a5051b033abda7236a2fd0f95e1c5fe1911b48d134a64f06faf8bcf7493` |
-| 10 | `05055c065e84f445c62351b13b91942a0c25487c1a6b458da56e56a1bb8693ea` | `02dd920888f6d1e32484533926301c3a2f663b84a219bee92069a3dc90b77c6096` |
-| 11 | `ac37617850deb54aa05e83e54c14b6623f222318f340efb5f811f71e34a19128` | `03fa2f35b6360c71b3ccc6963b4e58607ee300b936119c492c58fc24c281cd7c81` |
-| 12 | `d068df395240d2661a52a55f172fb6c28d3ef611a7683e62e4e434842a43fcbb` | `03aa2cceeb92c4f6913e7de89daae148ebda6e89a988f34c548419be16157632f6` |
-| 13 | `d3f38a4e9cffc9a9f3d6298fbc2680e60f7a058392d0c95de5bbfa2a6b2a9f97` | `03a0fd661277b103b25ad0cc38c58dd3e8a990209f854a62831994504ff97efdd4` |
-| 14 | `a1c677dc760dd5161eb9f27c8b02a5e23bf522a0c4483b1244c65b7938b0e256` | `02612f2d257488980286424bef8bf17ecb609651e436a97de7b86a9b2faaf38bc3` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `6a230a7c1d0d83e59c6e26fbcc4be24c4a691b5f2f14a049154f88883faade9a` | `0201e0c204e450fa1025f793493a1f79260b5956cd73edd47883d8b15782e47ef6` |
-| 2 | `f434eae0441f2811fba757573e6fa501f30ab7bf41f053738dabe687b2e8e0bb` | `03e8959c4848cdb2334d3e2b55193426cd5cbfbbccea83c2191b2e0514ae3e3f9e` |
-| 3 | `9d07cd0257aa43f68bfe0bb4349cf4242c89aeb9740eae6455b871f1ba25645f` | `021f3ccd0152c2a8303182de160765c6b79e4fb1e3a14d8c163462b01ae6007cfa` |
-| 4 | `029c60851c9c6dd97ed01d0891f0cd7f3bd2b3af3b4b3aef3f7031836572b7be` | `032923d3bef3794e465103cf2767e48e8fb963efd28aaa7df250339ac24c6baf42` |
-| 5 | `6b1433204335301fd445350114a3fd80dd66ed6470f8be8157389cb5f2a828c1` | `036f8bd525ca06d851e583882a64ee145abec9283101aedb24a228ec9e4aff62e3` |
-| 6 | `d18fae79826e3ca7bb0430f2e7af084490f71edfdbd205861937848457e2a205` | `027d5fc00c377d577eda447c6fb8c137b72f2c39d79a4c5becaa40c1263c8c7a92` |
-| 7 | `9ffaf3b0425d77995329688056636e854eed32db738698c3b14fdd77f60ba4de` | `02892867c93d10b3585724fe178c98adf2e4a1dbf39a0bd1240300c56bac17356c` |
-| 8 | `15c9949bd590d9add47dd7f0a1fa4e7ed26d428ee39e5ad047327695f1b49652` | `0205baaf66a14e7aea3cb4820885c0abc88b8956a8ae7a5778a031e637a03494ba` |
-| 9 | `5ba12abc416429ed17ef2e3af91860bbed2bd1a1ac454e17d6275a46d2b2e18e` | `02fb1323b9354783c75316603042ee5b6d721a01eaae1d151cc4ce57f74919ece4` |
-| 10 | `43f2cbdd95508ee18448bec4914750d5b50ca890d325a2bf5118bd91f9da2c12` | `03ce0d8ed6c0321301d9f33e1b4e80eb9c8e3ac59f7d245b98b7440681ac0aae78` |
-| 11 | `b8835c6dd135f7425e2d56d1e2647215910dcb71ac6eeef650e98db9df29695f` | `026932e96c0da497f90430740aaaa9a99631cd15849c8a669b34bc313404204123` |
-| 12 | `d4e2bf855a9e5a147b51f6ab0404d00e7a90bea6c7808dfb4ff1b36c1506ba17` | `03419ef7927e8e6dc2df9b21b99bd5ad413c1b917dd9bd9b491fc543b1509406ae` |
-| 13 | `add1e4a200face4158f96e732cce9b1a63410b0b44788952aff395c543b7e95e` | `0290953b5eead2cb548ebbb0bee6cdc6af6a889d08b7cdc1c871f60662acb06597` |
-| 14 | `c597b31490da79a495b0deb353c7f0c874c36091b9d0c9db0c532ba8faf8fbf2` | `02b5a7cdd2e6e9dcb68645244a9319ed946fe600a22ec5242a6f8950c4ba363178` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `87196836c538f03a5c1528134793a916da9adad6c03003d39b062b38597616fe`
-
-#### Final Output
-
-- **Group Public Key**: `0359d5d1ab443cda953b002b6dc12a11ba96e6f3aca7b8fe8d3e159ae1d56cde4b`
-
-### COCKTAIL(Ed448, SHAKE256)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `8f9a9270561d0dbaafbc08828f30d41c342a8d4fcc5c364d7768ba75b168e4460e0a353d8fd189a3c4a6b22ece601173026a888cd4c46c28` | `9950bc0b58b1933452f595b8eb6de04a7d4dd7fc2301bbdb05c0ff440d38928153df7d7c400e19378b11571b4e1bf96c769e35d3866ac32c00` |
-| 2 | `e0354d9c7ae7016aa2de07c9eb0b6075205ce553ecdb01d3c1d89e7ec38642dfa2fa60159d76cfba79b3027f56b21a72dd082a37fa7a3a0d` | `cf1a179b82836ecd0d4d5c539128cc2cf5db9b3bd2a519a5524a522cee47ff454881ba5db9d4047857b0de096e83dc22b8132833a4edf5da00` |
-| 3 | `b6ff6734be4d67532c34aaad94cae9b6451cb45130a5240c66d5261ac322de02e41397eeb05011793e5a97a43eee6ba767b453725fa90a16` | `a8f4d91d754e65a13cb2ac8fb824647d04c4b8fb644455d1aef16fe81ebb7d1f0a3d85ae60ddb1dcdb04c37feb2fddcc400803eed7ee4fa780` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `692d92730a66096b0a971bfe712cde3dfacb726f94894c68841f8daec6cbb3c91df1be4a811aabd0a314d2b152156485b12fba9657637a14` | `7dcdc0aac7e24ad54a206a03f93d086f3aaaa0a999207ca5ed1798b522f7600c8136021ccf2844eb69459390b579bb13f2c285648bc0afe780` |
-| 2 | `05103b16d59fde2d062f2c2995b847c813728d981bb125181fb8240456efddcdc19187d1b62c54906f5365c64fb2f6c96d7fa7d4aaceba32` | `89fa9c64c4f86d958be5a05c3e26d2aa0dbd44f8ac087a72c88d228e085dbec18682e891b15f6c640c25701d85a80f97fc6ab2a5365effa080` |
-| 3 | `aead8b0d0d173bcdac3777c6458244319de1d11259fdaf03d02cf2dce51208d265325058ec3efd4f3b92f8da4c4f890e2acf9412fe39fb10` | `e4850a66863a281ed2529a1287c8634907629f1de66eec4c87257acf383a4b407628d3eeca24cbd2c8bb9f4d4252c4ff8157832f8412603680` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `a1310fa41f9763c1470173e93c1b6bfadbe5ff5aba7eeb2954f103850c41dc6d62b782b48fa24605e2ecdbb7b879d1f8e962a70197f7b545dcc5ccd4cce86331`
-
-#### Final Output
-
-- **Group Public Key**: `c9aa58f7c8007343ba47079ab1f8ccc67b7bedcf17114a27421a9891450007fbedb5faeb4a1586e105cca5cd4cf99f6aa1966c829fd762e080`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `4fd7af4723dba2d8764084938c8c84415816e20a51c1132446aa6e6edfe2e4702167513b1d328a7090b6c6dfbe247151b2a583cf14e701ce1ff495cab56fb1c39b6782fd13faade0` |
-| Ciphertext from P2 | `4ba50472a8d1a23146504939e7536275b56407a3366ee20742d34eedd301ce76503a32b4b4c6986e4ff2f068951c78085bf9da7f944c06e866d551a735031c4da80a5e7b72749960` |
-| Ciphertext from P3 | `f17f9ccc4b6f1b1100abbf1ebdd79eae0eb19640ecb02961858cc1b75a6426536885806044891a6fd98e88ba7cacaea8bb39ee4b91b86cf0e5424c4498405a73735447f4d5d7e7c3` |
-| Recovered Secret Share | `692d92730a66096b0a971bfe712cde3dfacb726f94894c68841f8daec6cbb3c91df1be4a811aabd0a314d2b152156485b12fba9657637a14` |
-| Recovered Verification Share | `7dcdc0aac7e24ad54a206a03f93d086f3aaaa0a999207ca5ed1798b522f7600c8136021ccf2844eb69459390b579bb13f2c285648bc0afe780` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `28ad10f793c78f91c4ff81fcc14baab7e4acbbfb5831601377a83a80e138f1babc022025e6f478dc120c72fff31318f101654d31ca760439` | `7bc21ed1ddc9084bb76737df4341e9662024e44732f92e699a766b5aebcc7887253cbcab01521ea45e2569ff70e472a4363b122259f1238380` |
-| 2 | `0cb2dd92e19c593fe23bce1be0dc904ae2b54d222ccb30f9843852e1400f8fec0ccdc948d0a25869d6f9f3354635b40d8f5268e828827d1f` | `3a6b5c18161e72aa161462288373dcf69d8375b62780f4317ae0feab9ce68efcc853e8f5678587de630694446297bcc296593dda6ab0eb9780` |
-| 3 | `edce3a511e913bfc7e3f6cab89774a22f7e7cdadf9a1e8e0b2e01edc775a61d292fe4be136c558e829419c9829eac395ad86e4137cb5dc1e` | `31c900c00f9b41acdfb045b8a09341bbc100e448c410d0c5a44928040fb1ee062e0f61cd43028ac4970d7c784f20e81c62356b9f3b4cbc7a00` |
-| 4 | `3c7ed560932a84f03f785094b772fff9bcfc2cf7d1f579ec3b8e78c69cd2393320d3a7ca4778b31018dfc0b2dbc53fb1592e3b25ca9a481c` | `3b7de8170e210c6b87bd6a6974009d0e3f5a859bf98df073dec5aae7b001965d5063c5606885e62b13b9c0a2bb717cbd5d3a7ba490c1ea8800` |
-| 5 | `6b366edc00b1655eacb298ee3d6920710b7f71ae60b1f381403a526fd3a1684cf5c76cf391c1bbc0389faa68533176e53727fc999b6ecf36` | `9c3f3a2b5fe19c2a4d9bd25ed99f7011c8edc56a0aafaefb6c7e524d280daf372bbef938507983d60bd154d8667458a9fa4ba803c6dfdc5800` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `74e66247b81e130ca8077e234e721ca80c69f5edcad0cebf3e75f0ca4c9ad3b532778ca0911ea317ba616a825c0f842d66a65c216e98841f` | `2ac240fd19889d93dde270a8faed2daf7fdfbbea5cc09c9b982e532183efe803d8ac0480707b3e6c1b211dc63c26dee2e06699a80d8dba9c00` |
-| 2 | `ab0ed263fd9325ea453b65eacae73dd4f52275f60a58b543a71a5a4dfe72332544dbc18f36e5b83afdd6b426b54fc61eaf27151bfd2c9c04` | `e5dccb90f1c336a9a32dcc5780e575234def28862b104eee0599cabac19f584f93774cc91a1c27798f87a75488e13ebf261fa6eaea6ca54f80` |
-| 3 | `7afbb7fae999a02ea72629747d16e356832297c0ff32e92bac93397b244ce1da3e49dd9be7e0dd7f69e7a13b8980267dd0aa2ae1aac9d83c` | `0bd2835fb8dd8f379f1cdc7e7815307578fd099019d886f057f02e1c552b78dd4e0c44b3bd231ec95b3c415f0de0ebfe7a51c35575c0a4ca00` |
-| 4 | `08de0b0ac6e8196fcc1b79170eb7c5cb04c4d83fcccf7d2b907430dec025ddd622c1dec4a41112e7fe9231c1d8a1a448ca2f9d73776e3a08` | `599010b500ec99576e1cfd0a2e0200f4890dc36c7ce9911c69459a353847fd4efa5c39846f05b0a4e75ed3bfa0545cea1ba1e304109a8a8680` |
-| 5 | `2e85d69349c8fb15b5c8a57dd4102c972aabbc804dc05f8f10299decd1ff2619f042c60a6e775570bdd963b7a3b340819cb66cd2621bc126` | `178cbde51f0dd2db75337f1603b9c81e36965d161ecc2e116b793fef04b43c2a38972c8800fa9ddd057eb992fb9144bd58c4d8a21924f80c00` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `329e5fb3820eb9bb01b5cf947df31df2f11f4a354beabeeced40eef52c80303f5e08958d7fb7df119bca33f329c499fbe4c9ee0425e59bb368ad034a4b2df8c3`
-
-#### Final Output
-
-- **Group Public Key**: `c7f0192c26da753dd3875fea28957843195e95e2624ed9064c3e96bc45d54002338eb48018180193b11f94dac4ef1ffc6623a6b8e762a18180`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `2e49741700240512141761f0c9bb8a72a06ee832d3ca21086b0284769a127e05bb0e6e316705c52a38aa23c2fa5c7f5c200804e4d8fe6937` | `26beedd270a1804e1c1c3afaeda6dff964f1f736bf896ef06317e50c3ba60dd944861f41976f4c6ff5d50cfd5985dd1e40ded261aac41c6180` |
-| 2 | `20bfda80a16b8a1465170831b9429f17d39c844920f6ab0549b1bf4f3bec095b68e10df0fb790f7a6bc42f224e700b77f411cc7144d6f704` | `85fe44016c3ebae0343f933d875103b545ec191b3b81d8e40ba542a56615b668f7ea609e3602e673e31cdd41ccd5a88fd1a776aa2ee2ac1d00` |
-| 3 | `6b13ab64bf5a32ce2ea651582203d232a353dabb8e10a58fad2e71c4a34d7c36d91ac34cdf8f1fe0b84691b60a0664e75dfdf5751b78f50b` | `ffac62d10f742369ce24c40caa0f7230ede54ce9a8dbfb9335a229976578a734de73208db2204cc5078f8dba60e92cb8c250743ac75af5bc00` |
-| 4 | `4baeef01465f0b88f0f971aadcc16b62a21284eef58c61234f20e0c72004184034dab5e60494838560b475a638d3c6ac36c9fda843a63634` | `ca975dc0ab94079efbc007446526fc543cad9fbda6c114a6ebd6a40e270ec46a32ef4332f4129837f013e923e8ba27ac6a1559b35468977e00` |
-| 5 | `e28ee2b0f7cec248dd167d249b3a55f4fdc95d0018ca1dba3df4484077e1a364dc13e8e77a54619234e95fe405b15dc6a7bdf07ca777d232` | `7dbdd88ff13f88fcd938b2fdb2c60e22d75b0dfe746aa7addc418ec507199031ee883b734e6940164bc9edbf213f2799bdbadc5960d3a64b80` |
-| 6 | `b7bfa4c9d1380b63e53f04ae7064244cdd8a50aeee932fc76b0b8ff12b055ddfb31a5c2b1c4b6d2e210e088627bdc739ec5124d9c9b9f312` | `7c81e8e44857f1b67102408758a036e5d7c2040d2337847f77c2f49f5de7c10ff54a8125db2f5f5ffb659011f7e1aefaf9f8aeb3ff4cbdc880` |
-| 7 | `dda33e41bc8043a7126c71f92caeb483a4dccef7a75b55ce2828bcdf5459de1d16cceb2cbc478acbd5ef8062c6b832fcdd7700d9c442ec3c` | `4e569326ddfe7b9ebb691f92bc37d942a48458bbc7e94d77754ec559f754f9cb7565217d46300f80bbbf680ae2de160a0b18b89c75a2ba9a80` |
-| 8 | `6cb1996ae72d300760297aa4868864c13e6f67915cd9d3424453a189735269bb77b757be2805d099e74d26e6154f5f3af98e9af31aebd22e` | `6c26cdde7354c7bc38f5f6743ec5d87f4af87ba27656d4f55076362f5b9f3db1e168048a6604ea27f6b1b7c9c131d4d69d04117e71833f0e80` |
-| 9 | `5ed04adc9d0914cc9bfacc187dab34446e28d049713d81d76948a09fa67be7751c9bdb21796b2b2962330cda92be004784ebecaa526d450d` | `270f1a229acf30f51fe44085b16d083cc1e4babcedec5516f40343f6aedb5b714d1940929264f6dc292a93341927173ba0def1f9ab1b173100` |
-| 10 | `c8c33fe001de1648b036c78a0d4c7e7d4c61772f0c3bbcbb60d4499ab8a439d53094a75e04e8f84775fd736b457076a5652d40bcc599a517` | `f4752efa4e2bdcff22aeb8af3a3108de74d288fdabbd464bf0a80a7669ce74d23dfe40b6de911779178dae65b6ee1941d80759bd1662a95800` |
-| 11 | `cbc062d53c85f4a6b46f23aea28af71f18268286d9111e9d80fbe5b23e1efa6cf25c90e7d3a5d60de389c006151ace5ff6215012234ec532` | `83e6c870c990bd7e109836a946731255a21a0b811e4361cc30b173bf7d7fd2857a9728d024499a329a954caceb04531f58a734a57ffa7aed00` |
-| 12 | `8b95eabd2ce4125d4f5d832690e0e5612db9769865cca605c54c24d73a74ace968a8941070a146613e65019c506b87bed0d9ff0b92915f25` | `0e1027091c5ce5df6185a4e36334948130924b90c3063f24ec7d51ff02d6af24b1f53cbe09f80b7bda98331c11fb7bdbbcb56424d477ef9380` |
-| 13 | `96b2536f046f0ee057d40f0541a08b3c3239278a2aed7c870b309f64795451fdb44a53aef5817c878dd323bf42121695aa415764ff70ad11` | `9a42ea4137eb4952bcd77550cf69377ce5f8f23ae6e411397563deb254d43666581e42f35eb1f5c30ab5a31bc8ceaea0bc99fb69c98e95b980` |
-| 14 | `a6adbdf328f290f06c04a2607a4d92419b17ad3f600faf8b7e1f7b4c0fda5e742ad237600293d5e7d569b8936945dd83cd9bf95e211c5112` | `d9f60738374cc85b4e089ec6876ccb322f18a49b4b4df74e1a53cf741112762bcf99f49f323fe686e5ad07a4387ad8d08ebd8a479f4e7b8e80` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `59e3b1728224e5f9ae7e1ce2cd84fc9ee17bfcaaf41a27e076a49ae9a514ed3a2cdd78492d61004b86ee0e380d3e990d8f740a9da3ea0325` | `99c1ee621559234627fa395eb2706284bce1422fef9fd72486b0dcb046f9fb813cc5362b1174476f81e7c9e2a2fb6108cf7a6a3d6f97333700` |
-| 2 | `ea42417e465f64293c8237bbd680f35240033443961e39f6addb94cb4c9e6c4e59c07db267f0b13b4db63fc708deeee1292d05d674ce5707` | `b3d16d8c5815adc525363175960aaeef7daa17baf2be1239c740e4b3f2c1f060aab2006f6302cdf35b8619340908101ad54e6c2e9e30b12880` |
-| 3 | `9c4e5c7cdca3218334f86497bbe44f3daceb3a530b1e4fc9d7741fb24162f9b7e6bc92b1f76a4b54aa39656047c14e4f39cbde2cfb9a5f1c` | `39624b24ac85b0dd2b67aa7e731f7e51717d8398549fac6a902dc19e9c3b7bb7f19dc1fbba1c1fc509a65de63aac049bc39dde8a02f504b800` |
-| 4 | `5743105fa015ebb8c3f0cdfb5e1f6c66a04c2ae2c954fa8a12c781b374f0b3abf9cd71ce8175c1ed86e1dee4f5b7fb151e5062945f58b11b` | `61167639b5657f968c0ceb5e988634b2fc2f7ef6acee7cd5485d5d228f4b5f5e3adf7ff70024be1812aaebda829d12b3ab4ddfaefeb7ccd080` |
-| 5 | `2e86cdb94b8da9259ae2e44fd587c3a57bb329032ac908855dea60ef91386eb74a035bf89315caf363cb978f2d09b01cef9ff639cbce8603` | `5c0f8abf2cea2f9ee779f9bcba0049a8c12615cd9d7d578f28fb26bc0151a1a7f2670e19ddc4bdffaf51df68e1f87ffeb3ac0c0a1778efaa80` |
-| 6 | `d8b45f019f23baf444354863f99dce063ceec008708c0faaea8b110ce835eccdfed6ff29e9dc7f08d88449287008d3c95236c00f2ac0c21f` | `462009b88fa935678f3a29376a8efc7f6bb2d0057adbacb404b086101a556659221efae9770d6d7c6da8382bb3b0308ec167514232d2496b00` |
-| 7 | `d1cf5dfd5d55759b91c93e2980a6cf94d73343ecfa1f1f145c04a330859661d8d03ab1f126381606b7ea46a379ef0c130f571a626025a02b` | `5f6db290c2015aaf50e996c641110c6dad10068c0b570aee77681708f33395a4f8c12d3dc9edae4ed6d0f8e3c01e0b001a73e962bc95e2ac00` |
-| 8 | `a12f851c5a5a9b0750198633053bcfdbd3cbb1bd7790b61c0f17895b855d2cce8b5cd0dd14e19edee22bcf2d67fc384350ba6778f36e0b0e` | `77f4b53239b514384290549c6138b6241f2f02fc39d3b6f1c23947efbcd7195e5d46286cfcf5cee09ee1647d48528616661db47a1a3f4fb480` |
-| 9 | `b11d3d51f59adf66ca73457e7bba62139b8064a5cc6c7eeb263b932f9680cc52d52182cd4d74e0d9c5efe8a633d4b576a6b43a4125c9a530` | `bfd8165db47487561c9276938bf8ad03834315eff64512fb563674d94cc9fbf4809d9da5aa1a2c2adff3f15cfa191e404e08076d2fb72a0580` |
-| 10 | `efb7891d407737d6488a4ac8c5cd1c4cbecb480d4b5041a6c5ba3ec7b28018da485ba5256b2a3e3176a0c584892914ceb9dad40983637231` | `ba271a20d2126bae422020f0f16753a0acd722d9017d5342beb669a3bee93d63f468b7d11e6a8c8d45642910a27c70efaf41bd5149546d4980` |
-| 11 | `64b34a2f704bf15348d1ade111eae0d7b65bf18d0d905e4bfa0ad0d70efeae52e3ae0beaa9b4b00983d8ac26eaa72357b520fe40e7bb2d2f` | `ffa4aa5f48587895c23a984cebf9909fcfafbdd2af4bc2a48ab551c6d76e48e4431b898fd5a251863be5ffb0d6b49aa93aa3f9a342ec2c9c80` |
-| 12 | `a62491805f03167668a2faf8e8247493041d665453a02b69f3d5fc5d3a47a556bf39f5ba093dd0cb6af46f932a235eac68753345eeec4e30` | `7c5adfb3d18d9067756808696208d102527d0cfa5d48e14525b781760973f04f7456a5e9cb3e74ee3db45206e3d58a8e0e992c7579e9f44780` |
-| 13 | `a4ff7eadced6cc4763b892706ef28a5f4ae812d5b9c2585d981e0cb478e372e221e9ceb6e589efd9bac765a4450bb14a20d92c3edeffb224` | `f1b96e31dd8b632371c9984037f2d673bac2aa7e8e09afae28b65c786414e15c4e91b8e2c9ef138ad50e552ee9ac941a119202d4fd06230f00` |
-| 14 | `e6c4ff2845a9cf0665e6c120e8487a864868286ec146bb93b535d8174c181a92d78a3340074548a4d875ee9c8324a59d34f0ba010242f201` | `2da67651edd8eb18da5cd76084a93a90c26aaa1b8e515d81a3bdfa77e5b2d9057b58ada93ebf6066a19878046782c0dc445272daf181443680` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `6d23b915f67d0da68c5606996b2f2cc267adfe4f43e5a3feb0c1518c397bbf0a58613a729d1d06dd0e6fcf114045190e33bfb5c38cfc75e9a669a4eeb84d12bd`
-
-#### Final Output
-
-- **Group Public Key**: `5d2925ebae890f415b3d7e4de139a278c03b42155240a5279cdecbd79683caa95c75efb94beeaeb1ee1ac17b56762aab98a07cbbe8b1ea2880`
-
-### COCKTAIL(JubJub, BLAKE2b-512)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `11d2989adac4cd7d0affd18498410683b65faa55d37f55aa29985a2a60c10203` | `481898de652d5b6256de15b84b0769e7facddacb76d7a57fc24955715a5c2666` |
-| 2 | `4824d871017c9d26915aca64fa086bbbd4baed78448cb29ef25f704b8e1f1608` | `e20e5582a702cf241f7ba514b7d9fedd41e65e954b2cdc9c0457ffcfcc3989af` |
-| 3 | `25c54cf8332afa4f315a31c004da3340ffbd82e700d85a1a6dde532bb0b9170e` | `d6f44b9f141ff339b5d8623cba82bed6e9f3f97da81e67920302b4cc8c1d0884` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `51b3c5c002ed5659445453fb2ce8c791e51cfdd6d448bda5e80078ee6646dc0a` | `3318a3309ab0caeed3138a14e3be1fa761f62c9635bd5afdb16bc0533e96e856` |
-| 2 | `75bec8e2a889ee65e32cbc84e013b8c43195d157b285cbfce2ff50a38bfba10c` | `09392a7ddd5dbbcc1b7bb42fb7d3315049b9e4e20eaeeba2177a19f6d64a5d05` |
-| 3 | `99c9cb044f2686728205250e943fa8f77d0da6d88fc2d953ddfe2958b0b0670e` | `af6abe42f8adadf30a61ee5e88b80f70ccc3089606589c77bb7911b6fa92462b` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `05bb3a8d9cfb4669dab7030558580d769eec6712f5cd514f335eb39a79777acd904c2321252bb20fd25961ce9a0f286ac63dba1619c660033a4e4be5c820b686`
-
-#### Final Output
-
-- **Group Public Key**: `6e48837cacc2cf38377fd9248baf43ac2ba91d641c5b3eab0827b2c0f12ad7d6`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `32edacd4da8afd0380f7e577a965bfcbadd8a086f9c9be596eadb10216c05a2a3162cbd24eb339dba2c942de18d61b71` |
-| Ciphertext from P2 | `891d5baa9845ae997b69e63a8e7c70865f79c21c369cdea71695ceb16356375879470ec456ed336bef29b4a710ef7cce` |
-| Ciphertext from P3 | `2a8c326eb385f811bda008a79aff1f9fc0b141c47607df14a7af282a8b1919662578a21f46ad03b4432213679ed4dfe1` |
-| Recovered Secret Share | `51b3c5c002ed5659445453fb2ce8c791e51cfdd6d448bda5e80078ee6646dc0a` |
-| Recovered Verification Share | `3318a3309ab0caeed3138a14e3be1fa761f62c9635bd5afdb16bc0533e96e856` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `8a6d09f226a24ab14e12d4cf7939681758b571b78a81844d6b78c3d7034d6d0b` | `3251d5c596b4763fabf7da22c5e33fa80b4666d84bdf486077e5276f9fb89e84` |
-| 2 | `10cfbb1c024a9ed6162569eea190521e0b59c8aa720fe35a3519d2dd2e2d1a06` | `daf29360afef36c7a816e5979b313bdad5368a92d9336c05c3e5089f8ffc62be` |
-| 3 | `8ca247a17a2bae026617f2a284ea573f18d106e61ac294be5016384b6664a705` | `285656f8d3c9ae6ec97b33892f83a51887b16952a108bd2134b8468803e4968a` |
-| 4 | `5acbff5d41ec61ad8a92854f939476fdb9968795ebf19aabc914d4d65de6690d` | `e07e52c7545ebe51504ba6dd2c1c76ff3e7aee4fec8fa83bdeb91918c58787e3` |
-| 5 | `36b83d2ed77362108f91e8d40509750024c2707502ac7cfdce6ba844ed6aa206` | `7cab434cef12f07b04da81bfaf71de5a6b387ef1a603cc522dcb5115ba62e683` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `d192123cb3952a7be75c7048c4cda67ccaf99d2ce83579430809739305a93705` | `99eca94fc3af346d5fbef1ac5bf6fb59843723c22bda8a03132caddf61a4c1b9` |
-| 2 | `cac23979a4ff10c15d88dd5bb8cd731f7a56fe9315dfd8ffc7b102af7ee67706` | `7419e57ae943b925185f27e05d2a8ed91eea42f255e27504dea0d32a981d8654` |
-| 3 | `9f9424130b11f8e5065f114e5a8948d840c571dcdfef52823432652f2b489400` | `6926acd26b2e9d240624cff2ee2f89eec4e863008a838786cd1149324a68ff2c` |
-| 4 | `0735cae045d876ba65f1d3eb3d218d4d1f812c0748a34ed1f639ce79f5820a02` | `8c1b0f38cd5de9bb9f3f9ea326901b573d28a7421add8315e3d6a2091c3cb15e` |
-| 5 | `02a42ae254558d3e7a3f25356395417f158a2e144ef9cbec0ec93d8edd96da0a` | `29f6b2b1eea0275311e800642cea5ca8ce2200d7243ab50dbc2e1799d1146253` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `ace2e5f05fab9d8369a1e79e516d3c4d68632c89f10284b67c64a72634331c7fb186676f70abb59f0b2f401b91f24c2ec42cab01069760cbfe485971526895a1`
-
-#### Final Output
-
-- **Group Public Key**: `4ccf463f718689c226fd714367c4fb51ad4e6fc4911cc9b262852bf8aff4af50`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `42fa1bced9d44eaa91c7130b00d655369a57217ac7b9a80d4e7ce217f1cf4e03` | `5af4180913d87c2220280a9c4c493f612c5c18010d32bca57689c786b2b63e72` |
-| 2 | `62dd2648e35c9fe597e4b895b7bcb13398ce4c31175fc42284abd4ce91a13603` | `a510091418157ef5f96058991026df8a8cc7399a72b4ef9a3c79d1fd52162d08` |
-| 3 | `75ebb5adb727d2d9f2d86c429cdf0e9cb67051fddbcda2d2ae73a8820ac92603` | `454592d9b11e8fd4da9cbb75acdad08dd8bc74fd284e27d9a3f714423aaad8a2` |
-| 4 | `f22c3ce17d20852089b760c96a8271f6b687dd860aeaf14b0b89cfca39c57f01` | `fa645ab3c9a901294eb759ba34cc450362f334c93a318fccde9a2aedfaaa4c47` |
-| 5 | `95a0baa924993a740af56268c64f4e341360da4c624c3d688c9c60438db1fe0c` | `f239e2fe35250abdb8e6046177f3949e5e3dcfb0ff62ce66eea7169e78ee7fa3` |
-| 6 | `69acd10ddbd23fe3be0cf2308bef8df0ddaf9d68cca0fc2100e96bcd8b8c8009` | `a4dbfa6a3acb3af65f0eba94ee9c8278e19d8758d8ec8fe57f89dd86f0c737c9` |
-| 7 | `f143c80cc033974df36f03a05f6c39020dbe9c7027176bbc695d9b0329be1e0c` | `c612b4080d07d9b9743e19b6263a7f54b2ee6bd0a90f01705af7b5072ed80b70` |
-| 8 | `dfcd2b66be3f61404fa3168294d6f529638425db4b6f56ef9e5a4dd770a22500` | `5d510ea3ee3aa2be2435ef996990350693e4477d1b2ab855dee6dc22da727231` |
-| 9 | `b009a7f2ffa853be9fe5896014ebc50efae58275667e139b5afcd337dcfef00d` | `16345d02d6163fb45071a8e060e93e0a153f6ffa4604c90b67ccdcf060011b5b` |
-| 10 | `460c639864f66a3b0dd52a8aa1bfa49826fcd7df02ad8de2a590a1f00d37bb01` | `a13ed26059fac029dced05f1e823edf9504e174bbeebe073e5a00aa1f6547d4c` |
-| 11 | `00dec2a49175f48f43f2bc12e8619e61cfb3688c6b9e41a9264dddfb7d8c0802` | `84c2c49ef0a8d5833ec15becea091315bdc89f697c97b8fd8ca521466c9ee168` |
-| 12 | `bb58ee98116c739dd03652b7bc6e027bc33f1f775f2e496d04df106fd9256e09` | `1704cb469de5717b0a734573bf6140049848958766c65c6d98b0197b60924c59` |
-| 13 | `3aed697eabd74db9376e49675d25adefa691ebd3150c77e84e2c4b91960e7901` | `f52450a7ed19ce4451ac146def563db000ab1f0571da8ca30d09534ddc3606ab` |
-| 14 | `d0470dc53552b03529ceabe4e4f14a6cd1763cc667f26ab7b9ae44ec0929ce01` | `6df8004a1249b30ec5dff1ec931320068517c1f5c250330b6cfa62cb24b40ee6` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `22c0303a41b67951f7daeba907f360497defa6ce77a255605e468532fc15bf0a` | `bf5b892eae59a3485978639cf171ae6458bf4cf39575d3de647bc678afcd95e4` |
-| 2 | `80fa94b5d82dd8fdf6d1055de086aace960c413cb90d6d437da2449d379b1f08` | `53a3f41215d735688aacd74f4b9582a070c8c2d4b28a2286328ab18bbdc42cec` |
-| 3 | `348fbe7e1d6d05d5135d471beee77eb254350d92a7db5144cb736eeb98643305` | `c29136290f45fe1738e8a3a6c8fafe425e6e51e1e7d7f2dc3779d98b2d25a626` |
-| 4 | `4cc0dee20c4799d110ec3ab623114c2bed36de76c4140e6939dbda5a0244d307` | `77b86875cb32fef8090d338099f9cc8479b7ceea27f1b57d8ce5c90abfb5ac69` |
-| 5 | `f9a93f085906442c885b822721ab65cc704700931885805268485f3ebee31b0e` | `6c230b5dcf336a12903dee15ea00996e3e96555e5ad1dd043822e090414d7758` |
-| 6 | `4eaf8bbe8580b4c8495d1a4afb4283c591e87993291fde080596ccf14a737102` | `39740b467c86700cd45c758338eb5c51c709bdc49988aa3d7134ca9ea084829a` |
-| 7 | `95314dbf880f7b72c3090980e8a3123aafa63cc656210892d4d53d23969d2307` | `d5f57b8d118c62364f29db73bafb826d55f248f95736e73cc73f02a153992d6a` |
-| 8 | `a5404e6ae360b36ebd609e11dae8a35618536538899c0dd8e2c2e1ee415b5d06` | `ab98a06af6201692eaa54411cf74b978454820cebc34b70f59e419524597d799` |
-| 9 | `86fbe9a9369e6362377760df98b56ab198f20d775295bb8ca860b279acb5a20d` | `fe2c9ed6dede80814f8cc7df4d9a63ada02b88e93f4c2777edb0f7c85cced56f` |
-| 10 | `84432c010e88d02e9fb51967f668a9b53d9d97d460fc266aa69f0e29d6cf950a` | `c5cb250c683c01fbf80bd6bf01aaeb89183f6f15b675a167899184ea1c605e69` |
-| 11 | `fd3f0f8f4aa2930f9a70aa1b9ed3281a62eb804a5d1a4150aac03f5f7657d50a` | `a6eee8a48649a3343816b8a321bdd513bb15b0531ee7a0611133088e45a92539` |
-| 12 | `c3ba6cc0e17d6b20b0c35476b649d255f40451e321849bd284cc7b04ae5a9b08` | `ce0fc6d1e7d6da72550de7e28c33733a8b40612095135c6afd72e207bc6c1ad6` |
-| 13 | `5d9a309bc0da71e27e84ab27d3b6b58500523ebc55969989c40b05003fb27e00` | `3175fa9e2fcf656db482fa727b5c2d340b114f69e88c8b82de7d06dcf6db5da3` |
-| 14 | `949af86ff959c4ade4fb3b68551173847aa58b9869510b072a1064a7b477e207` | `22b698df1caac6f4d59cf04dbe88e6b09c7c75c1904a722eb12f1e62a9292c5b` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `329835b6f4f45c96ed006408bc96a839e814d73329e977657303ca8594f0942efc4de223ff024f3f3d64bd5f4d5496304f5318409a250af00e518b5c10d93245`
-
-#### Final Output
-
-- **Group Public Key**: `c572f3aa75fd20c31332a354fe23cb12e1a97cc0821d36f47c4690b4786efc0b`
-
-### COCKTAIL(Pallas, BLAKE2b-512)
-
-#### 2-of-3 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `dce7e285e962eb4e696c1100cde1f7b6ebf52c3a2ca21261e4664a2a9d939e1c` | `510e2e035daee4a76c500d3c0a7556c2c8067ffd26849e68341f81e502d6039a` |
-| 2 | `ccb5469af32146ca72647d34a6a97c228fe45e8e9720e42aafdc3932c63a1a1d` | `eed2c4cda74c1db2aaf31fd83bc097b2f8cc5b1a079c8c90e73572608486811e` |
-| 3 | `a40391568417f3fcfde831017c8c4af5c91287ac492addeb55735e6b63c31b14` | `39eb0f3a427636d256add1e57065e4dceb863240ad9fdcbbd961ab2e4b5fc2b0` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `c908dbcd035b1aa944385396307f8a1159351d59f84f2f4f6c0400db22f8b923` | `5761eadbb27999c49a5f1dbea3a85caa9be94355e689739a28a88b17267b77aa` |
-| 2 | `cb8697561f597fe9c4d0cf60966366fb871bbce43d451acde4728ee2dc849f2d` | `fd29aa1a33095e42950980154ac5f915ad6b187d591839da122edf040b2b1b3e` |
-| 3 | `cd0454df3a57e42945694c2bfc4742e5b6015b70833a054b5de11cea96118537` | `8a2231f605ee105fb22e51fe1593a8cbb660901179db64b6dad8460a3c68d582` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `e76d93978d0853e17c8850556e08456efb9b80799bbcd06babde17deeadfafcaa0eb28f3a5e7d94db8b9663387e0fc9d0c08bc89dbf205b09701d1c893e38209`
-
-#### Final Output
-
-- **Group Public Key**: `1b79857a381a900f055bc241f2435e601192730d17df7e20c18f8e525fe16f12`
-
-#### Recovery (Participant 1)
-
-| Field | Value |
-|-------|-------|
-| Ciphertext from P1 | `874f3f77c95bb8ad202d3acdf0aec2842effbbe7cc8eb8474fddf3f1ff6bc829d6593ee0cc0f50956a0fcc4174e5e43b` |
-| Ciphertext from P2 | `92ce5450df413f6c9934beb0803e1fb605c0ace3d405dfed7d9b2850ccbacf8e057aa33b0a27ff1496591219d5733d55` |
-| Ciphertext from P3 | `5785bcc613ffdbfcb201820c839071a82099592f004452cbdb3a9a24d9998a81272f724caa2ce6c5add8689f0cd96614` |
-| Recovered Secret Share | `c908dbcd035b1aa944385396307f8a1159351d59f84f2f4f6c0400db22f8b923` |
-| Recovered Verification Share | `5761eadbb27999c49a5f1dbea3a85caa9be94355e689739a28a88b17267b77aa` |
-
-#### 3-of-5 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `eea0877b8c311d7be72275ead14c203f0295e727dcdf3ec32bc7947f15920327` | `614232db54489f18cf281d7e989180dd0fa465f0aaa60efdf6d8dfad5d8b5aa9` |
-| 2 | `9c4f7ba4c99f68301674374fcc95c765b0dbc0f08df839559e3dcd34d6141a24` | `ced2c3cf62260694c46cacc236c46914c411f59439395e6e2811425e26c0668f` |
-| 3 | `781b5fa53c3a0dd79ceca9be323e6e4f857638bbd9d164c6cdaca584b6799729` | `a9d031584c1a4dd180724315f9b65b6fc753821a58c11ba7b3877766bda3db1c` |
-| 4 | `694b3227391db91004590958787132faa7204b56f3f69ee8ff097f8fb442d021` | `19f8413ada8dc86d2faece0a0b4f7ef9c0d14a933d905a589f485a5df0516830` |
-| 5 | `9689e8ae557073761bc9b97265690f06021ebbff72df424845b69839a867eb00` | `617ae7f1c95b3fcab4fba02c5f4f3961f83123169cde6e162d60f98b35faa492` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `60ab53256591d90b710aca515a320cb51b48bbbb6d3e7b0b0f621ed1da592f26` | `1518c141ee1c93967cf10900cb7d2531ad6ffc6c96c52d339b81387fa4b06600` |
-| 2 | `2fe168edec2b0ba2f0fcf758d287e68edab9159f66d1c8e78868da6dc2fa4d33` | `e0e04aa51ded03d2aa40bcb48febc5568be82665cd2414373ffa4cff941623a4` |
-| 3 | `7b2bc3b7dfc5308be143665e7cd42980d7693ed0924c343dd5a7e6bdd5373636` | `1fcc43ae084a4940ec4f5b6c74b0b44c426447eecb98f165ac118951bf73e731` |
-| 4 | `448a62843d5f4ac743df14625818d6881258354ff2afbd0bf41f43c11411e82e` | `5115582d310a9832e7f86b8d7c883ac450a92035df95bb0123fade1bd1129eb0` |
-| 5 | `8afd465306f8575617cf03646653eba88b84fa1b85fb6453e5d0ef777f86631d` | `c7493a78608370152fec1b31fa5c3affb5a4106bea8bada4cd191aaf8356d11b` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `77adba7a0d552f83f48e5637a2ba387d51aee5a288f71c9408d01e76251f38682f005f07992813c69de3d82d92bfeec31aafee275eadf845c62e522bd7d8ce5e`
-
-#### Final Output
-
-- **Group Public Key**: `3f1730e474eace6453afd08478d6fd87265b80de4d9e9d2fbf532fcd2b4f583b`
-
-#### 7-of-14 Configuration
-
-| Participant | Static Secret Key | Static Public Key |
-|-------------|-------------------|-------------------|
-| 1 | `08cb5f7c1d314d69662f575308143b9e1079efd8a40e66847185c496956ae61f` | `b3dd1f82c0ac45ab49c84ff6b87e5ac6c1769ba28d99a893571fd1f338e49b2b` |
-| 2 | `5201d3204930a047710c72d04d887c775d4a4974b38278e30649ab2b29e8a014` | `a09f2e8bbb2a6ecb1f755bdbfc9af44f79014a115a75acdbb70fbf41e944cd02` |
-| 3 | `b2412fb777b0d886b7d2918d1985e4b11923c0e94eaaaddff9eac64429af022d` | `bb44e645efc65742f25bbff8c170fa39e494ba0a40225959abd2e084eb3793ac` |
-| 4 | `c9449b4f3e2efabf8f9e636b482908171d28b61b67060c8195e55acb1304782e` | `935a770ef15e24cb69542555bd55f14d6cc819ea557cd381b86b9239c242fea8` |
-| 5 | `6dc8e6da546e45acec2d472e3379d5d6fa06992307d3cb5a2f27460074319513` | `a118c4e268c9f6fc4d4ad58d17753c8b2d948d65db2c363ecc0137d0a03ac1a3` |
-| 6 | `a5bcc4ac86ad1e6574d10d978b9539d3c98c2ba26b646a0a2e8ce89b4a96db02` | `65dde1876203d96318a3a9f167398870ac5d16b10f5c9762114beb2f3d0c410e` |
-| 7 | `648cd331852802cb3985675aabc69d00e47ea3c8922a6a789d8b40736aae8331` | `bdc648337adf58d83b89f22973cfec12aaf958a1edf7317e3f45526cc3a5da8e` |
-| 8 | `3189581d1c0f906a0a3618bf52aba812363aede5a646ba23974b81be0a532d01` | `e4556b51f09e08f8013dff7da92ff9ad6dd3cf45db1e53f70163e9268762ce05` |
-| 9 | `140ac48c030cd4b843843640ccbf8f1706d9f8d55419befef5c89766e458dd08` | `04a45ffc97e5b4f91f7e6d1a94a7862226958970c9c3092d0991bdcce3133eba` |
-| 10 | `6b3cbcdae0d4805ecfdfb961d191ec7a55c66f23cee7cee6be3732d8f6295004` | `afdd1b36f09fc6c4398f6d19a3e6533ba00378c93f68e5263e245f7d1330d9bb` |
-| 11 | `61778ade90bf65db59820d1a5f12d1850812a45f5b6b5546fcecc01614a00932` | `a400592285002667fe4b05927de6409376b0e3762622d81be49e9b55c992c38d` |
-| 12 | `f8f70b07bf46f48d6a9832b7da52f739b2ab3972219f2e2d89d0148cb3173607` | `e134370a598f51a8fd9d544fd2724819c95c740a749b979955273e22488556a2` |
-| 13 | `094b810cb4fd203d45d81c3cf9ef2edd4d2509c8b67680f3c56e37fad3a85124` | `8b79bfb62b66f79cfeb3104764317adf0018039745a4dedfc776624c4377c834` |
-| 14 | `e8f9024cdfa308d87e267643b6dd321e79864f5b99bb1d94ea37ab16f4e69103` | `2bcf96d64b641f1914cd9e56d5564f89524f9b9fcaa648555cc68c2d3eae2526` |
-
-#### Round 2 Outputs
-
-| Participant | Secret Share | Verification Share |
-|-------------|--------------|-------------------|
-| 1 | `d79fbf226240b029a278ba8cff5c3bb6cf79d8bbc7e5ca8b4347e930bb967b3c` | `d013779e5806291be27bc99943593c4905594724ffaa9bada7ae94e73410b78b` |
-| 2 | `8ae7b1b6a7c1430e5058da4d2f935e9af67385569a52f2006ed5089e86438b32` | `16dc962b2bb17c21163a033a36a182ee899925f59ebd06c50b984e9ce295b380` |
-| 3 | `106dff7c0f9242a1c3b0b173f87ecbc05958d5a86ddcfbfe054a8a8fd186b820` | `44ce84c68959a3cc08db1a7af5b107ab0b34f7baa2b59a44c67269b84a904e2f` |
-| 4 | `8d30ec51599fe1e3bb84607aef68d9cec511183c5bc75126e29b484054319514` | `ed560f4eaf3cdda8f83c3c449ac8e3705036fd5f8223241933d8612127cda42d` |
-| 5 | `9448759197c871837591d759cbe83871f65a445a01852f45cfbb9dc1d5f43623` | `53739c87446a7666eb59934f4df07d4ba7c8951398024a616a973e7388afaeb0` |
-| 6 | `31b270aa00b3533a62cde158e478b2bbc30044c03087073df24f85c826121d15` | `d16e3974d8cd3f4d04e16957f1c053e4e147af2c992081020a992e268c620d36` |
-| 7 | `08864c3503d5198769e2268dba513fd0f9eb7e048b3452f7f1c7719d580ccc01` | `e70440fe2879c3d786393dcd48e22cfd43e20a54ee08fb2b5bedb4c37163969f` |
-| 8 | `82926d8eb549e8e3a30516c59f5e8eddd9f2a4b111ffc569e9c9d32e30611f1b` | `f84367503cda809630cf988150c47b8420e86f85c669b9b92163d989de87d3a9` |
-| 9 | `0a5b2df4e242a0964b7ee2ee7c7d82b94472b615a69cf8a921f85346d5465128` | `2fbe8ba96eea7698f825eecdfdcab9eaaaa828a17ed2064ff7db82451b5afd18` |
-| 10 | `607c77287c9c806314d10d369b9f51e58fae4bc579616910940fbfe0bd6eb830` | `3fcdeccb1f186cd8b38174b1b1d3ec1a281620c9bf09752f7d9923139fe85a17` |
-| 11 | `f9750696424dbd3320a04581946ac9c603fc1ad36fbcf46a345fa4a8d5cd3b16` | `ee686e963e305c36e6a0ec8276aadfcaa5cd712bcf996c229b7983f999b313af` |
-| 12 | `74d83ff9b50d45127d863a9d4b21ee2804afbdbb6ed5b03e0398a693e1697c1f` | `676b6362a8c65ec04f4b5d88c8e49796639e241c4379c96882ac2ff3c7d45294` |
-| 13 | `1bd9af8c1bf1369062ff35be0f7478cfe1d3b305a34d3319e8f57ea21f2cb531` | `9a4e6ccbe4375b224c4ebb5aa71330b379c028f9e20af0b94ed2e820f8de1e8c` |
-| 14 | `7a4a24b9e81fcd0bd6f13db8c331f47356aea695b22140f153c1b2c322b9503a` | `4ab2228f0be38e3d2de6d0f68d258884877e75ca31794e142b9a4ef332ecb7ab` |
-
-#### Round 3 (Transcript Certification)
-
-- **Extension**: (empty)
-- **Transcript Hash**: `a851f0e21184e631b83c336ada0e80e75fe6615fa931aedb09ea017c154998962eb509a051abcd7eb533232e4158de28ff43554cbdc470df53e45e390d908677`
-
-#### Final Output
-
-- **Group Public Key**: `d4a3a30c91ee1197555361749ee9650ad443fd9e7958ec8a0a04d2137b68ea9e`
+   decrypting the framed bundle assembled from the listed ciphertexts using participant 1's static secret key
+   and the transcript from the DKG session.
+
+### Vector Data
+
+The full, byte-for-byte authoritative test vector data is published as JSON files in
+[CCTV](https://github.com/C2SP/CCTV/tree/main/cocktail-dkg), with one file per ciphersuite:
+
+| Ciphersuite                     | CCTV file                               |
+|---------------------------------|-----------------------------------------|
+| COCKTAIL(Ed25519, SHA-512)      | `cocktail-dkg-ed25519-sha512.json`      |
+| COCKTAIL(Ristretto255, SHA-512) | `cocktail-dkg-ristretto255-sha512.json` |
+| COCKTAIL(Ed448, SHAKE256)       | `cocktail-dkg-ed448-shake256.json`      |
+| COCKTAIL(P-256, SHA-256)        | `cocktail-dkg-p256-sha256.json`         |
+| COCKTAIL(secp256k1, SHA-256)    | `cocktail-dkg-secp256k1-sha256.json`    |
+| COCKTAIL(JubJub, BLAKE2b-512)   | `cocktail-dkg-jubjub-blake2b512.json`   |
+| COCKTAIL(Pallas, BLAKE2b-512)   | `cocktail-dkg-pallas-blake2b512.json`   |
+
+Each file contains the 2-of-3, 3-of-5, and 7-of-14 threshold configurations plus the 2-of-3 payload-extension variant;
+each entry records `session_tag`, derived `context`, static keys, Round 1 outputs (ephemeral public keys, VSS 
+commitments, PoPs, encrypted shares), Round 2 outputs (secret share, verification share), Round 3 transcript hash, the
+final group public key, and (for the 2-of-3 configuration) recovery vectors with the ordered AEAD ciphertexts addressed
+to participant 1. Implementations **MUST** reproduce these JSON files byte-for-byte from the deterministic derivation
+procedure defined above.
+
+The inline byte tables that previously appeared in this section are intentionally elided in favor of CCTV as
+the single source of truth; the JSON format is mechanically parseable, less prone to copy-paste drift, and
+versioned alongside other C2SP test vectors.
