@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "c94dc60dd66ccde400ed19154505386fa9756ca9",
+  "prompts": {
+    "e14ed90a7df1ef1a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1b556988bffeW9ij0R8lo2jMlF",
+        "model": "anthropic/claude-opus-4-7"
+      },
+      "human_author": "Luke Valenta",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 4,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}
