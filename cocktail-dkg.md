@@ -375,10 +375,8 @@ Each participant $i$ is assumed to have:
             - $k_{i,j} = tmp[0:32]$
             - $iv_{i,j} = tmp[32:56]$
         - Otherwise:
-            - $ikm = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, context)$.
-            - $k_{i,j} = H("COCKTAIL-derive-key" \parallel ikm)$
-            - $iv_{i,j} = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]$
-            - Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
+            - $k_{i,j} = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, derive\_extra(context, "key"))$
+            - $iv_{i,j} = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, derive\_extra(context, "nonce"))[0:24]$
     3. **Prepare Plaintext:** Participant $i$ prepares the plaintext to encrypt. This consists of the secret share
        $s_{i,j}$ followed by an optional application-defined payload $payload_{i,j}$:
        $plaintext_{i,j} = s_{i,j} \parallel payload_{i,j}$.
@@ -411,10 +409,8 @@ steps:
             - $k_{j,i} = tmp[0:32]$
             - $iv_{j,i} = tmp[32:56]$
         - Otherwise:
-            - $ikm = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, context)$.
-            - $k_{j,i} = H("COCKTAIL-derive-key" \parallel ikm)$
-            - $iv_{j,i} = H("COCKTAIL-derive-nonce" \parallel ikm)[0:24]$
-            - Here, $H(x)$ is the underlying hash function (e.g., SHA-256).
+            - $k_{j,i} = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, derive\_extra(context, "key"))$
+            - $iv_{j,i} = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, derive\_extra(context, "nonce"))[0:24]$
     2. **Decrypt Plaintext:** Participant $i$ decrypts the ciphertext sent to them from participant $j$:
        $plaintext_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
        If decryption fails, participant $i$ **MUST** abort and report a decryption failure for the ciphertext
@@ -517,6 +513,9 @@ approach is to compute a hash of the participant-ordered payloads:
 1. For each participant $j$ from $1$ to $n$, collect their payload contributions. To produce a consistent extension
    across all participants, the application **MUST** ensure every recipient observes the same $payload_j$ from
    participant $j$ (e.g., by having $j$ broadcast the same payload to every recipient).
+   
+   In this construction, $payload_j$ denotes the single application payload sent by participant $j$, and is only
+   well-defined when $payload_{j,1} = \cdots = payload_{j,n}$.
 2. Compute the extension as:
    $ext = H(n \parallel len(payload_1) \parallel payload_1 \parallel \cdots \parallel len(payload_n) \parallel payload_n)$
    Where $H$ is the ciphersuite's hash function (the same $H$ used by $H6$), $n$ is encoded as a little-endian
@@ -660,10 +659,10 @@ not a license to sample nonces independently. For ciphersuites where the underly
 large enough output (at least 56 bytes / 448 bits; e.g., SHA-512), we can derive both the 256-bit key and the
 24-byte nonce directly from a single $H6$ output.
 
-For ciphersuites based on SHA-256, where the output is smaller than 56 bytes, we use $H6()$ to derive an Input Keying
-Material (IKM), which is then used with the underlying hash function with two different prefixes. For the key, we use
-$Sha256("COCKTAIL-derive-key" \parallel ikm)$. For the nonce, we use the most significant 192 bits of 
-$Sha256("COCKTAIL-derive-nonce" \parallel ikm)$. The AEAD of choice for the SHA-256 based ciphersuites we specify here is
+For ciphersuites based on SHA-256, where the output is smaller than 56 bytes, we use two domain-separated $H6()$
+invocations. For the key, $H6$ is called with $derive\_extra(context, "key")$ and the full 32-byte output is used.
+For the nonce, $H6$ is called with $derive\_extra(context, "nonce")$ and the first 24 bytes are used. The AEAD of
+choice for the SHA-256 based ciphersuites we specify here is
 [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md).
 
 The $H6$ function is used to derive a symmetric key and nonce from ECDH shared secrets. Unless otherwise specified,
@@ -681,6 +680,15 @@ $H6(x, E, P_s, P_r, extra) = H(prefix \parallel x \parallel E \parallel P_s \par
 - $extra$: Additional context-specific data.
 
 The output of $H6$ is used to derive the key and nonce for the AEAD.
+
+For hash functions with output smaller than 56 bytes, $derive\_extra(context, label)$ is defined as:
+
+$$
+derive\_extra(context, label) = len(context) \parallel context \parallel len(label) \parallel label
+$$
+
+where both lengths are encoded as little-endian 64-bit unsigned integers, and $label$ is the ASCII string `"key"` or
+`"nonce"` (without quotes).
 
 ### ECDH Shared-Secret Encoding
 
@@ -892,9 +900,9 @@ direct byte-string match above applies.
 - **COCKTAIL(P-256, SHA-256)**
   - **`H6` Hash**: SHA-256
   - **`H6` Prefix**: `COCKTAIL-DKG-P256-SHA256-H6`
-  - **Key/Nonce**: The output of `H6` is used as an input key material.
-    - The key **MUST** be `SHA-256("COCKTAIL-derive-key" || IKM)` (the full 32-byte SHA-256 output).
-    - The nonce **MUST** be the first 24 bytes of `SHA-256("COCKTAIL-derive-nonce" || IKM)`.
+  - **Key/Nonce**: Two domain-separated `H6` invocations are used.
+    - The key **MUST** be `H6(x, E, P_s, P_r, derive_extra(context, "key"))` (the full 32-byte SHA-256 output).
+    - The nonce **MUST** be the first 24 bytes of `H6(x, E, P_s, P_r, derive_extra(context, "nonce"))`.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
 
 - **COCKTAIL(secp256k1, SHA-256)**
@@ -903,13 +911,14 @@ direct byte-string match above applies.
     [Differences from ChillDKG](#differences-from-chilldkg) below).
   - **`H6` Definition**: A BIP-340-style tagged hash with the tag `COCKTAIL-DKG/H6`.
     The message is $x \parallel E \parallel P_s \parallel P_r \parallel extra$.
-    Note that this deviates from the default `H6` formula above by omitting `len(extra)`. This is safe in COCKTAIL-DKG
-    because $extra$ is always the session `context` and is fixed across every $H6$ call within a session, so no
-    parsing ambiguity can arise. Applications **MUST NOT** repurpose this $H6$ with variable-length `extra` inputs
-    without re-introducing length prefixing.
-  - **Key/Nonce**: The output of `H6` is used as an input key material.
-    - The key **MUST** be `SHA-256("COCKTAIL-derive-key" || IKM)` (the full 32-byte SHA-256 output).
-    - The nonce **MUST** be the first 24 bytes of `SHA-256("COCKTAIL-derive-nonce" || IKM)`.
+    Note that this deviates from the default `H6` formula above by omitting `len(extra)`. For calls that pass
+    `context` directly, this is safe because `context` is fixed across every $H6$ call within a session. For SHA-256
+    key/nonce derivation, `derive_extra(context, label)` length-prefixes its components before they are passed as
+    `extra`, so the key and nonce calls remain unambiguous. Applications **MUST NOT** repurpose this $H6$ with other
+    variable-length `extra` inputs without re-introducing length prefixing.
+  - **Key/Nonce**: Two domain-separated `H6` invocations are used.
+    - The key **MUST** be `H6(x, E, P_s, P_r, derive_extra(context, "key"))` (the full 32-byte SHA-256 output).
+    - The nonce **MUST** be the first 24 bytes of `H6(x, E, P_s, P_r, derive_extra(context, "nonce"))`.
   - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
   - **Bitcoin Taproot Warning**: When using this ciphersuite for Bitcoin Taproot outputs, applications **MUST** be aware
     that a malicious participant could attempt to embed a hidden Taproot script-path commitment in the threshold public
@@ -1737,9 +1746,8 @@ function DeriveKeyAndNonce(cs, ecdh_secret, E, P_sender, P_recipient, context):
         tmp = H6(ecdh_secret, E, P_sender, P_recipient, context)
         return (tmp[0:32], tmp[32:56])
     else:
-        ikm = H6(ecdh_secret, E, P_sender, P_recipient, context)
-        key = H("COCKTAIL-derive-key" || ikm)
-        nonce = H("COCKTAIL-derive-nonce" || ikm)[0:24]
+        key = H6(ecdh_secret, E, P_sender, P_recipient, derive_extra(context, "key"))
+        nonce = H6(ecdh_secret, E, P_sender, P_recipient, derive_extra(context, "nonce"))[0:24]
         return (key, nonce)
 ```
 
@@ -1785,12 +1793,9 @@ function DeriveKeyAndNonce(cs, ecdh_secret, E, P_sender, P_recipient, context):
             - ecdh_ephemeral = ecdh_encode(e_i * P_j)
             - ecdh_static = ecdh_encode(d_i * P_j)
             - ecdh_secret = ecdh_ephemeral || ecdh_static
-            - If the hash function used has an output size fewer than 56 bytes, use the output of H6 as an Input Keying
-              Material to two more hash function calls, which will be used to derive a nonce and key. (Here, H() refers
-              to, e.g., sha256):
-              - ikm = H6(ecdh_secret, E_i, P_i, P_j, context)
-              - key = H("COCKTAIL-derive-key" || ikm)
-              - nonce = H("COCKTAIL-derive-nonce" || ikm)\[0:24]
+            - If the hash function used has an output size fewer than 56 bytes, use two domain-separated H6 calls:
+              - key = H6(ecdh_secret, E_i, P_i, P_j, derive_extra(context, "key"))
+              - nonce = H6(ecdh_secret, E_i, P_i, P_j, derive_extra(context, "nonce"))\[0:24]
             - If the hash function used has an output size greater than or equal to 56 bytes, just split it:
               - tmp = H6(ecdh_secret, E_i, P_i, P_j, context)
               - key = tmp[0:32] (32 bytes)
@@ -1883,12 +1888,9 @@ function Round1(i, t, n, cs, context, d_i, P_i, AllPublicKeys, payloads={}):
                 - ecdh_ephemeral = ecdh_encode(d_i * E_j)
                 - ecdh_static = ecdh_encode(d_i * P_j)
                 - ecdh_secret = ecdh_ephemeral || ecdh_static
-                - If the hash function used has an output size fewer than 56 bytes, use the output
-                  of H6 as an Input Keying Material to two more hash function calls, which will be used
-                  to derive a nonce and key. (Here, H() refers to, e.g., sha256):
-                  - ikm = H6(ecdh_secret, E_j, P_j, P_i, context)
-                  - key = H("COCKTAIL-derive-key" || ikm)
-                  - nonce = H("COCKTAIL-derive-nonce" || ikm)\[0:24]
+                - If the hash function used has an output size fewer than 56 bytes, use two domain-separated H6 calls:
+                  - key = H6(ecdh_secret, E_j, P_j, P_i, derive_extra(context, "key"))
+                  - nonce = H6(ecdh_secret, E_j, P_j, P_i, derive_extra(context, "nonce"))\[0:24]
                 - If the hash function used has an output size greater than or equal to 56 bytes, just split it:
                   - tmp = H6(ecdh_secret, E_j, P_j, P_i, context)
                   - key = tmp\[0:32\] (32 bytes)
