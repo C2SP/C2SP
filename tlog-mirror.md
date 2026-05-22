@@ -214,32 +214,6 @@ The mirror SHOULD send these error responses without waiting for the entire
 request body to be available. Conversely, the client SHOULD be prepared to
 receive an error response before the request body is fully sent.
 
-When sending a 409 response, the response body MUST have a `Content-Type` of
-`text/x.tlog.mirror-info` and consist of three lines, each followed by a
-newline (U+000A):
-
-* The tree size of a valid pending checkpoint, in decimal
-* The next entry, in decimal
-* An opaque, possibly zero length, ticket value, encoded in base64
-
-If the client's `upload_end` value was valid, the first line SHOULD contain
-`upload_end`. This allows the client to resume an interrupted upload without
-recomputing subtree consistency proofs. Otherwise, the first line SHOULD be the
-tree size of the current pending checkpoint.
-
-After receiving a 409 Conflict, the client SHOULD retry setting `upload_end` to
-the tree size, `upload_start` to the advertised next entry value, and the
-`ticket` to the received ticket. If a client doesn't have information on the
-mirror, it MAY initially make a request with `upload_start` and `upload_end` set
-to zero to obtain it.
-
-To reduce the chance of retry failures as the mirror state changes, mirrors
-SHOULD accept any of the last several pending checkpoint values as `upload_end`.
-This MAY be implemented with extra state, or by storing the signed checkpoint in
-the ticket. The mirror MUST authenticate any information it derives from a
-ticket. For example, the ticket MAY be encrypted with a symmetric secret known
-only to the mirror.
-
 If `upload_end` and `upload_start` are valid, the mirror proceeds to read and
 process each entry package. For each entry package, it MUST authenticate the
 entries by verifying the subtree consistency proof: First, it reconstructs the
@@ -254,15 +228,44 @@ the log or the pending entry list, the mirror MUST skip saving that entry.
 
 The mirror discards any partial bytes after the last successfully
 authenticated entry package. If at least one entry package was authenticated
-and saved, the mirror MUST respond with a "409 Conflict" carrying the
-advanced next entry, as described above. The client retries with
-`upload_start` set to the advertised next entry value, repeating until the
-mirror has received all packages covering `[upload_start, upload_end)`.
+and saved, but the mirror has not yet received all packages covering
+`[upload_start, upload_end)`, the mirror MUST respond with a "202 Accepted"
+response carrying the advanced next entry. This case covers both a deliberate
+prefix upload by the client and an interrupted request that the mirror
+committed partially. The client retries with `upload_start` set to the
+advertised next entry value, repeating until the mirror has received all
+packages.
 
 If no entry package was authenticated and saved before the body ended (for
 example, the request header itself was malformed, or the first package's
 bytes were truncated mid-package), the mirror MUST respond with a
 "400 Bad Request" HTTP status code.
+
+When sending a "409 Conflict" or "202 Accepted" response, the response body
+MUST have a `Content-Type` of `text/x.tlog.mirror-info` and consist of three
+lines, each followed by a newline (U+000A):
+
+* The tree size of a valid pending checkpoint, in decimal
+* The next entry, in decimal
+* An opaque, possibly zero length, ticket value, encoded in base64
+
+If the client's `upload_end` value was valid, the first line SHOULD contain
+`upload_end`. This allows the client to resume an interrupted upload without
+recomputing subtree consistency proofs. Otherwise, the first line SHOULD be the
+tree size of the current pending checkpoint.
+
+After receiving a "409 Conflict" or "202 Accepted" response, the client
+SHOULD retry setting `upload_end` to the tree size, `upload_start` to the
+advertised next entry value, and the `ticket` to the received ticket. If a
+client doesn't have information on the mirror, it MAY initially make a
+request with `upload_start` and `upload_end` set to zero to obtain it.
+
+To reduce the chance of retry failures as the mirror state changes, mirrors
+SHOULD accept any of the last several pending checkpoint values as `upload_end`.
+This MAY be implemented with extra state, or by storing the signed checkpoint in
+the ticket. The mirror MUST authenticate any information it derives from a
+ticket. For example, the ticket MAY be encrypted with a symmetric secret known
+only to the mirror.
 
 Once all expected entry packages are successfully validated and committed, the
 next entry will be greater or equal to `upload_end`. The mirror then finishes
@@ -346,8 +349,8 @@ To work around per-request body size limits on common hosting platforms,
 clients SHOULD limit each `add-entries` request to at most 32 entry
 packages (8192 entries). When `(rounded_end - rounded_start) / 256`
 exceeds 32, the client sends the first 32 packages of the canonical
-sequence as a prefix, receives a 409 with the advanced next entry, and
-issues further requests to complete the upload.
+sequence as a prefix, receives a "202 Accepted" response with the advanced
+next entry, and issues further requests to complete the upload.
 
 A mirror MAY additionally implement other update processes, provided it continues
 to correctly operate `add-entries` and never violates its cosigner requirements
