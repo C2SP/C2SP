@@ -97,6 +97,7 @@
 
 ### tlog-witness
 
+- [@AlCutter](https://github.com/AlCutter)
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@rgdd](https://github.com/rgdd)
 
