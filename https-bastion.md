@@ -82,8 +82,9 @@ The bastion MUST ignore all caching headers in both request and response.
 
 Note that in the context of the Web platform, all backends are served from the
 same [origin](https://html.spec.whatwg.org/multipage/browsers.html#origin), so
-backends SHOULD NOT target browser clients or use cookies, and bastions SHOULD
-NOT serve non-trivial websites on the bastion host.
+backends SHOULD NOT target browser clients and MUST NOT use cookies. Moreover,
+bastions SHOULD NOT serve non-trivial websites on the same
+[site](https://developer.mozilla.org/en-US/docs/Glossary/Site).
 
 ## Appendix A — Security analysis of reusing a witness key
 
