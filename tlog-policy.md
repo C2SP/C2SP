@@ -105,15 +105,15 @@ defined earlier.
 
 ### Public key representation
 
-Public keys are written in [vkey][] format. (The `sigsum-key` command
-can be used to convert public keys between raw hex, OpenSSH, and
-[vkey][] formats). Log keys must use signature type `0x01` (Ed25519),
-and witness keys must use signature type `0x04` (Timestamped Ed25519
-witness cosignatures). Two vkeys are considered *duplicate* if they
-wrap the same underlying Ed25519 public key, even if they differ by
-key name and key id.
+Public keys are written in [vkey][] format. Log and witness keys must
+use a signature type approprate respective function, see
+[tlog-checkpoint][] and [tlog-cosignature][]. Two vkeys are considered
+*duplicate* if they wrap the same underlying public key, even if they
+differ by key name and key id.
 
 [vkey]: https://github.com/C2SP/C2SP/blob/main/signed-note.md#verifier-keys
+[tlog-checkpoint]: ./tlog-checkpoint.md
+[tlog-cosignature]: ./tlog-cosignature.md
 
 ### Defining a log
 
@@ -150,12 +150,12 @@ Since only logs and possibly monitors interact directly with
 witnesses, most policy files will not need any witness URLs. The
 meaning of the URL is application specific, but if a URL is provided,
 it is recommended that it is the witness' "submission prefix" URL, as
-defined by the [witness protocol][].
+defined by the [tlog-witness][] protocol.
 
 Duplicate witnesses, i.e., multiple witness lines with the same public
 key, are not allowed.
 
-[witness protocol]: ./tlog-witness.md
+[tlog-witness]: ./tlog-witness.md
 
 ### Defining the quorum
 
