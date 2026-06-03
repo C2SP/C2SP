@@ -21,10 +21,10 @@ This document specifies two cosignature types: one based on Ed25519, and one
 based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments.
 
 Unlike the Ed25519 type, the ML-DSA-44 type is secure against quantum computers.
-Moreover, it commits to the cosigner's name, and supports signing [subtrees][]
-in addition to [checkpoints][checkpoint]. The ML-DSA-44 parameter set was
-selected because at NIST Level 2 it provides some margin beyond the 128-bit
-security level.
+Moreover, it commits to the cosigner's name, and supports signing
+[subtrees][subtree] in addition to [checkpoints][checkpoint]. The ML-DSA-44
+parameter set was selected because at NIST Level 2 it provides some margin
+beyond the 128-bit security level.
 
 ## Conventions used in this document
 
