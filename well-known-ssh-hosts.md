@@ -41,10 +41,17 @@ match the domain the .well-known file is being served from.
 They include:
 
 * Hashed hostnames are rejected
-* Hostnames must match the domain they were fetched from, or be valid subdomains of that domain (or wildcard subdomains).
-* IP addresses are rejected (follows from the above rule)
+* Wildcards are ignored in the segment to the left of TLD and CCTLD's
+  (e.g. *.com is ignored, and *.co.uk is ignored, but *.example.com is allowed)
+* Hostnames other than the domain must be ignored
+* IP addresses are rejected unless they exactly match a TLS certificate subject
 * The base64 must be valid
 * The decoded key must parse correctly
 
 Many of the less-used features are supported: @cert-authority,
 @revoked (if the domain matches), non-standard ports.
+
+## Conflicts with SSHFP
+
+Users should be notified of conflicts with SSHFP records if both are valid and
+DNS is validated via DNSSEC.
