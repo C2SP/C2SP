@@ -83,9 +83,9 @@ material.
 ### Standard age keys
 
 A plugin MAY support decrypting files encrypted to native age recipients, by
-including support for the `x25519` recipient stanza. Such plugins will pick
-their own name, and users will use identity files containing identities that
-specify that plugin name.
+including support for the `x25519` and/or `mlkem768x25519` recipient stanzas.
+Such plugins will pick their own name, and users will use identity files
+containing identities that specify that plugin name.
 
 ### Agents for age identities
 
