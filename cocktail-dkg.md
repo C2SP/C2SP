@@ -2,7 +2,7 @@
 
 [c2sp.org/cocktail-dkg](https://c2sp.org/cocktail-dkg)
 
-- **Version**: v0.2.0
+- **Version**: v0.2.1
 - **Authors**:
   - [Daniel Bourdrez](https://github.com/bytemare)
   - [Soatok Dreamseeker](https://github.com/soatok)
