@@ -52,6 +52,10 @@
 
 - [@pornin](https://github.com/pornin)
 
+### phc-string-format
+
+- [@tarcieri](https://github.com/tarcieri)
+
 ### sequencehash
 
 - [@opal-escent](https://github.com/opal-escent)
@@ -113,4 +117,3 @@
 ### xaes-256-gcm
 
 - [@FiloSottile](https://github.com/FiloSottile)
-
