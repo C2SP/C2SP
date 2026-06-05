@@ -91,7 +91,7 @@ Each parameter name shall be a sequence of characters in: `[a-z0-9-]`
 allowed. Parameter names SHOULD be readable for a human user. A
 parameter name MUST NOT exceed 32 characters in length. A parameter
 name MUST NOT be equal to the string `v` (to avoid confusion with the
-version field).
+version field). Parameter names MUST NOT be duplicated.
 
 The value for each parameter consists in characters in:
 `[a-zA-Z0-9/+.-]` (lowercase letters, uppercase letters, digits, `/`,
@@ -109,7 +109,9 @@ of strings MUST follow that encoding. Consumers MAY accept alternate
 encodings.
 
 A version may be optional; if the version is optional, then the
-function MUST define the default version to use.
+function MUST define the default version to use. Version numbers use the
+decimal encoding defined below but MUST NOT be negative. The version number
+MAY be zero.
 
 A parameter may be optional; if a parameter is optional, then the
 function MUST define the default value of the parameter. That default
@@ -117,7 +119,7 @@ value MUST NOT be subject to context-dependent alterations (e.g. a value
 configurable in a system-wide setting is not an acceptable default).
 When a parameter is optional, producers MUST omit the parameter if its
 value is equal to the default value. The function MUST specify which
-parameters are optional and which are not.
+parameters are optional and which are not. Parameter values MAY be empty.
 
 The function MUST specify the order in which parameters may appear.
 Producers MUST NOT allow parameters to appear in any other order.
@@ -134,6 +136,7 @@ The function specification MUST define the set of valid salt values and
 a maximum length for this field. Functions that work over arbitrary
 binary salts SHOULD define that field to be the B64 encoding for a
 binary value whose length falls in a defined range or set of ranges.
+The salt MUST not be empty if present.
 
 The hash output, if present (in a "hash string"), MUST be the B64
 encoding of the raw output of the hash function. The function
