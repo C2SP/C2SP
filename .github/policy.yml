@@ -33,6 +33,9 @@ policy:
           - the https-bastion maintainers have authored relevant changes
           - the https-bastion maintainers have approved relevant changes
         - or:
+          - the identity-transparency maintainers have authored relevant changes
+          - the identity-transparency maintainers have approved relevant changes
+        - or:
           - the jq255 maintainers have authored relevant changes
           - the jq255 maintainers have approved relevant changes
         - or:
@@ -324,6 +327,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/https-bastion"
+    requires:
+      count: 0
+
+  - name: the identity-transparency maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^identity-transparency\\.md$"
+          - "^identity-transparency/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/identity-transparency"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the identity-transparency maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^identity-transparency\\.md$"
+          - "^identity-transparency/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/identity-transparency"
     requires:
       count: 0
 

@@ -66,6 +66,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | [`c2sp.org/det-keygen`](https://c2sp.org/det-keygen) | Deterministic key pair generation from seed | [Maintainers](MAINTAINERS.md#det-keygen) |
 | [`c2sp.org/FLOE`](https://c2sp.org/FLOE) | Online and random access authenticated encryption | [Maintainers](MAINTAINERS.md#FLOE) |
 | [`c2sp.org/https-bastion`](https://c2sp.org/https-bastion) | Bastion (reverse proxy) protocol for exposing HTTPS services | [Maintainers](MAINTAINERS.md#https-bastion) |
+| [`c2sp.org/identity-transparency`](https://c2sp.org/identity-transparency) | Identity transparency leaf format | [Maintainers](MAINTAINERS.md#identity-transparency) |
 | [`c2sp.org/jq255`](https://c2sp.org/jq255) | Prime order groups, key exchange, and signatures | [Maintainers](MAINTAINERS.md#jq255) |
 | [`c2sp.org/sequencehash`](https://c2sp.org/sequencehash) | TupleHash-like functionality for arbitrary underlying hash functions | [Maintainers](MAINTAINERS.md#sequencehash) |
 | [`c2sp.org/signed-note`](https://c2sp.org/signed-note) | Cleartext signed messages | [Maintainers](MAINTAINERS.md#signed-note) |
