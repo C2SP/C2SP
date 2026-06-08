@@ -26,18 +26,28 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
-[RFC 8032]: https://www.rfc-editor.org/rfc/rfc8032.html
+[RFC 8410]: https://www.rfc-editor.org/rfc/rfc8410.html
+[RFC 9881]: https://www.rfc-editor.org/rfc/rfc9881.html
 
 ## Leaf Entry Format
 
 The leaf entry is a sequence of bytes. The leaf entry MUST start with a single
-byte version identifier, and MUST be followed by repeated 32-byte SHA-256
-digests.
+byte version identifier.
 
-Example leaf entry, where `||` denotes concatenated values.
+### Version 0x01
 
-```
-0x01 || Hash(message) || Hash(Root of trust) || Hash(key1) || Hash(value1) || Hash(key2) || Hash(value2) || ... || Hash(keyN) || Hash(valueN)
+Example leaf entry, where `||` denotes concatenated values and `...` denotes
+repeated values:
+
+```text
+0x01 ||
+Hash(root of trust) ||
+Hash(message) ||
+Hash(key1) || Hash(value1) ||
+Hash(key2) || Hash(value2) ||
+... ||
+Hash(keyN) || Hash(valueN) ||
+H(receipt)
 ```
 
 The first byte MUST be the byte `0x01`. Future versions of this leaf format
@@ -45,35 +55,78 @@ MUST increment this byte value.
 
 The next 32 bytes MUST be a digest of the `message` submitted to the log.
 `message` MUST be the digest of the original data. `message` is hashed again to
-prevent log poisoning where entries contain spam, e.g. spam is split into byte
-arrays with each chunk uploaded as a message. Logs MUST reject any messages
-that are not 32 bytes.
+prevent log poisoning where entries contain unwanted bytes, e.g. meaningful
+content is split into byte arrays with each chunk uploaded as a message. Logs
+MUST reject any messages that are not 32 bytes.
 
 The next 32 bytes MUST be the digest of a root of trust. The root of trust
 SHOULD be a public key, for example the signer's public key or a public key
 from a root certificate. The encoding of the public key is ecosystem-dependent.
-
-The remainder of the leaf entry is optional.
 
 The following bytes are a key-value mapping of ecosystem-specific strings. A
 32-byte digest of a key name MUST be followed by the 32-byte digest of a value.
 It is recommended to apply a restriction on the number of key-value pairs to
 prevent large leaf entries.
 
-TODO: Should we document why the leaf doesn't contain the signature, and the
-(optional?) responsibility by the log operator to persist signatures for
-non-repudiation
+The last 32 bytes MUST be the digest of a _receipt_. The receipt provides
+non-repudiation for the log operator, proving the log received a valid
+_credential_ to upload to the log. The receipt MUST be stored outside of the
+entry bundle, due to its size. The log MAY NOT generate or the receipt, and in
+this case, the 32 bytes MUST only be NUL characters `0x00`. The log MAY set a
+time limit on how long a receipt is retained.
 
 ## Signature Format
 
 For `data` to be signed, the client MUST use `SHA256(data)` as the `message` to
 be submitted to the log.
 
-The `signature` is computed over the concatenation of the log entry version
-`0x01` (as a domain separator demonstrating the intent to log signed data), the
-NUL character `0x00`, and the checksum `SHA256(message)=SHA256(SHA256(data))`.
+The `signature` is computed over the concatenation of the specification
+identifier `c2sp.org/identity-transparency/v1` (as a domain seperator
+demonstrating the intent to log signed data), the NUL character `0x00`,
+the checksum `SHA256(message)=SHA256(SHA256(data))`, and the ecosystem-specific
+context strings
+`SHA256(key1)||SHA256(value1)||...||SHA256(keyN)||SHA256(valueN)`.
 
-Any signature algorithm may be used.
+The signature algorithm MUST be one of the following:
+
+* ML-DSA-44
+* ML-DSA-65
+* ML-DSA-87
+* Ed25519
+
+## Root of Trust & Receipt
+
+The root of trust and receipt depends on the _credential_ submitted to the log
+to demonstrate ownership of an identity. Additional credentials may be added
+in future revisions.
+
+### Credential: Public Key
+
+The `root of trust` is the PKIX ASN.1 `SubjectPublicKeyInfo` as per [RFC 8410][]
+and [RFC 9881][] for Ed25519 and ML-DSA respectively. The `root of trust` MUST
+be prefixed by a signature algorithm identifier, either:
+
+* `ML-DSA-44`
+* `ML-DSA-65`
+* `ML-DSA-87`
+* `Ed25519`
+
+The `receipt` is the signature, whose encoding is defined in [RFC 8410][] and
+[RFC 9881][].
+
+### Credential: OpenID Connect Identity Token
+
+The `root of trust` is the issuer of the token, as a string. The value SHOULD
+come from the `iss` JWT claim or MAY come from a specified claim populated by a
+federated issuer.
+
+The receipt is a zero-knowledge proof over the token signature.
+
+## Context Key-Value Pairs
+
+TODO: Add Sigsum context string
+
+TODO: Populate from [Sigstore OIDs](https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md#directory)
 
 ## Verification
 
