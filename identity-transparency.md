@@ -43,10 +43,10 @@ repeated values:
 0x01 ||
 Hash(root of trust) ||
 Hash(message) ||
-Hash(key1) || Hash(value1) ||
-Hash(key2) || Hash(value2) ||
+Hash(Hash(key1)) || Hash(Hash(value1)) ||
+Hash(Hash(key2)) || Hash(Hash(value2)) ||
 ... ||
-Hash(keyN) || Hash(valueN) ||
+Hash(Hash(keyN)) || Hash(Hash(valueN)) ||
 H(receipt)
 ```
 
@@ -64,7 +64,10 @@ SHOULD be a public key, for example the signer's public key or a public key
 from a root certificate. The encoding of the public key is ecosystem-dependent.
 
 The following bytes are a key-value mapping of ecosystem-specific strings. A
-32-byte digest of a key name MUST be followed by the 32-byte digest of a value.
+32-byte digest of the digest of a key name MUST be followed by the 32-byte
+digest of the digest of a value. The key-value strings are double-hashed to
+allow the log to accept either the key/value, or the digest of the key/value
+if the key or value is large.
 It is recommended to apply a restriction on the number of key-value pairs to
 prevent large leaf entries.
 
@@ -77,15 +80,15 @@ time limit on how long a receipt is retained.
 
 ## Signature Format
 
-For `data` to be signed, the client MUST use `SHA256(data)` as the `message` to
-be submitted to the log.
+For `data` to be signed, the client MUST use `H(data)` as the `message` to
+be submitted to the log, where `H` is `SHA-256`.
 
 The `signature` is computed over the concatenation of the specification
 identifier `c2sp.org/identity-transparency/v1` (as a domain seperator
 demonstrating the intent to log signed data), the NUL character `0x00`,
-the checksum `SHA256(message)=SHA256(SHA256(data))`, and the ecosystem-specific
+the checksum `H(message)=H(H(data))`, and the ecosystem-specific
 context strings
-`SHA256(key1)||SHA256(value1)||...||SHA256(keyN)||SHA256(valueN)`.
+`H(H(key1))||H(H(value1))||...||H(H(keyN))||H(H(valueN))`.
 
 The signature algorithm MUST be one of the following:
 
