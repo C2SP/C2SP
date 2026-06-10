@@ -67,9 +67,11 @@ The following bytes are a key-value mapping of ecosystem-specific strings. A
 32-byte digest of the digest of a key name MUST be followed by the 32-byte
 digest of the digest of a value. The key-value strings are double-hashed to
 allow the log to accept either the key/value, or the digest of the key/value
-if the key or value is large.
+if the key or value is large or should not be revealed to the log.
 It is recommended to apply a restriction on the number of key-value pairs to
 prevent large leaf entries.
+Key/value pairs MUST be sorted lexicographically by the double-digest of the
+key.
 
 The last 32 bytes MUST be the digest of a _receipt_. The receipt provides
 non-repudiation for the log operator, proving the log received a valid
@@ -93,8 +95,6 @@ context strings
 The signature algorithm MUST be one of the following:
 
 * ML-DSA-44
-* ML-DSA-65
-* ML-DSA-87
 * Ed25519
 
 ## Root of Trust & Receipt
@@ -110,8 +110,6 @@ and [RFC 9881][] for Ed25519 and ML-DSA respectively. The `root of trust` MUST
 be prefixed by a signature algorithm identifier, either:
 
 * `ML-DSA-44`
-* `ML-DSA-65`
-* `ML-DSA-87`
 * `Ed25519`
 
 The `receipt` is the signature, whose encoding is defined in [RFC 8410][] and
