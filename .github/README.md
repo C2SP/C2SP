@@ -74,6 +74,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | [`c2sp.org/tlog-checkpoint`](https://c2sp.org/tlog-checkpoint) | Interoperable transparency log signed tree heads | [Maintainers](MAINTAINERS.md#tlog-checkpoint) |
 | [`c2sp.org/tlog-cosignature`](https://c2sp.org/tlog-cosignature) | Witness cosignatures for transparency log checkpoints | [Maintainers](MAINTAINERS.md#tlog-cosignature) |
 | [`c2sp.org/tlog-mirror`](https://c2sp.org/tlog-mirror) | HTTP protocol to mirror transparency logs | [Maintainers](MAINTAINERS.md#tlog-mirror) |
+| [`c2sp.org/tlog-policy`](https://c2sp.org/tlog-policy) | Encoding for transparency log proof cosigning policies | [Maintainers](MAINTAINERS.md#tlog-policy) |
 | [`c2sp.org/tlog-proof`](https://c2sp.org/tlog-proof) | Offline-verifiable transparency log proofs (or "*spicy signatures*") | [Maintainers](MAINTAINERS.md#tlog-proof) |
 | [`c2sp.org/tlog-tiles`](https://c2sp.org/tlog-tiles) | Static asset-based transparency log | [Maintainers](MAINTAINERS.md#tlog-tiles) |
 | [`c2sp.org/tlog-witness`](https://c2sp.org/tlog-witness) | HTTP protocol to obtain transparency log witness cosignatures | [Maintainers](MAINTAINERS.md#tlog-witness) |

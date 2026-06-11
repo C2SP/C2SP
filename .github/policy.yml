@@ -57,6 +57,9 @@ policy:
           - the tlog-mirror maintainers have authored relevant changes
           - the tlog-mirror maintainers have approved relevant changes
         - or:
+          - the tlog-policy maintainers have authored relevant changes
+          - the tlog-policy maintainers have approved relevant changes
+        - or:
           - the tlog-proof maintainers have authored relevant changes
           - the tlog-proof maintainers have approved relevant changes
         - or:
@@ -543,6 +546,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/tlog-mirror"
+    requires:
+      count: 0
+
+  - name: the tlog-policy maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-policy\\.md$"
+          - "^tlog-policy/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/tlog-policy"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the tlog-policy maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-policy\\.md$"
+          - "^tlog-policy/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/tlog-policy"
     requires:
       count: 0
 
