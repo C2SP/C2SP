@@ -52,6 +52,16 @@
 
 - [@pornin](https://github.com/pornin)
 
+### mtc-tlog
+
+- [@davidben](https://github.com/davidben)
+- [@jdeblasio](https://github.com/jdeblasio)
+- [@mcpherrinm](https://github.com/mcpherrinm)
+
+### phc-strings
+
+- [@tarcieri](https://github.com/tarcieri)
+
 ### sequencehash
 
 - [@opal-escent](https://github.com/opal-escent)
@@ -84,6 +94,10 @@
 - [@AlCutter](https://github.com/AlCutter)
 - [@davidben](https://github.com/davidben)
 - [@lukevalenta](https://github.com/lukevalenta)
+
+### tlog-policy
+
+- [@BenBirt](https://github.com/BenBirt)
 
 ### tlog-proof
 
