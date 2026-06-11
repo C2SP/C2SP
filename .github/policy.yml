@@ -36,6 +36,9 @@ policy:
           - the jq255 maintainers have authored relevant changes
           - the jq255 maintainers have approved relevant changes
         - or:
+          - the mtc-tlog maintainers have authored relevant changes
+          - the mtc-tlog maintainers have approved relevant changes
+        - or:
           - the sequencehash maintainers have authored relevant changes
           - the sequencehash maintainers have approved relevant changes
         - or:
@@ -351,6 +354,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/jq255"
+    requires:
+      count: 0
+
+  - name: the mtc-tlog maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^mtc-tlog\\.md$"
+          - "^mtc-tlog/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/mtc-tlog"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the mtc-tlog maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^mtc-tlog\\.md$"
+          - "^mtc-tlog/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/mtc-tlog"
     requires:
       count: 0
 
