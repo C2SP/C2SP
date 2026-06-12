@@ -69,9 +69,8 @@ a [transparency log cosigner][] as described below. Issuance logs MAY serve
 additional cosignatures, including ones from cosigners that are not
 [MTC cosigners][MTC cosigner].
 
-If [pruned][], an issuance log MUST set its minimum index such that only expired
-entries are pruned. Relying parties MAY set further restrictions, such as
-requiring that an entry be expired for at least 6 months before pruning.
+If [pruned][], an issuance log MUST NOT set its minimum index larger than the
+smallest minimum index trusted by relying parties.
 
 An issuance log with a landmark sequence MUST [publish active landmarks][] at
 the following URL:
