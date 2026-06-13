@@ -23,7 +23,26 @@ An MTC CA following this profile has, in addition to [CA parameters][] defined
 in the MTC specification, a *CA prefix URL*. The CA prefix URL determines the
 serving URL for each issuance URL, as described below.
 
+When such a CA is [represented as an X.509 certificate][], the certificate has a
+non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.1 and syntax an
+IA5String, as defined below. The IA5String's contents are the CA prefix URL.
+Presence of this extension indicates that the certificate subject follows this
+specification.
+
+``` asn.1
+id-mtcTlogPrefixURL OBJECT IDENTIFIER ::= {
+    iso(1) org(3) dod(6) internet(1) private(4) enterprise(1) C2SP(64829)
+    mtc-tlog(2) 1 }
+
+ext-mtcTlogPrefixURL EXTENSION ::= {
+    SYNTAX IA5String
+    IDENTIFIED BY id-mtcTlogPrefixURL
+    CRITICALITY FALSE
+}
+```
+
 [CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
