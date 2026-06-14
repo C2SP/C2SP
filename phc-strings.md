@@ -1,17 +1,16 @@
-# PHC string format
+# PHC Strings
 
-The [Password Hashing Competition] (PHC) string format is a storage format for password hashes
-which includes all the relevant parameters needed to identify the password hashing algorithm used
-to produce a given hash and verify it against a provided password.
+[Password Hashing Competition] (PHC) Strings are a storage format for password hashes which includes
+all the relevant parameters needed to identify the password hashing algorithm used to produce a
+given hash and verify it against a provided password.
 
-PHC strings look like traditional [`crypt(3)`] password strings (a.k.a. "Modular Crypt Format"
-or MCF) and begin with `$<id>$...`. The PHC string format can be thought of as a more
-rigorously-defined subset of this traditional format, amenable to purely stack-based implementations
-and low-resource embedded systems.
+PHC Strings look like traditional [`crypt(3)`] password strings (a.k.a. "Modular Crypt Format"
+or MCF) and begin with `$<id>$...`. They're effectively a more rigorously-defined subset of this
+traditional format, amenable to purely stack-based implementations for low-resource systems.
 
 The [Argon2] password-based key derivation / password hashing function, the winner of the
 Password Hashing Competition, is the main notable example of a password hashing algorithm which
-uses the PHC string format.
+uses PHC Strings as its serialization format.
 
 [Password Hashing Competition]: https://en.wikipedia.org/wiki/Password_Hashing_Competition
 [`crypt(3)`]: https://en.wikipedia.org/wiki/Crypt_(C)
