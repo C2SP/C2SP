@@ -27,7 +27,7 @@ will have.
 | `1.3.6.1.4.1.64829.1` | [age] |
 | `1.3.6.1.4.1.64829.1.1` | X.509v3 critical extension, containing a 64-byte ML-KEM-768 seed encoded as a DER Octet String. Used by `age-plugin-yubikey` for storing the PQ half of the [hybrid tagged native age recipient type] in YubiKeys with firmware versions that pre-date support for PQ algorithms. |
 | `1.3.6.1.4.1.64829.2` | [mtc-tlog] |
-| `1.3.6.1.4.1.64829.2.1` | X.509v3 extension for the MTC CA tlog-tiles prefix URL |
+| `1.3.6.1.4.1.64829.2.1` | X.509v3 non-critical extension for the MTC CA tlog-tiles prefix URL |
 
 [C2SP]: https://c2sp.org
 [age]: https://c2sp.org/age
