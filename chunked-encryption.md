@@ -280,7 +280,7 @@ adjusted to remove the 56-byte prefix when implementing raw mode.
 
 [STREAM]: https://eprint.iacr.org/2015/189
 [FLOE]: https://c2sp.org/FLOE
-[TLS 1.3]: https://datatracker.ietf.org/doc/html/rfc8446#section-5.2
+[TLS 1.3]: https://datatracker.ietf.org/doc/html/rfc8446#section-5
 [AEAD Algorithms IANA registry]: https://www.iana.org/assignments/aead-parameters/aead-parameters.xhtml#aead-parameters-2
 [NIST SP 800-108 Rev. 1 Upd. 1]: https://csrc.nist.gov/pubs/sp/800/108/r1/upd1/final
 [The FIPS Compliance of HKDF]: https://words.filippo.io/fips-hkdf/
