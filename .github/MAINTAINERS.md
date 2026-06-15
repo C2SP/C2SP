@@ -102,6 +102,7 @@
 ### tlog-policy
 
 - [@BenBirt](https://github.com/BenBirt)
+- [@niels-moller](https://github.com/niels-moller)
 
 ### tlog-proof
 
