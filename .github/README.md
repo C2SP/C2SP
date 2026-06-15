@@ -62,6 +62,7 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 | [`c2sp.org/cocktail-dkg`](https://c2sp.org/cocktail-dkg) | Distributed Key Generation protocol for FROST | [Maintainers](MAINTAINERS.md#cocktail-dkg) |
 | [`c2sp.org/chacha8rand`](https://c2sp.org/chacha8rand) | Fast cryptographic random number generator | [Maintainers](MAINTAINERS.md#chacha8rand) |
 | [`c2sp.org/chacha20-poly1305-siv`](https://c2sp.org/chacha20-poly1305-siv) | Misuse-resistant, key-committing AEAD scheme | [Maintainers](MAINTAINERS.md#chacha20-poly1305-siv) |
+| [`c2sp.org/chunked-encryption`](https://c2sp.org/chunked-encryption) | Authenticated, streaming, random-access encryption for large messages | [Maintainers](MAINTAINERS.md#chunked-encryption) |
 | [`c2sp.org/cocktail-dkg`](https://c2sp.org/cocktail-dkg) | Distributed Key Generation protocol for FROST | [Maintainers](MAINTAINERS.md#cocktail-dkg) |
 | [`c2sp.org/det-keygen`](https://c2sp.org/det-keygen) | Deterministic key pair generation from seed | [Maintainers](MAINTAINERS.md#det-keygen) |
 | [`c2sp.org/FLOE`](https://c2sp.org/FLOE) | Online and random access authenticated encryption | [Maintainers](MAINTAINERS.md#FLOE) |
