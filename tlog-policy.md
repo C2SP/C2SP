@@ -93,9 +93,9 @@ from at least two of the `X-witnesses`, and from at least one of the
 The policy file is line based, where each line is terminated by ASCII
 newline, and the items on each line are separated by "whitespace",
 which in this specification means sequences of ASCII space and tab
-characters *only*. Leading and trailing whitespace is allowed. Comment
-lines are written with "#" at the start of the line (possibly preceded
-by whitespace).
+characters *only*. Leading and trailing whitespace is allowed. Empty
+lines (whitespace only) and comment lines (lines starting with "#",
+possibly preceded by whitespace) are allowed and ignored.
 
 Lines defining witnesses and logs can appear in any order; the order
 does not imply any preference or priority. A line defining a group can
