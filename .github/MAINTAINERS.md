@@ -58,6 +58,7 @@
 
 ### mtc-tlog
 
+- [@aarongable](https://github.com/aarongable)
 - [@davidben](https://github.com/davidben)
 - [@jdeblasio](https://github.com/jdeblasio)
 - [@mcpherrinm](https://github.com/mcpherrinm)
