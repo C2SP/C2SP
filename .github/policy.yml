@@ -75,6 +75,9 @@ policy:
           - the tlog-witness maintainers have authored relevant changes
           - the tlog-witness maintainers have approved relevant changes
         - or:
+          - the upki-revocation maintainers have authored relevant changes
+          - the upki-revocation maintainers have approved relevant changes
+        - or:
           - the vrf-r255 maintainers have authored relevant changes
           - the vrf-r255 maintainers have approved relevant changes
         - or:
@@ -714,6 +717,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/tlog-witness"
+    requires:
+      count: 0
+
+  - name: the upki-revocation maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^upki-revocation\\.md$"
+          - "^upki-revocation/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/upki-revocation"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the upki-revocation maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^upki-revocation\\.md$"
+          - "^upki-revocation/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/upki-revocation"
     requires:
       count: 0
 
