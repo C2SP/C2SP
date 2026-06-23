@@ -124,6 +124,8 @@
 ### upki-revocation
 
 - [@cpu](https://github.com/cpu)
+- [@djc](https://github.com/djc)
+- [@jschanck](https://github.com/jschanck)
 
 ### vrf-r255
 
