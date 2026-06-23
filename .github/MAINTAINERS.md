@@ -121,6 +121,10 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@rgdd](https://github.com/rgdd)
 
+### upki-revocation
+
+- [@cpu](https://github.com/cpu)
+
 ### vrf-r255
 
 - [@FiloSottile](https://github.com/FiloSottile)
@@ -129,8 +133,4 @@
 ### well-known-ssh-hosts
 
 - [@crawshaw](https://github.com/crawshaw)
-
-### xaes-256-gcm
-
-- [@FiloSottile](https://github.com/FiloSottile)
 
