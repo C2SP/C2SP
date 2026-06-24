@@ -196,7 +196,6 @@ The request MUST be an HTTP POST.
 The request body MUST be a sequence of
   - a subtree range line,
   - a subtree hash line,
-  - zero or more subtree cosignature lines,
   - zero or more consistency proof lines,
   - and an empty line,
   - followed by a reference [checkpoint][].
@@ -211,14 +210,6 @@ The subtree range line MUST consist of the string `subtree`, a single space
 The subtree hash line MUST be the Merkle Tree hash of the subtree encoded in
 base64.
 
-Each subtree cosignature line MUST be a [note][] signature line, starting with
-the `—` character (U+2014). The subtree cosignature lines are a DoS protection
-mechanism, as described below, and MAY be omitted. If present, they MUST encode
-a valid cosignature on the subtree. If the cosignature format supports
-timestamps, the timestamp MUST be zero. Witnesses MUST ignore subtree
-cosignatures from unknown keys. The client MUST NOT send more than 8 subtree
-cosignature lines.
-
 Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
 
@@ -232,7 +223,6 @@ Example request body:
 ```
 subtree 8 13
 mbsQCg+dEIMGlpqeGgk94JutQwKKS2Lo5IuDhKmDjiU=
-— example.com/behind-the-sofa nTSsCq08mZc1UhXhqNcId9B3gLbf0L[...]aLETmnVSNm/Ow==
 CD82D2LDm0phY0+xKbHyZfq3Hw21lVkuV7Zis5EFg0k=
 h/ghL5nyaXTIBAklqDnisM+SFdbA3izoGZ5oRYMZzc0=
 8qtnAAU9sTKQx/zt3E4v8Jt2a9IMQUf0QUawvePF9y0=
@@ -245,7 +235,7 @@ example.com/behind-the-sofa
 — witness.example/w1 LijDAFSpKvDUj+ZtaJ4lUVcnvnooXd[...]azezGX6o5Vulg==
 ```
 
-The same request without the subtree cosignatures and checkpoint signatures:
+The same request without the checkpoint signatures:
 
 ```
 subtree 8 13
@@ -315,20 +305,6 @@ the cosignature format supports timestamps, the timestamp MUST be zero.
 Example response body:
 
     — witness.example/w1 GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
-
-Unlike checkpoints, which can only progress at the pace of the log, the set of
-potential subtree inputs is very large. This API is therefore more vulnerable to
-DoS attacks, although note that the resource cost of signing a subtree is
-equivalent to the cost of establishing a TLS connection. To mitigate that,
-witnesses MAY apply one or more of the following mechanisms:
-
- - regular rate-limit or authentication of clients, which is out-of-scope for
-   this document;
-
- - only cosigning recent subtrees and/or caching signed subtrees;
-
- - requiring clients to provide a valid subtree cosignature from a key that is
-   known to only cosign a limited set of subtrees.
 
 ### TBD Monitor Retrieval Mechanism
 
