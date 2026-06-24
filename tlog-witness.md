@@ -7,6 +7,8 @@ This document describes a synchronous HTTP-based protocol to obtain
 [bastion]: https://c2sp.org/https-bastion
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [note]: https://c2sp.org/signed-note@v1.0.0
+[subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03#section-4
+[draft-ietf-plants-merkle-tree-certs-03]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03
 
 ## Conventions used in this document
 
@@ -50,6 +52,11 @@ Witnesses are designed to scale well with a large number of rarely active logs,
 and to support diverse log designs, including low-latency and "serverless" logs,
 in order to enable the creation of a public network of interoperable witnesses.
 
+Some witnesses might also expose an optional, additional API to produce cosigned
+[subtrees][subtree] from subsets of previously observed checkpoints. These signed
+subtrees can be used to provide more efficient proofs of inclusion in some
+ecosystems.
+
 ## HTTP Interface
 
 A witness is defined by a name, a public key, and by two URL prefixes: the
@@ -61,6 +68,9 @@ A witness MAY use the same value for both the *submission prefix* and the
 If exposing the machine holding the witness key material directly to the
 Internet is undesirable, operators MAY use a [bastion][].
 
+Clients SHOULD use, and witnesses SHOULD support, HTTP keep-alive HTTP
+connections to reduce latency and load due to connection establishment.
+
 ### add-checkpoint
 
 The `add-checkpoint` call is used to submit a new checkpoint to the witness,
@@ -69,9 +79,7 @@ cosignature.
 
     POST <submission prefix>/add-checkpoint
 
-The request MUST be an HTTP POST. Clients SHOULD use, and witnesses SHOULD
-support, HTTP keep-alive HTTP connections to reduce latency and load due to
-connection establishment.
+The request MUST be an HTTP POST.
 
 The request body MUST be a sequence of
   - an old size line,
@@ -173,6 +181,90 @@ checkpoint must be performed atomically, otherwise the following race can occur:
 4. A cosignature for N+K is returned to request B.
 5. The stored size is updated to N for request A, *rolling back K leaves*.
 6. A cosignature for N is returned to request A.
+
+### sign-subtree
+
+The `sign-subtree` call is used to request a [subtree][] cosignature from the
+witness, by providing a checkpoint signed by the witness and a subtree
+consistency proof.
+
+It is OPTIONAL for a witness to support this API.
+
+    POST <submission prefix>/sign-subtree
+
+The request MUST be an HTTP POST.
+
+The request body MUST be a sequence of
+  - a subtree range line,
+  - a subtree hash line,
+  - zero or more consistency proof lines,
+  - and an empty line,
+  - followed by a reference [checkpoint][].
+
+Each line MUST terminate in a newline character (U+000A).
+
+The subtree range line MUST consist of the string `subtree`, a single space
+(0x20), the subtree start encoded as an ASCII decimal with no leading zeroes
+(unless start is zero, in which case the encoding MUST be `0`), a single space
+(0x20), and the subtree end encoded as an ASCII decimal with no leading zeroes.
+
+The subtree hash line MUST be the Merkle Tree hash of the subtree encoded in
+base64.
+
+Each consistency proof line MUST encode a single hash in base64. The client MUST
+NOT send more than 63 consistency proof lines.
+
+The checkpoint SHOULD only include signatures from the witness's key(s).
+
+Example request body:
+
+```
+subtree 8 13
+mbsQCg+dEIMGlpqeGgk94JutQwKKS2Lo5IuDhKmDjiU=
+CD82D2LDm0phY0+xKbHyZfq3Hw21lVkuV7Zis5EFg0k=
+h/ghL5nyaXTIBAklqDnisM+SFdbA3izoGZ5oRYMZzc0=
+8qtnAAU9sTKQx/zt3E4v8Jt2a9IMQUf0QUawvePF9y0=
+KuO5BNOmginG34Lm5G3e2GuiWliGo3K0ebzGpvI0fEg=
+
+example.com/behind-the-sofa
+14
+/CcKVZM9n65aH7jLaIZuUB4/MSlEFQ4+ldwUC21rDHM=
+
+— witness.example/w1 LijDAFSpKvDUj+ZtaJ4lUVcnvnooXd[...]azezGX6o5Vulg==
+```
+
+The half-open interval `[start, end)` MUST be a valid subtree per
+[draft-ietf-plants-merkle-tree-certs-03][], Section 4.1, and end MUST be less
+than or equal to the checkpoint size.
+
+If the request is invalid according to the rules above, the witness MUST respond
+with a "400 Bad Request" HTTP status code.
+
+The consistency proof lines MUST encode a Subtree Consistency Proof from the
+subtree to the checkpoint according to
+[draft-ietf-plants-merkle-tree-certs-03][], Section 4.4. If the Merkle
+Consistency Proof doesn't verify, the witness MUST respond with a "422
+Unprocessable Entity" HTTP status code.
+
+If the checkpoint origin is unknown, the witness MUST respond with a "404
+Not Found" HTTP status code.
+
+The witness MUST verify that the checkpoint includes a valid cosignature from
+one of its own keys. If the witness can't verify the checkpoint, it MUST respond
+with a "403 Forbidden" HTTP status code.
+
+If the request is valid, the consistency proof verifies, and the checkpoint is
+validly signed by the witness, the witness MUST respond with a "200 Success"
+HTTP status code. The response body MUST be a sequence of one or more [note][]
+signature lines for the subtree, each starting with the `—` character (U+2014)
+and ending with a newline character (U+000A). The signatures SHOULD be ML-DSA-44
+[cosignatures][], and SHOULD be from one or more of the same witness key(s) that
+signed the checkpoint. The cosignature format MUST support subtree cosigning. If
+the cosignature format supports timestamps, the timestamp MUST be zero.
+
+Example response body:
+
+    — witness.example/w1 GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
 
 ### TBD Monitor Retrieval Mechanism
 
