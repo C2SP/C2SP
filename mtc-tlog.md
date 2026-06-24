@@ -127,8 +127,6 @@ particular, it MUST have a cosigner name and key satisfying the above
 requirements. It SHOULD implement the [`sign-subtree` endpoint][sign-subtree]
 for CAs to request subtree signatures.
 
-*TODO: Update the sign-subtree URL to tlog-witness when the PR is merged.*
-
 An MTC CA’s [CA cosigner][] has the same ID as the CA, so a CA with ID `32473.2`
 has a cosigner name of `oid/1.3.6.1.4.1.32473.2`. Note this is different from
 the log origin.
@@ -140,5 +138,5 @@ configured to accept the next few unused log numbers.
 [mirror]: https://c2sp.org/tlog-mirror
 [ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
 [MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-signature-format
-[sign-subtree]: https://github.com/C2SP/C2SP/pull/245
+[sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
 [standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-standalone-certificates
