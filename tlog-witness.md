@@ -214,7 +214,7 @@ base64.
 Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
 
-The client MUST NOT send more than 8 checkpoint signatures.
+The checkpoint SHOULD only include signatures from the witness's key(s).
 
 Example request body:
 
