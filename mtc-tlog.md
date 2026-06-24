@@ -88,9 +88,9 @@ a [transparency log cosigner][] as described below. Issuance logs MAY serve
 additional cosignatures, including ones from cosigners that are not
 [MTC cosigners][MTC cosigner].
 
-If [pruned][], an issuance log MUST set its minimum index such that only expired
-entries are pruned. Relying parties MAY set further restrictions, such as
-requiring that an entry be expired for at least 6 months before pruning.
+Relying parties SHOULD set restrictions on [pruning][], such as requiring
+that the log's minimum index be at most the minimum trusted index in
+up-to-date copies of the relying party's trust anchors
 
 An issuance log with a landmark sequence MUST [publish active landmarks][] at
 the following URL:
@@ -104,7 +104,7 @@ the following URL:
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
 [prefix URL]: https://c2sp.org/tlog-tiles#parameters
-[pruned]: https://c2sp.org/tlog-tiles#pruning
+[pruning]: https://c2sp.org/tlog-tiles#pruning
 [publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
 
