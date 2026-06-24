@@ -225,7 +225,7 @@ NOT send more than 63 consistency proof lines.
 The client MUST NOT send more than 8 checkpoint signatures. The client MAY omit
 the signatures entirely, if the witness is expected to statefully verify the
 checkpoint. If signatures are omitted, the body MUST terminate with the newline
-character that concludes the checkpoint body, without empty lines.
+character that concludes the checkpoint body, without a trailing empty line.
 
 Example request body:
 
@@ -260,9 +260,12 @@ example.com/behind-the-sofa
 /CcKVZM9n65aH7jLaIZuUB4/MSlEFQ4+ldwUC21rDHM=
 ```
 
-start MUST be less than end, and end MUST be less than or equal to the
-checkpoint size. Otherwise, the witness MUST respond with a "400 Bad Request"
-HTTP status code.
+The half-open interval `[start, end)` MUST be a valid subtree per
+[draft-ietf-plants-merkle-tree-certs-03][], Section 4.1, and end MUST be less
+than or equal to the checkpoint size.
+
+If the request is invalid according to the rules above, the witness MUST respond
+with a "400 Bad Request" HTTP status code.
 
 The consistency proof lines MUST encode a Subtree Consistency Proof from the
 subtree to the checkpoint according to
@@ -270,34 +273,44 @@ subtree to the checkpoint according to
 Consistency Proof doesn't verify, the witness MUST respond with a "422
 Unprocessable Entity" HTTP status code.
 
+If the checkpoint origin is unknown, the witness MUST respond with a "404
+Not Found" HTTP status code.
+
 The witness MUST verify that the checkpoint is consistent with its view of the
 log identified by the origin line. It MAY do so in multiple ways:
 
- - Statelessly, by checking a cosignature from its own key on the submitted
-   checkpoint.
+ - Statelessly, by checking a cosignature from one of its own keys on the
+   submitted checkpoint.
 
  - With access to one or more recently signed checkpoints, by comparing the
    submitted checkpoint against those. If the checkpoint is not known, the
    witness MAY respond with a "409 Conflict" HTTP status code, and the response
-   body MUST consist of a known checkpoint for the same origin. In this case,
-   the witness SHOULD remember and accept the last few signed checkpoints, to
+   body MUST consist of a known checkpoint for the same origin. The response
+   MUST have a `Content-Type` of `text/x.tlog.checkpoint`. In this case, the
+   witness SHOULD remember and accept the last few signed checkpoints, to
    minimize conflicts.
 
  - With access to the full tree state, by checking that the checkpoint size is
    less than or equal to the size of the latest checkpoint it cosigned for the
    checkpoint's origin, and that a consistency proof can be constructed from the
-   latest checkpoint to the submitted checkpoint.
+   submitted checkpoint to the latest checkpoint. If the submitted checkpoint
+   size matches the latest checkpoint size, the witness MUST check that the root
+   hashes are identical.
 
 Note that the stateful verification mechanisms above only require read access to
 the witness state and can operate on stale state safely.
 
-If all the checks above pass, the witness MUST respond with a "200 Success" HTTP
-status code. The response body MUST be a sequence of one or more [note][]
+If the witness can't verify the checkpoint, it MUST respond with a "403
+Forbidden" HTTP status code.
+
+If the request is valid, the consistency proof verifies, and the checkpoint is
+consistent with the witness's view, the witness MUST respond with a "200 Success"
+HTTP status code. The response body MUST be a sequence of one or more [note][]
 signature lines for the subtree, each starting with the `—` character (U+2014)
 and ending with a newline character (U+000A). The signatures SHOULD be ML-DSA-44
 [cosignatures][], and SHOULD be from one or more of the same witness key(s) that
-signed the checkpoint. If the cosignature format supports timestamps, the
-timestamp MUST be zero.
+signed the checkpoint. The cosignature format MUST support subtree cosigning. If
+the cosignature format supports timestamps, the timestamp MUST be zero.
 
 Example response body:
 
