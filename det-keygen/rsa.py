@@ -256,7 +256,14 @@ def main():
         pair_rejections(keygen_result, 1)
         and [gcd != 1 for gcd in keygen_result.totient_gcds[0]] == [True, True]
     )
-    add_vector(2048, "922d728a940eb630327a43c83a025a21", e_divides_both_minus_1)
+    add_vector(
+        2048,
+        [
+            "922d728a940eb630327a43c83a025a21",
+            "d86b7b67a78717d174a51c7285eaf460",
+        ],
+        e_divides_both_minus_1,
+    )
 
     # Rejected twice due to P-1/Q-1 divisible by e
     e_divides_either_minus_1_twice = lambda keygen_result: (
@@ -277,6 +284,8 @@ def main():
             "061f65a3ba6ef9952145827e78eeeccf",
             "0a720a90a9d637c04e7aadae80ced132",
             "4dac53b0f5339d88c86689868d683ea9",
+            "b659bd7c5f7667b1921ba83557b7b472",
+            "5e71d1a57f59db57e67738cb6b5efdd0",
         ],
         e_divides_either_minus_1_twice,
     )
@@ -317,6 +326,7 @@ def main():
             "116c0b59528250d49782b96bfe4636b2",
             "cce06fcd8984c864c22f36397c814a82",
             "636095a55f61b977b516a3af812785b0",
+            "5570336742855b7df83cf88c5d5e32de",
         ],
         ratio_bitlen_32,
     )
