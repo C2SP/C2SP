@@ -185,7 +185,8 @@ checkpoint must be performed atomically, otherwise the following race can occur:
 ### sign-subtree
 
 The `sign-subtree` call is used to request a [subtree][] cosignature from the
-witness, by providing a checkpoint and a subtree consistency proof.
+witness, by providing a checkpoint signed by the witness and a subtree
+consistency proof.
 
 It is OPTIONAL for a witness to support this API.
 
@@ -213,10 +214,7 @@ base64.
 Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
 
-The client MUST NOT send more than 8 checkpoint signatures. The client MAY omit
-the signatures entirely, if the witness is expected to statefully verify the
-checkpoint. If signatures are omitted, the body MUST terminate with the newline
-character that concludes the checkpoint body, without a trailing empty line.
+The client MUST NOT send more than 8 checkpoint signatures.
 
 Example request body:
 
@@ -235,21 +233,6 @@ example.com/behind-the-sofa
 — witness.example/w1 LijDAFSpKvDUj+ZtaJ4lUVcnvnooXd[...]azezGX6o5Vulg==
 ```
 
-The same request without the checkpoint signatures:
-
-```
-subtree 8 13
-mbsQCg+dEIMGlpqeGgk94JutQwKKS2Lo5IuDhKmDjiU=
-CD82D2LDm0phY0+xKbHyZfq3Hw21lVkuV7Zis5EFg0k=
-h/ghL5nyaXTIBAklqDnisM+SFdbA3izoGZ5oRYMZzc0=
-8qtnAAU9sTKQx/zt3E4v8Jt2a9IMQUf0QUawvePF9y0=
-KuO5BNOmginG34Lm5G3e2GuiWliGo3K0ebzGpvI0fEg=
-
-example.com/behind-the-sofa
-14
-/CcKVZM9n65aH7jLaIZuUB4/MSlEFQ4+ldwUC21rDHM=
-```
-
 The half-open interval `[start, end)` MUST be a valid subtree per
 [draft-ietf-plants-merkle-tree-certs-03][], Section 4.1, and end MUST be less
 than or equal to the checkpoint size.
@@ -266,35 +249,12 @@ Unprocessable Entity" HTTP status code.
 If the checkpoint origin is unknown, the witness MUST respond with a "404
 Not Found" HTTP status code.
 
-The witness MUST verify that the checkpoint is consistent with its view of the
-log identified by the origin line. It MAY do so in multiple ways:
-
- - Statelessly, by checking a cosignature from one of its own keys on the
-   submitted checkpoint.
-
- - With access to one or more recently signed checkpoints, by comparing the
-   submitted checkpoint against those. If the checkpoint is not known, the
-   witness MAY respond with a "409 Conflict" HTTP status code, and the response
-   body MUST consist of a known checkpoint for the same origin. The response
-   MUST have a `Content-Type` of `text/x.tlog.checkpoint`. In this case, the
-   witness SHOULD remember and accept the last few signed checkpoints, to
-   minimize conflicts.
-
- - With access to the full tree state, by checking that the checkpoint size is
-   less than or equal to the size of the latest checkpoint it cosigned for the
-   checkpoint's origin, and that a consistency proof can be constructed from the
-   submitted checkpoint to the latest checkpoint. If the submitted checkpoint
-   size matches the latest checkpoint size, the witness MUST check that the root
-   hashes are identical.
-
-Note that the stateful verification mechanisms above only require read access to
-the witness state and can operate on stale state safely.
-
-If the witness can't verify the checkpoint, it MUST respond with a "403
-Forbidden" HTTP status code.
+The witness MUST verify that the checkpoint includes a valid cosignature from
+one of its own keys. If the witness can't verify the checkpoint, it MUST respond
+with a "403 Forbidden" HTTP status code.
 
 If the request is valid, the consistency proof verifies, and the checkpoint is
-consistent with the witness's view, the witness MUST respond with a "200 Success"
+validly signed by the witness, the witness MUST respond with a "200 Success"
 HTTP status code. The response body MUST be a sequence of one or more [note][]
 signature lines for the subtree, each starting with the `—` character (U+2014)
 and ending with a newline character (U+000A). The signatures SHOULD be ML-DSA-44
