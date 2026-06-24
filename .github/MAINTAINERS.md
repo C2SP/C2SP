@@ -52,6 +52,11 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@rgdd](https://github.com/rgdd)
 
+### identity-transparency
+
+- [@Hayden-IO](https://github.com/Hayden-IO)
+- [@rgdd](https://github.com/rgdd)
+
 ### jq255
 
 - [@pornin](https://github.com/pornin)
