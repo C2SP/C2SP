@@ -266,16 +266,31 @@ Example response body:
 
     — witness.example/w1 GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
 
-### TBD Monitor Retrieval Mechanism
+### Monitor Retrieval Mechanism
 
-TODO: For a transparency system to be effective, it must not be possible to
+For a transparency system to be effective, it must not be possible to
 partition clients from monitors, either by splitting the tree or by serving a
 stale view to monitors. That [may require monitors to obtain more cosignatures
 than clients][byzantine-witnesses]. Some logs can facilitate that by fetching a
 larger set of cosignatures (e.g. in the background) and serving those to
-monitors. Some logs might not be capable of doing that, and might need witnesses
-to coordinate directly with monitors. Such a mechanism is still under
-discussion, and will have to be designed with an eye towards witness
-sustainability.
+monitors. Some logs might not be capable of doing that, and might need monitors
+to coordinate directly with witnesses.
 
+A witness SHOULD serve a recent checkpoint for each log it cosigned.
+
+    GET <monitoring prefix>/<encoded origin>/checkpoint
+
+The request MUST be an HTTP GET. The encoded origin is the log's origin,
+[percent-encoded][]. The response body MUST be a [checkpoint][] for the log
+identified by the origin, and it MUST include the cosignature(s) from the
+witness's key(s) that were returned from add-checkpoint and the cosignature from
+the log key(s) that the witness verified.
+
+If the witness has never cosigned a checkpoint for that log, it MUST respond
+with a "404 Not Found" HTTP status code instead.
+
+The witness MAY delay updating the checkpoint, but SHOULD NOT delay for more
+than an hour. This allows delegating the monitoring prefix to e.g. a CDN.
+
+[percent-encoded]: https://www.rfc-editor.org/rfc/rfc3986.html#section-2.1
 [byzantine-witnesses]: https://git.glasklar.is/sigsum/project/documentation/-/blob/main/archive/2023-11-byzantine-witnesses.pdf
