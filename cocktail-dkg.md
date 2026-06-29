@@ -2,7 +2,7 @@
 
 [c2sp.org/cocktail-dkg](https://c2sp.org/cocktail-dkg)
 
-- **Version**: v0.2.0
+- **Version**: v0.2.1
 - **Authors**:
   - [Daniel Bourdrez](https://github.com/bytemare)
   - [Soatok Dreamseeker](https://github.com/soatok)
@@ -18,7 +18,7 @@ Threshold signature schemes (i.e., [FROST (RFC 9591)](https://www.rfc-editor.org
 be shared among $n$ parties such that any $t$ of the $n$ parties can cooperate to generate a digital signature for the
 group public key.
 
-Initializing a $t$-of-$n$ threshold requires a key generation protocol. This can be a **Distributed Key Generation**
+Initializing a $t$ of $n$ threshold requires a key generation protocol. This can be a **Distributed Key Generation**
 (DKG) protocol or a Trusted Dealer approach. RFC 9591 specifies a Trusted Dealer approach and leaves DKG specification
 out of scope.
 
@@ -45,7 +45,7 @@ COCKTAIL-DKG is a standalone, three-round distributed key generation protocol fo
 FROST.
 
 COCKTAIL-DKG allows a group of $n$ participants to securely generate a shared group public key and individual secret
-shares for a $t$-of-$n$ threshold, without a trusted dealer. The protocol is built on Feldman's Verifiable Secret
+shares for a $t$ of $n$ threshold, without a trusted dealer. The protocol is built on Feldman's Verifiable Secret
 Sharing (VSS), uses pairwise ECDH to encrypt shares for transport over insecure channels, and includes a final
 certification round to ensure all participants agree on the outcome. It is designed to be ciphersuite-agile, with
 specific recommendations for curves like secp256k1, Ed25519 (via Ristretto255), and Ed448.
@@ -99,11 +99,11 @@ throughout the COCKTAIL-DKG protocol.
 - $Y_i$: The public verification share for participant $i$.
 - $Y$: The final group public key, where $Y = \sum_{j=1}^{n} C_{j,0}$.
 - $payload_{i,j}$: An optional application-defined payload from participant $i$ to participant $j$, which may be empty.
-- $S^{(e)}_{i,j}$: The ephemeral-to-static ECDH shared secret, where $S^{(e)}_{i,j} = e_i * P_j$. When $S^{(e)}_{i,j}$
-  appears as bytes (e.g., inside $x = S^{(e)} \parallel S^{(d)}$ as an input to $H6$), it is the canonical
+- $S^{\mathrm{e}}\_{i,j}$: The ephemeral-to-static ECDH shared secret, where $S^{\mathrm{e}}\_{i,j} = e_i * P_j$. When $S^{\mathrm{e}}\_{i,j}$
+  appears as bytes (e.g., inside $x = S^{\mathrm{e}} \parallel S^{\mathrm{d}}$ as an input to $H6$), it is the canonical
   ciphersuite-specific byte encoding of the elliptic-curve point $e_i \cdot P_j$ as defined in
   [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding).
-- $S^{(d)}_{i,j}$: The static-to-static ECDH shared secret, where $S^{(d)}_{i,j} = d_i * P_j$. Encoded as bytes per
+- $S^{\mathrm{d}}\_{i,j}$: The static-to-static ECDH shared secret, where $S^{\mathrm{d}}\_{i,j} = d_i * P_j$. Encoded as bytes per
   [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding).
 
 ### Operations
@@ -113,17 +113,17 @@ throughout the COCKTAIL-DKG protocol.
 - $H6()$: A ciphersuite-specific key derivation function.
 - $H7()$ and $HashToScalar()$: Ciphersuite-specific tagged hash and hash-to-scalar functions, defined in
   [Schnorr Signature Scheme](#schnorr-signature-scheme).
-- $Enc()$/$Dec()$: Ciphersuite-specific AEAD encryption/decryption functions.
-- $Sign()$/$Verify()$: The Schnorr signature scheme defined in
+- $Enc()$ / $Dec()$: Ciphersuite-specific AEAD encryption/decryption functions.
+- $Sign()$ / $Verify()$: The Schnorr signature scheme defined in
   [Schnorr Signature Scheme](#schnorr-signature-scheme), used for both the Proof of Possession and CertEq
   transcript certification.
-- $ecdh\_encode(P)$: A ciphersuite-specific canonical byte encoding of an elliptic-curve point $P$, used to
+- $\mathrm{ecdh\\_encode}(P)$: A ciphersuite-specific canonical byte encoding of an elliptic-curve point $P$, used to
   serialize ECDH shared-secret outputs before they are fed into $H6$. The encoding is fixed-length per
   ciphersuite and is defined in [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding). Any reference to
-  the bytes of an ECDH product (e.g., $S^{(e)}_{i,j} = e_i \cdot P_j$ used as an input to $H6$) means
-  $ecdh\_encode$ applied to that product.
-- $uint64\_be(v)$ and $uint64\_be\_decode(b)$: The 8-byte big-endian encoding and decoding of a 64-bit unsigned
-  integer, used for the variable-length-ciphertext length prefixes in $msg_{1|i}$, $msg_{2|i}$, and $C^{rec}_i$.
+  the bytes of an ECDH product (e.g., $S^{\mathrm{e}}\_{i,j} = e_i \cdot P_j$ used as an input to $H6$) means
+  $\mathrm{ecdh\\_encode}$ applied to that product.
+- $\mathrm{uint64\\_be}(v)$ and $\mathrm{uint64\\_be\\_decode}(b)$: The 8-byte big-endian encoding and decoding of a 64-bit unsigned
+  integer, used for the variable-length-ciphertext length prefixes in $msg\_{1|i}$, $msg\_{2|i}$, and $C^{rec}\_i$.
 
 ### Message Formats
 
@@ -279,7 +279,7 @@ Each participant $i$ is assumed to have:
   modulo the group order $q$, as this would allow a [zero share attack](https://www.zkdocs.com/docs/zkdocs/protocol-primitives/verifiable-secret-sharing/).
 - The parameters $n$ (total participants) and $t$ (threshold). Both **MUST** satisfy $1 \le t \le n$ and
   $n \le 2^{32} - 1$ (the maximum representable in the transcript's `uint32_le` encoding of $n$ and $t$). $t = 1$
-  corresponds to a $1$-of-$n$ deployment where any single participant can sign on behalf of the group; this is a 
+  corresponds to a $1$ of $n$ deployment where any single participant can sign on behalf of the group; this is a 
   permitted-but-application-discouraged degenerate case (a single compromised participant can sign unilaterally, which
   defeats the threshold property). $t > n$, $t = 0$, $n = 0$, and any encoding that exceeds the 32-bit bound are invalid
   setups and participants **MUST** abort before Round 1.
@@ -369,14 +369,14 @@ Each participant $i$ is assumed to have:
     1. **Compute Share:** Participant $i$ computes the secret share $s_{i,j} = f_i(j)$.
     2. **Derive Key:** Participant $i$ computes two ECDH shared secrets: one with their ephemeral key and the
        recipient's static public key, and one with their static key and the recipient's static public key:
-       $S^{(e)}_{i,j} = e_i * P_j$ and $S^{(d)}_{i,j} = d_i * P_j$. It then derives a symmetric key and nonce for the AEAD.
+       $S^{\mathrm{e}}\_{i,j} = e_i * P_j$ and $S^{\mathrm{d}}\_{i,j} = d_i * P_j$. It then derives a symmetric key and nonce for the AEAD.
         - If the hash function has an output length of at least 56 bytes (448 bits):
-            - $tmp = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, context)$.
+            - $tmp = H6(S^{\mathrm{e}}\_{i,j} \parallel S^{\mathrm{d}}\_{i,j}, E_i, P_i, P_j, context)$.
             - $k_{i,j} = tmp[0:32]$
             - $iv_{i,j} = tmp[32:56]$
         - Otherwise:
-            - $k_{i,j} = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, derive\_extra(context, "key"))$
-            - $iv_{i,j} = H6(S^{(e)}_{i,j} \parallel S^{(d)}_{i,j}, E_i, P_i, P_j, derive\_extra(context, "nonce"))[0:24]$
+            - $k_{i,j} = H6(S^{\mathrm{e}}\_{i,j} \parallel S^{\mathrm{d}}\_{i,j}, E_i, P_i, P_j, \mathrm{derive\\_extra}(context, \text{"key"}))$
+            - $iv_{i,j} = H6(S^{\mathrm{e}}\_{i,j} \parallel S^{\mathrm{d}}\_{i,j}, E_i, P_i, P_j, \mathrm{derive\\_extra}(context, \text{"nonce"}))[0:24]$
     3. **Prepare Plaintext:** Participant $i$ prepares the plaintext to encrypt. This consists of the secret share
        $s_{i,j}$ followed by an optional application-defined payload $payload_{i,j}$:
        $plaintext_{i,j} = s_{i,j} \parallel payload_{i,j}$.
@@ -403,14 +403,14 @@ steps:
 3. **Decrypt and Verify Shares:** For each participant $j$ from $1$ to $n$ (including the self-share $j = i$):
     1. **Derive Key:** Participant $i$ computes two ECDH shared secrets: one with the sender's ephemeral public key
        and their static key, and one with the sender's static public key and their static key:
-       $S^{(e)}_{j,i} = d_i * E_j$ and $S^{(d)}_{j,i} = d_i * P_j$. They then derive the symmetric key and nonce:
+       $S^{\mathrm{e}}\_{j,i} = d_i * E_j$ and $S^{\mathrm{d}}\_{j,i} = d_i * P_j$. They then derive the symmetric key and nonce:
         - If the hash function has an output length of at least 56 bytes (448 bits):
-            - $tmp = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, context)$.
+            - $tmp = H6(S^{\mathrm{e}}\_{j,i} \parallel S^{\mathrm{d}}\_{j,i}, E_j, P_j, P_i, context)$.
             - $k_{j,i} = tmp[0:32]$
             - $iv_{j,i} = tmp[32:56]$
         - Otherwise:
-            - $k_{j,i} = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, derive\_extra(context, "key"))$
-            - $iv_{j,i} = H6(S^{(e)}_{j,i} \parallel S^{(d)}_{j,i}, E_j, P_j, P_i, derive\_extra(context, "nonce"))[0:24]$
+            - $k_{j,i} = H6(S^{\mathrm{e}}\_{j,i} \parallel S^{\mathrm{d}}\_{j,i}, E_j, P_j, P_i, \mathrm{derive\\_extra}(context, \text{"key"}))$
+            - $iv_{j,i} = H6(S^{\mathrm{e}}\_{j,i} \parallel S^{\mathrm{d}}\_{j,i}, E_j, P_j, P_i, \mathrm{derive\\_extra}(context, \text{"nonce"}))[0:24]$
     2. **Decrypt Plaintext:** Participant $i$ decrypts the ciphertext sent to them from participant $j$:
        $plaintext_{j,i} = Dec(c_{j,i}, k_{j,i}, iv_{j,i})$.
        If decryption fails, participant $i$ **MUST** abort and report a decryption failure for the ciphertext
@@ -443,9 +443,9 @@ This round ensures that all honest participants have arrived at the same public 
 
 1. **Construct Transcript:** Each participant $i$ constructs a canonical byte representation of the final public
    transcript, $T$. The transcript **MUST** be constructed by concatenating the following elements in this exact order:
-    1. $len(ciphersuite\_id)$: The length of the ciphersuite identifier string (e.g., `COCKTAIL(Ristretto255, SHA-512)`)
+    1. $\mathrm{len}(\mathtt{ciphersuite\\_id})$: The length of the ciphersuite identifier string (e.g., `COCKTAIL(Ristretto255, SHA-512)`)
        as a little-endian 64-bit unsigned integer.
-    2. $ciphersuite\_id$: The ciphersuite identifier as its UTF-8 byte representation. Including the ciphersuite
+    2. $\mathtt{ciphersuite\\_id}$: The ciphersuite identifier as its UTF-8 byte representation. Including the ciphersuite
        identifier in the transcript makes the success certificate self-describing and prevents cross-ciphersuite
        confusion in audit and recovery tooling.
     3. $len(context)$: The length of the context string as a little-endian 64-bit unsigned integer.
@@ -660,8 +660,8 @@ large enough output (at least 56 bytes / 448 bits; e.g., SHA-512), we can derive
 24-byte nonce directly from a single $H6$ output.
 
 For ciphersuites based on SHA-256, where the output is smaller than 56 bytes, we use two domain-separated $H6()$
-invocations. For the key, $H6$ is called with $derive\_extra(context, "key")$ and the full 32-byte output is used.
-For the nonce, $H6$ is called with $derive\_extra(context, "nonce")$ and the first 24 bytes are used. The AEAD of
+invocations. For the key, $H6$ is called with $\mathrm{derive\\_extra}(context, \text{"key"})$ and the full 32-byte output is used.
+For the nonce, $H6$ is called with $\mathrm{derive\\_extra}(context, \text{"nonce"})$ and the first 24 bytes are used. The AEAD of
 choice for the SHA-256 based ciphersuites we specify here is
 [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md).
 
@@ -672,7 +672,7 @@ $H6(x, E, P_s, P_r, extra) = H(prefix \parallel x \parallel E \parallel P_s \par
 
 - $H$: The specified cryptographic hash function (e.g., SHA-512, BLAKE2b-512).
 - $prefix$: A ciphersuite-specific byte string (e.g., `COCKTAIL-DKG-Ed25519-SHA512-H6`).
-- $x$: The concatenation of two ECDH shared secrets: $S^{(e)}$ (ephemeral-to-static) and $S^{(d)}$ (static-to-static).
+- $x$: The concatenation of two ECDH shared secrets: $S^{\mathrm{e}}$ (ephemeral-to-static) and $S^{\mathrm{d}}$ (static-to-static).
 - $E$: The sender's ephemeral public key.
 - $P_s$: The sender's static public key.
 - $P_r$: The recipient's static public key.
@@ -681,10 +681,10 @@ $H6(x, E, P_s, P_r, extra) = H(prefix \parallel x \parallel E \parallel P_s \par
 
 The output of $H6$ is used to derive the key and nonce for the AEAD.
 
-For hash functions with output smaller than 56 bytes, $derive\_extra(context, label)$ is defined as:
+For hash functions with output smaller than 56 bytes, $\mathrm{derive\\_extra}(context, label)$ is defined as:
 
 $$
-derive\_extra(context, label) = len(context) \parallel context \parallel len(label) \parallel label
+\mathrm{derive\\_extra}(context, label) = len(context) \parallel context \parallel len(label) \parallel label
 $$
 
 where both lengths are encoded as little-endian 64-bit unsigned integers, and $label$ is the ASCII string `"key"` or
@@ -693,7 +693,7 @@ where both lengths are encoded as little-endian 64-bit unsigned integers, and $l
 ### ECDH Shared-Secret Encoding
 
 Each ECDH shared secret $S = s \cdot P$ (the scalar-mult result that is fed into $H6$ as part of
-$x = S^{(e)} \parallel S^{(d)}$) is encoded as a fixed-length byte string per the ciphersuite, so that the
+$x = S^{\mathrm{e}} \parallel S^{\mathrm{d}}$) is encoded as a fixed-length byte string per the ciphersuite, so that the
 concatenation $x$ is unambiguously parsed and reproducible across implementations:
 
 | Ciphersuite                     | ECDH encoding of $S = s \cdot P$                                                                                      | Size |
@@ -1058,13 +1058,13 @@ ciphersuite's hash output length and on the ratio between $2^{8L}$ (where $L$ is
   uses of the same primitive at different output lengths.
 - **BLAKE2b-512 (JubJub, Pallas)**: invoke BLAKE2b-512 on $input$ to produce 64 bytes; interpret as little-endian and
   apply wide reduction modulo $q$. Bias $\le 2^{-128}$.
-- **SHA-256, P-256**: P-256's order is $q \approx 2^{256} - 2^{224}$, so direct mod-$q$ reduction of a 32-byte hash
+- **SHA-256, P-256**: P-256's order is $q \approx 2^{256} - 2^{224}$, so direct mod $q$ reduction of a 32-byte hash
   has statistical distance from uniform of $\approx 2^{-32}$, which is too large for a 128-bit security target.
   $HashToScalar$ for P-256 therefore expands to 48 bytes before reduction:
   $HashToScalar(input) = OS2IP\bigl(SHA256(\mathtt{0x01} \parallel input) \parallel SHA256(\mathtt{0x02} \parallel input)[0{:}16]\bigr) \bmod q$,
   where $OS2IP$ interprets the 48-byte string as a big-endian integer. Bias $\le 2^{-128}$. This matches the spirit
   of `hash_to_field` from RFC 9380 used by RFC 9591's FROST(P-256, SHA-256).
-- **SHA-256, secp256k1**: secp256k1's order is $q \approx 2^{256} - 2^{128}$, so direct mod-$q$ reduction of a
+- **SHA-256, secp256k1**: secp256k1's order is $q \approx 2^{256} - 2^{128}$, so direct mod $q$ reduction of a
   32-byte hash has bias $\approx 1.27 \cdot 2^{-128}$ (i.e., the leftover $2^{256} \bmod q$ divided by $2^{256}$).
   $HashToScalar(input) = OS2IP(SHA256(input)) \bmod q$, interpreted big-endian. This matches BIP-340 conventions
   and is acceptable for 128-bit security targets.
@@ -1116,8 +1116,8 @@ ciphersuite's hash output length and on the ratio between $2^{8L}$ (where $L$ is
 - **Encryption of Shares**: The use of an AEAD to encrypt the secret shares $s_{i,j}$ is crucial. It provides
   confidentiality against an eavesdropper on the communication channel and authenticity to prevent a man-in-the-middle
   from tampering with the shares. The encryption key is derived using two ECDH shared secrets: one from the sender's
-  ephemeral key with the recipient's static key ($S^{(e)}_{i,j} = e_i * P_j$), and one from the sender's static key
-  with the recipient's static key ($S^{(d)}_{i,j} = d_i * P_j$). This approach provides:
+  ephemeral key with the recipient's static key ($S^{\mathrm{e}}\_{i,j} = e_i * P_j$), and one from the sender's static key
+  with the recipient's static key ($S^{\mathrm{d}}\_{i,j} = d_i * P_j$). This approach provides:
   - **Limited post-compromise protection**: The ephemeral component prevents compromise of the sender's long-term
     static key alone from decrypting past ciphertexts after the sender erases $e_i$. This is not full forward secrecy:
     compromise of a recipient's static key $d_j$, together with the transcript and archived ciphertexts, allows recovery
@@ -1266,7 +1266,7 @@ $S_{i,j} = e_i * P_j$
 
 COCKTAIL-DKG uses both ephemeral-to-static AND static-to-static ECDH:
 
-$S^{(e)}_{i,j} = e_i * P_j$ and $S^{(d)}_{i,j} = d_i * P_j$
+$S^{\mathrm{e}}\_{i,j} = e_i * P_j$ and $S^{\mathrm{d}}\_{i,j} = d_i * P_j$
 
 **Why this matters:**
 
@@ -1410,7 +1410,7 @@ rely on option 2, option 3, or some application-level transport authentication d
    - **Private witness** (held by the recipient): the recipient's static private key $d_i$.
    - **Relation proved**: the witness $d_i$ satisfies $d_i \cdot B = P_i$ (witness-binding to the named recipient key;
      without this, an arbitrary scalar could produce a fake AEAD outcome for some other recipient's key), **and**
-     deriving $S^{(e)}_{j,i} = d_i \cdot E_j$ and $S^{(d)}_{j,i} = d_i \cdot P_j$, encoding them per
+     deriving $S^{\mathrm{e}}\_{j,i} = d_i \cdot E_j$ and $S^{\mathrm{d}}\_{j,i} = d_i \cdot P_j$, encoding them per
      [ECDH Shared-Secret Encoding](#ecdh-shared-secret-encoding), and computing the AEAD key and nonce via
      $H6(\cdot)$ with the ciphersuite's $prefix_{H6}$, $E_j$, $P_j$, $P_i$, and `context`, produces an AEAD outcome on
      the inner $c_{j,i}$ consistent with the claimed failure-mode tag:
@@ -1506,7 +1506,7 @@ participant can deterministically reconstruct all DKG outputs:
 - $d_i$: The participant's static secret key.
 - $T$: The transcript from a successful DKG session.
 - $\{sig_1, \ldots, sig_n\}$: The success certificate.
-- $C^{rec}_i = \widetilde{c_{1,i}} \parallel \ldots \parallel \widetilde{c_{n,i}}$: The ordered, length-framed Round 1
+- $C^{rec}\_i = \widetilde{c\_{1,i}} \parallel \ldots \parallel \widetilde{c\_{n,i}}$: The ordered, length-framed Round 1
   ciphertexts sent to participant $i$ (each framed with a 64-bit big-endian length prefix).
 
 **Output:**
@@ -1536,16 +1536,16 @@ participant can deterministically reconstruct all DKG outputs:
    matching index exists, abort.
 4. **Reconstruct Encryption Keys:** For each participant $j$ from $1$ to $n$:
    1. Compute the ECDH shared secrets:
-      - $S^{(e)}_{j,i} = d_i * E_j$ (using the sender's ephemeral key)
-      - $S^{(d)}_{j,i} = d_i * P_j$ (using the sender's static key)
+      - $S^{\mathrm{e}}\_{j,i} = d_i * E_j$ (using the sender's ephemeral key)
+      - $S^{\mathrm{d}}\_{j,i} = d_i * P_j$ (using the sender's static key)
    2. Derive the symmetric key $k_{j,i}$ and nonce $iv_{j,i}$ using H6, with the same sender/recipient ordering used
       in Round 2.
-5. **Load Ciphertexts:** Parse $C^{rec}_i$ as the concatenation of exactly $n$ length-framed ciphertexts: for each $j$
+5. **Load Ciphertexts:** Parse $C^{rec}\_i$ as the concatenation of exactly $n$ length-framed ciphertexts: for each $j$
    from 1 to $n$, read the next 8 bytes as a 64-bit big-endian unsigned integer $L_j$, then read the next $L_j$ bytes as
-   the AEAD ciphertext $c_{j,i}$. Abort if any of the following hold: the bundle terminates before all $n$ ciphertexts
-   are recovered; any $L_j$ exceeds the implementation's maximum-ciphertext-size policy; any $c_{j,i}$ is shorter than
+   the AEAD ciphertext $c\_{j,i}$. Abort if any of the following hold: the bundle terminates before all $n$ ciphertexts
+   are recovered; any $L_j$ exceeds the implementation's maximum-ciphertext-size policy; any $c\_{j,i}$ is shorter than
    the ciphersuite's minimum ciphertext size (scalar encoding size plus AEAD authentication tag size); or there are any
-   bytes remaining in $C^{rec}_i$ after the $n$th framed ciphertext has been read. The recovery bundle **MUST** parse
+   bytes remaining in $C^{rec}\_i$ after all $n$ framed ciphertext has been read. The recovery bundle **MUST** parse
    exactly, with no trailing data.
 6. **Decrypt and Verify Shares:** For each participant $j$, decrypt $c_{j,i}$ using $k_{j,i}$ and $iv_{j,i}$ to obtain
    $plaintext_{j,i}$. If AEAD decryption fails, abort. If $plaintext_{j,i}$ is shorter than the ciphersuite's scalar
@@ -1876,10 +1876,10 @@ function Round1(i, t, n, cs, context, d_i, P_i, AllPublicKeys, payloads={}):
             - valid_pop = Verify(public_key=C_j_0, signature=PoP_j, message=context || C_j || E_j)
             - If valid_pop is false, abort and blame participant j.
         3. Decrypt Plaintext:
-            - Take $encrypted\_shares\_j[i]$ as the framed ciphertext $\widetilde{c_{j,i}} = uint64\_be(L_{j,i}) \parallel c_{j,i}$.
-              Unwrap with bounds checks: if $len(\widetilde{c_{j,i}}) < 8$, or $L_{j,i}$ exceeds the implementation's
-              maximum-ciphertext-size policy, or $len(\widetilde{c_{j,i}}) \neq 8 + L_{j,i}$, or
-              $L_{j,i} < scalar\_size + AEAD\_TAG\_SIZE$, abort and blame participant $j$. Let $c_{j,i}$ be the
+            - Take `encrypted_shares_j[i]` as the framed ciphertext $\widetilde{c\_{j,i}} = \mathrm{uint64\\_be}(L\_{j,i}) \parallel c\_{j,i}$.
+              Unwrap with bounds checks: if $len(\widetilde{c\_{j,i}}) < 8$, or $L\_{j,i}$ exceeds the implementation's
+              maximum-ciphertext-size policy, or $len(\widetilde{c\_{j,i}}) \neq 8 + L\_{j,i}$, or
+              $L\_{j,i} < \mathtt{scalar\\_size} + \mathtt{AEAD\\_TAG\\_SIZE}$, abort and blame participant $j$. Let $c\_{j,i}$ be the
               unwrapped AEAD ciphertext.
             - Let P_j = AllPublicKeys\[j\].
             - Derive ECDH key using both ephemeral and static secrets. Each scalar-mult result is encoded as a
@@ -2084,7 +2084,7 @@ derived_bytes = H(seed || ciphersuite_id || uint32_le(t) || uint32_le(n) || labe
 > **Note:** This labeled-hash construction is a deterministic test-vector seed expansion only. It is distinct from
 > the protocol's $HashToScalar$ (used in the Schnorr scheme), which performs a near-uniform reduction with bias
 > bounded by $\approx 2^{-128}$ (see [Schnorr Hash-to-Scalar Reduction](#schnorr-hash-to-scalar-reduction)). The test
-> vectors use direct mod-$q$ reduction here purely for reproducibility; production deployments **MUST NOT** reuse
+> vectors use direct mod $q$ reduction here purely for reproducibility; production deployments **MUST NOT** reuse
 > this routine for protocol-level scalar derivation.
 
 Where:
@@ -2164,11 +2164,11 @@ Each ciphersuite includes the following test vector types:
 3. **Recovery vectors**: The 2-of-3 configuration of each ciphersuite includes recovery test data for participant 1
    (the 3-of-5 and 7-of-14 configurations omit recovery data).
    The participant-specific encrypted share bundle contains:
-   - For each participant $j$ from 1 to $n$, the raw AEAD ciphertext $c_{j,1}$ from participant $j$ to
+   - For each participant $j$ from 1 to $n$, the raw AEAD ciphertext $c\_{j,1}$ from participant $j$ to
      participant 1, **listed in the table rows below as `Ciphertext from P{j}` and shown in bare (unframed)
-     hex form**. To assemble the on-wire bundle $C^{rec}_1$ from these table rows, implementations
-     concatenate the framed forms $\widetilde{c_{j,1}} = \mathrm{uint64\_be}(\mathit{len}(c_{j,1})) \parallel c_{j,1}$
-     in participant order, as defined in [Protocol Messages](#protocol-messages) under $msg_{1|i}$. The table
+     hex form**. To assemble the on-wire bundle $C^{rec}\_1$ from these table rows, implementations
+     concatenate the framed forms $\widetilde{c\_{j,1}} = \mathrm{uint64\\_be}(\mathit{len}(c\_{j,1})) \parallel c\_{j,1}$
+     in participant order, as defined in [Protocol Messages](#protocol-messages) under $msg\_{1|i}$. The table
      omits the length prefixes because (a) every ciphertext in these basic test vectors is the same fixed
      length (scalar encoding size plus AEAD authentication tag size, e.g. 48 bytes), so the prefixes carry no
      test-discriminating information, and (b) listing bare ciphertexts keeps the vectors aligned with the
