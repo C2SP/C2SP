@@ -135,19 +135,26 @@ tree size of the latest cosigned checkpoint in decimal, followed by a newline
 If a client doesn't have information on the latest cosigned checkpoint, it MAY
 initially make a request with a old size of zero to obtain it.
 
-The consistency proof lines MUST encode a Merkle Consistency Proof from the old
-size to the checkpoint size according to [RFC 6962][], Section 2.1.2. The proof
-MUST be empty if the old size is zero. If the Merkle Consistency Proof doesn't
-verify, the witness MUST respond with a "422 Unprocessable Entity" HTTP status
-code.
+A checkpoint of size zero MUST have the root hash of the empty tree, which
+[RFC 6962][], Section 2.1 defines as the hash of the empty string. Otherwise,
+the witness MUST respond with a "422 Unprocessable Entity" HTTP status code.
+
+If the old size is zero, the consistency proof MUST be empty, because the empty
+tree is consistent with any tree, so no proof is necessary. Otherwise, the
+consistency proof lines MUST encode a Merkle Consistency Proof from the old size
+to the checkpoint size according to [RFC 6962][], Section 2.1.2.
+
+If the proof is not empty when the old size is zero, or if a Merkle Consistency
+Proof doesn't verify, the witness MUST respond with a "422 Unprocessable Entity"
+HTTP status code.
 
 If the old size matches the checkpoint size, the witness MUST check that the
 root hashes are also identical. If they don't match, the witness MUST respond
-with a "409 Conflict" HTTP status code.
+with a "422 Unprocessable Entity" HTTP status code.
 
 If the origin is known, and the signature is valid, the witness MAY log the
-request even if the consistency proof doesn't verify (but MUST NOT cosign the
-checkpoint) as it might be proof of log misbehavior.
+request even if the checkpoint fails one of the consistency checks above (but
+MUST NOT cosign the checkpoint), as it might be proof of log misbehavior.
 
 If all the checks above pass, the witness MUST update its record of the latest
 cosigned checkpoint and respond with a "200 Success" HTTP status code. The
