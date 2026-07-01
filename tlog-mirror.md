@@ -11,7 +11,6 @@ signatures asserting that a mirror has done so.
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [retention policy]: https://c2sp.org/tlog-tiles#retention-policies
 [witness]: https://c2sp.org/tlog-witness
-[percent-encoded]: https://www.rfc-editor.org/rfc/rfc3986.html#section-2.1
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtrees
 [subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtree-consistency-proofs
 
@@ -57,9 +56,9 @@ For each supported origin log, the mirror is configured with:
 
 The mirror maintains a copy of each origin log and serves it publicly via the
 [tiled transparency log][] interface. It uses a URL prefix of
-`<monitoring prefix>/<encoded origin>`, where `encoded origin` is the log's
-origin, [percent-encoded][]. The checkpoint served from this prefix MUST include
-a [cosignature][] from the mirror.
+`<monitoring prefix>/<origin hash>`, where `origin hash` is the SHA-256 hash of
+the log's origin, hex encoded, in lowercase. The checkpoint served from this
+prefix MUST include a [cosignature][] from the mirror.
 
 ## Updating a Mirror
 

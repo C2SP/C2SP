@@ -278,10 +278,10 @@ to coordinate directly with witnesses.
 
 A witness SHOULD serve a recent checkpoint for each log it cosigned.
 
-    GET <monitoring prefix>/<encoded origin>/checkpoint
+    GET <monitoring prefix>/<origin hash>/checkpoint
 
-The request MUST be an HTTP GET. The encoded origin is the log's origin,
-[percent-encoded][]. The response body MUST be a [checkpoint][] for the log
+The request MUST be an HTTP GET. The origin hash is the SHA-256 hash of the log's origin,
+hex encoded, in lowercase. The response body MUST be a [checkpoint][] for the log
 identified by the origin, and it MUST include the cosignature(s) from the
 witness's key(s) that were returned from add-checkpoint and the cosignature from
 the log key(s) that the witness verified.
@@ -292,5 +292,4 @@ with a "404 Not Found" HTTP status code instead.
 The witness MAY delay updating the checkpoint, but SHOULD NOT delay for more
 than an hour. This allows delegating the monitoring prefix to e.g. a CDN.
 
-[percent-encoded]: https://www.rfc-editor.org/rfc/rfc3986.html#section-2.1
 [byzantine-witnesses]: https://git.glasklar.is/sigsum/project/documentation/-/blob/main/archive/2023-11-byzantine-witnesses.pdf
