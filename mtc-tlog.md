@@ -99,6 +99,16 @@ the following URL:
 <CA prefix URL>/<log number>/landmarks
 ```
 
+This endpoint is mutable, but updates infrequently. Responses SHOULD
+include a [`Cache-Control: max-age=<seconds>`][cache-control] header whose
+value approximates the number of seconds the CA expects until it next
+allocates a landmark. CAs SHOULD include a small buffer in this value to
+ensure the next landmark is allocated before the cache expires, avoiding
+unnecessary retries from clients waiting on it. A client waiting for a
+future landmark can then re-fetch the resource after its cached copy
+expires to pick up the latest landmark sequence.
+
+[cache-control]: https://www.rfc-editor.org/rfc/rfc9111#section-5.2.2.1
 [CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
@@ -140,3 +150,112 @@ configured to accept the next few unused log numbers.
 [MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
 [standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-standalone-certificates
+
+## Client-Constructed Landmark-Relative Certificates
+
+Because each issuance log is served as a [tiled transparency log][tiled transparency logs],
+an [authenticating party][] (or any other party) holding a
+[standalone certificate][standalone certificates] can construct a
+[landmark-relative certificate][] for the same entry by fetching data
+directly from the issuance log, without any CA-specific issuance API
+beyond what is already defined in this document.
+
+The required inputs are:
+
+* The standalone certificate itself. From it, the construction uses the
+  [CA ID][] (the certificate's issuer) and the log number and entry index
+  (encoded in the certificate's serial number as
+  `(<log number> << 48) | <entry index>`; see
+  [Certificate Format][certificate format]).
+* The CA prefix URL of the issuance log. The CA conveys this URL to
+  [MTC-aware ACME clients](#acme-issuance-for-mtc-aware-clients) at
+  certificate issuance time, as described below. It may also be obtained
+  from the CA's issuance-log X.509 extension (see
+  [Parameters](#parameters)), or out of band. The CA prefix URL identifies
+  the log's serving location as defined in
+  [Serving Issuance Logs](#serving-issuance-logs).
+
+Construction proceeds as follows:
+
+1. Fetch the [landmarks file][publish active landmarks] from
+   `<CA prefix URL>/<log number>/landmarks`.
+
+2. Derive the landmark subtree and landmark number covering the entry index
+   from the landmark sequence (see
+   [Constructing Landmark-Relative Certificates][constructing landmark-relative]).
+
+   If no active landmark covers the entry, the authenticating party cannot
+   construct a landmark-relative certificate for it. This can happen because
+   the entry is not yet covered by an allocated landmark, in which case the
+   authenticating party SHOULD wait for the cached landmark file to expire,
+   re-fetch it, and retry the construction. It can also happen because every
+   landmark that once covered the entry has aged out of the active landmark
+   window, in which case retrying will not help.
+
+3. Fetch the [Merkle Tree tiles][merkle tree tiles] containing the hashes
+   needed to generate the [subtree inclusion proof][] for the entry index
+   in the landmark subtree, and generate the proof. A party that is aware
+   of mirrors of the issuance log MAY fetch tiles from those mirrors
+   instead of, or in addition to, the CA prefix URL; this document does
+   not define a discovery mechanism for such mirrors.
+
+4. [Construct the landmark-relative certificate][constructing landmark-relative]
+   by copying every field of the standalone certificate, except for the
+   `signatureValue`. The new `signatureValue` contains an
+   [`MTCProof`][certificate format] whose `extensions` field is copied from
+   the standalone certificate's `MTCProof`, whose `start`, `end`, and
+   `inclusion_proof` describe the landmark subtree and the inclusion proof
+   from above, and whose `signatures` field is empty.
+
+5. Configure certificate selection for the resulting
+   [landmark-relative certificate][] based on the CA ID, log number, and
+   landmark number (see
+   [Landmark-Relative Certificates in TLS][landmark-relative tls]).
+
+The CA does not need to perform any per-client work to enable this flow: the
+tiles and landmarks required are exactly those already published by every
+issuance log conformant to this profile.
+
+[authenticating party]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-terminology-and-roles
+[CA ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-ide
+[certificate format]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certificate-format
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+[landmark-relative tls]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#section-8.2
+[merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
+[subtree inclusion proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-subtree-inclusion-proofs
+
+## ACME Issuance for MTC-Aware Clients
+
+A CA following this profile and issuing certificates over [ACME][RFC 8555]
+MUST convey its CA prefix URL to MTC-aware ACME clients at certificate
+issuance time, so that the client can locate the issuance log. One use is
+described in
+[Client-Constructed Landmark-Relative Certificates](#client-constructed-landmark-relative-certificates).
+
+An ACME client signals MTC-awareness by including an MTC media type in the
+`Accept` header of its certificate-download request, as defined by the MTC
+[ACME extension][acme extensions]. When such a request results in the CA
+returning a [standalone certificate][standalone certificates], the response
+MUST also carry a [Web Linking][RFC 8288] `Link` header field with link
+relation type `c2sp.org/mtc-tlog/prefix-url`, whose target is the CA prefix
+URL of the issuance log that contains the certificate's entry:
+
+```
+Link: <https://example-ca.com/mtc/>;rel="c2sp.org/mtc-tlog/prefix-url"
+```
+
+The target URL is a CA prefix URL as defined in [Parameters](#parameters),
+and is identical to the value that would be carried in the CA's issuance-log
+X.509 extension if such a certificate were used to represent the CA. The
+target URL MAY be a URL of the same origin as the ACME server.
+
+The response MUST NOT contain additional link relations of the same type.
+
+This document does not require CAs to advertise any mirrors of the issuance
+log. Clients that wish to fetch tiles from a mirror instead of from the CA
+prefix URL obtain mirror URLs out of band.
+
+[acme extensions]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-acme-extensions
+[RFC 8288]: https://www.rfc-editor.org/rfc/rfc8288.html
+[RFC 8555]: https://www.rfc-editor.org/rfc/rfc8555.html
