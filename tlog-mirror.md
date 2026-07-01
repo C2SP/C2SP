@@ -119,6 +119,9 @@ a separate witness service using its pending checkpoint. If so, this witness
 service MUST be a distinct cosigner from the mirror cosigner, with a distinct
 name. The mirror's signature is computed later, as described below.
 
+If providing both mirror and witness services, the submission prefixes for the
+two services MAY be the same, but the monitoring prefixes MUST be distinct.
+
 ### add-entries
 
 The mirror implements an `add-entries` endpoint to upload entries for a
