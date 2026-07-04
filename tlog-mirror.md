@@ -146,8 +146,7 @@ previously valid pending checkpoint. `ticket` is an opaque value from the
 mirror, or the empty string, to help the mirror recover past pending
 checkpoints.
 
-`upload_start` MUST be less or equal to `upload_end`. It MUST also be less or
-equal to the mirror's next entry for the origin.
+`upload_start` MUST be less or equal to `upload_end`.
 
 The request body uploads log entries from the interval
 `[upload_start, upload_end)`. The interval determines a fixed *canonical
@@ -204,13 +203,20 @@ First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
 * If `log_origin` is not a known log, the mirror MUST respond with a
   "404 Not Found" HTTP status code.
 
-* If `upload_end` is not the tree size of a known pending checkpoint value, or
-  if it is less than the mirror checkpoint's tree size, the mirror MUST respond
-  with a "409 Conflict" HTTP status code.
+* If `upload_end` is neither a known pending checkpoint value nor the mirror
+  checkpoint's tree size, the mirror MUST respond with a "409 Conflict" HTTP
+  status code. As described below, the mirror can maintain state or use `ticket`
+  to determine known pending checkpoint values.
 
-* If `upload_start` is greater than the mirror's next entry, or too far below
-  the mirror's next entry, the mirror MUST also respond with a "409 Conflict"
-  HTTP status code.
+* If `upload_end` is less than the mirror checkpoint's tree size, the mirror
+  MUST respond with a "409 Conflict" HTTP status code.
+
+* If `upload_start` is greater than the mirror's next entry, the mirror MUST
+  respond with a "409 Conflict" HTTP status code.
+
+* Let `excess_entries = min(upload_end, next_entry) - upload_start`, where
+  `next_entry` is the mirror's next entry. If `excess_entries` is too large, the
+  mirror MUST respond with a "409 Conflict" HTTP status code.
 
 The mirror SHOULD send these error responses without waiting for the entire
 request body to be available. Conversely, the client SHOULD be prepared to
@@ -238,10 +244,10 @@ committed partially. The client retries with `upload_start` set to the
 advertised next entry value, repeating until the mirror has received all
 packages.
 
-If no entry package was authenticated and saved before the body ended (for
-example, the request header itself was malformed, or the first package's
-bytes were truncated mid-package), the mirror MUST respond with a
-"400 Bad Request" HTTP status code.
+If the canonical sequence is not empty, and no entry package was authenticated
+and saved before the body ended (for example, the request header itself was
+malformed, or the first package's bytes were truncated mid-package), the mirror
+MUST respond with a "400 Bad Request" HTTP status code.
 
 When sending a "409 Conflict" or "202 Accepted" response, the response body
 MUST have a `Content-Type` of `text/x.tlog.mirror-info` and consist of three
@@ -259,8 +265,11 @@ tree size of the current pending checkpoint.
 After receiving a "409 Conflict" or "202 Accepted" response, the client
 SHOULD retry setting `upload_end` to the tree size, `upload_start` to the
 advertised next entry value, and the `ticket` to the received ticket. If a
-client doesn't have information on the mirror, it MAY initially make a
-request with `upload_start` and `upload_end` set to zero to obtain it.
+client doesn't have information on the mirror, it MAY initially make an
+`add-checkpoint` request to obtain a pending checkpoint size and fetch a
+checkpoint from the monitoring prefix; those can become stale before the
+`add-entries` request, but are a reasonable starting point for `upload_end`
+and `upload_start`, respectively.
 
 To reduce the chance of retry failures as the mirror state changes, mirrors
 SHOULD accept any of the last several pending checkpoint values as `upload_end`.
@@ -286,7 +295,7 @@ checkpoint may have changed since the start of this process.
 If `upload_end` was too small, the mirror MUST respond with a "409 Conflict"
 HTTP status code, as described above.
 
-Otherwise, if the mirror checkpoint was updated, the mirror MUST respond with a
+Otherwise, the mirror MUST respond with a
 "200 Success" HTTP status code. The response body MUST be formatted as in a
 [witness][]'s successful `add-checkpoint` response: a sequence of one or more
 [note][] signature lines, each starting with the `—` character (U+2014) and
