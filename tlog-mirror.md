@@ -121,6 +121,24 @@ name. The mirror's signature is computed later, as described below.
 If providing both mirror and witness services, the submission prefixes for the
 two services MAY be the same, but the monitoring prefixes MUST be distinct.
 
+### sign-subtree
+
+The mirror implements a [witness][]'s `sign-subtree` endpoint to produce
+cosignatures by the mirror key(s) when provided a checkpoint signed by the
+mirror and a subtree consistency proof.
+
+It is OPTIONAL for a mirror to support this API.
+
+    POST <submission prefix>/sign-subtree
+
+The request is handled identically to that of a witness.
+
+If providing both mirror and witness services, checkpoints signed only with the
+witness key(s), if any, MUST NOT be exchanged for subtrees signed by the mirror key(s).
+If the submission prefixes for the two services are the same, the mirror MUST
+use the same identity (or identities) when signing the subtree as was (or were)
+used to sign and verify the reference checkpoint.
+
 ### add-entries
 
 The mirror implements an `add-entries` endpoint to upload entries for a
