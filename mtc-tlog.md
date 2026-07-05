@@ -41,6 +41,10 @@ ext-mtcTlogPrefixURL EXTENSION ::= {
 }
 ```
 
+[Tiled transparency logs][tiled transparency logs] are currently only defined
+with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
+algorithm.
+
 [CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authorities
 [represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-representing-certification-
 
