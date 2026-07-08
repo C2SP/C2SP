@@ -3,7 +3,7 @@
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
-[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html
+[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html
 [tiled transparency logs]: https://c2sp.org/tlog-tiles
 
 ## Conventions used in this document
@@ -45,8 +45,8 @@ ext-mtcTlogPrefixURL EXTENSION ::= {
 with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
 algorithm.
 
-[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authorities
-[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-representing-certification-
+[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
@@ -113,13 +113,13 @@ future landmark can then re-fetch the resource after its cached copy
 expires to pick up the latest landmark sequence.
 
 [cache-control]: https://www.rfc-editor.org/rfc/rfc9111#section-5.2.2.1
-[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
-[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
-[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
+[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-certification-authority-cos
+[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-issuance-logs
+[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
 [prefix URL]: https://c2sp.org/tlog-tiles#parameters
 [pruning]: https://c2sp.org/tlog-tiles#pruning
-[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-publishing-landmarks
+[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
 
 ## Cosigners
@@ -151,11 +151,13 @@ configured to accept the next few unused log numbers.
 
 [mirror]: https://c2sp.org/tlog-mirror
 [ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
-[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-signature-format
+[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
-[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-standalone-certificates
+[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-standalone-certificates
 
 ## Client-Constructed Landmark-Relative Certificates
+
+<!-- TODO: bump draft-05 refs once ietf-plants-wg/merkle-tree-certs#254 merges and publishes a new revision. -->
 
 Most deployments obtain the landmark-relative certificate directly from the
 CA, for example over ACME. As an alternative, an [authenticating party][] (or
@@ -187,12 +189,12 @@ ACME certificate-download response (see
 [Conveying the CA Prefix URL over ACME](#conveying-the-ca-prefix-url-over-acme)),
 or out of band.
 
-[authenticating party]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-terminology-and-roles
-[CA ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-ide
-[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
-[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+[authenticating party]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-terminology-and-roles
+[CA ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-certification-authority-ide
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-landmark-relative-certifica
 [merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
-[subtree inclusion proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-subtree-inclusion-proofs
+[subtree inclusion proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-subtree-inclusion-proofs
 
 ## Conveying the CA Prefix URL over ACME
 
