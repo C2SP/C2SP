@@ -3,7 +3,7 @@
 [c2sp.org/httpsig-pq](https://c2sp.org/httpsig-pq)
 
 
-- **Version**: v0.1.0
+- **Version**: v0.2.0
 - **Authors**:
   - [Soatok Dreamseeker](https://github.com/soatok)
 
@@ -225,11 +225,11 @@ signature-base construction, algorithm binding, or strict ML-DSA input validatio
 
 This document requests registration of the following values in the HTTP Signature Algorithms registry.
 
-| Algorithm Name | Description               | Status | Reference                     |
-|----------------|---------------------------|--------|-------------------------------|
-| `ml-dsa-44`    | ML-DSA-44 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.1.0`  |
-| `ml-dsa-65`    | ML-DSA-65 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.1.0`  |
-| `ml-dsa-87`    | ML-DSA-87 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.1.0`  |
+| Algorithm Name | Description               | Status | Reference                    |
+|----------------|---------------------------|--------|------------------------------|
+| `ml-dsa-44`    | ML-DSA-44 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.2.0` |
+| `ml-dsa-65`    | ML-DSA-65 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.2.0` |
+| `ml-dsa-87`    | ML-DSA-87 using FIPS 204  | Active | `c2sp.org/httpsig-pq@v0.2.0` |
 
 ## Security Considerations
 
