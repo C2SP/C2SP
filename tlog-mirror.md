@@ -221,6 +221,9 @@ First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
 * If `log_origin` is not a known log, the mirror MUST respond with a
   "404 Not Found" HTTP status code.
 
+* If the mirror has never received a pending checkpoint signed by the log, the
+  mirror MUST respond with a "422 Unprocessable Entity" HTTP status code.
+
 * If `upload_end` is neither a known pending checkpoint value nor the mirror
   checkpoint's tree size, the mirror MUST respond with a "409 Conflict" HTTP
   status code. As described below, the mirror can maintain state or use `ticket`
