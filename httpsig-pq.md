@@ -68,8 +68,10 @@ with the context string set to the empty string. `HTTP_VERIFY` **MUST NOT** preh
 add any framing around `M`.
 
 Implementations **MUST** reject malformed public keys, malformed signatures, values with lengths that do not match the
-selected parameter set, non-empty ML-DSA contexts, prehashed inputs, and any signature where the `alg` value does not
-match the configured key's ML-DSA parameter set.
+selected parameter set, and any signature where the `alg` value does not match the configured key's ML-DSA parameter
+set. Implementations that expose FIPS 204 options **MUST** invoke verification with the context string set to the empty
+string and the unhashed signature base `M` as the message. Verification with a non-empty context string, a prehashed
+digest, external-mu processing, or any other representation of `M` **MUST** fail for these algorithms.
 
 ## Test vectors
 
@@ -92,6 +94,18 @@ Signature base:
 "host": example.com
 "date": Mon, 06 Jul 2026 20:00:00 GMT
 "@signature-params": ("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa44";alg="ml-dsa-44"
+```
+
+Serialized `Signature-Input` field:
+
+```http
+Signature-Input: sig1=("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa44";alg="ml-dsa-44"
+```
+
+Serialized `Signature` field, where `<base64 signature below>` is the `Signature` value below:
+
+```http
+Signature: sig1=:<base64 signature below>:
 ```
 
 Public key:
@@ -124,6 +138,18 @@ Signature base:
 "@signature-params": ("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa65";alg="ml-dsa-65"
 ```
 
+Serialized `Signature-Input` field:
+
+```http
+Signature-Input: sig1=("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa65";alg="ml-dsa-65"
+```
+
+Serialized `Signature` field, where `<base64 signature below>` is the `Signature` value below:
+
+```http
+Signature: sig1=:<base64 signature below>:
+```
+
 Public key:
 
 ```text
@@ -154,6 +180,18 @@ Signature base:
 "@signature-params": ("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa87";alg="ml-dsa-87"
 ```
 
+Serialized `Signature-Input` field:
+
+```http
+Signature-Input: sig1=("@method" "@target-uri" "host" "date");created=1783368000;keyid="test-key-mldsa87";alg="ml-dsa-87"
+```
+
+Serialized `Signature` field, where `<base64 signature below>` is the `Signature` value below:
+
+```http
+Signature: sig1=:<base64 signature below>:
+```
+
 Public key:
 
 ```text
@@ -180,8 +218,8 @@ signature-base construction, algorithm binding, or strict ML-DSA input validatio
 | Signature bit flip        | Flip the low bit of the first signature byte.                                                                                     | Reject          |
 | Truncated signature       | Remove the final signature byte.                                                                                                  | Reject          |
 | Extended signature        | Append one `0x00` byte to the signature.                                                                                          | Reject          |
-| Non-empty ML-DSA context  | Verify with any non-empty FIPS 204 context string.                                                                                | Reject          |
-| Prehashed message         | Verify against `SHA-256(signature base)` instead of the signature base itself.                                                    | Reject          |
+| Non-empty ML-DSA context  | Invoke FIPS 204 verification with any non-empty context string.                                                                   | Reject          |
+| Prehashed message         | Invoke FIPS 204 verification on `SHA-256(signature base)` instead of the signature base itself.                                   | Reject          |
 
 ## IANA Considerations
 
