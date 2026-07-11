@@ -47,11 +47,6 @@ with `Content-Type: text/plain; charset=utf-8`.
 This endpoint is mutable, so its headers SHOULD prevent caching beyond a few
 seconds.
 
-If the log is public, or is interacting in any way with the public witness
-network, the checkpoint MUST carry at least one Ed25519 signature by the log.
-The checkpoint MAY carry additional signatures of other types, by the log or
-otherwise.
-
 ### Merkle Tree
 
 Instead of serving consistency and inclusion proofs for arbitrary entries and/or
