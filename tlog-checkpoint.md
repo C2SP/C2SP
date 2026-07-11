@@ -74,3 +74,5 @@ be empty.
 
 According to the note specification, clients MUST ignore unknown signatures.
 This enables, for example, log key rotation, and witness cosigning.
+
+[cosignatures]: https://c2sp.org/tlog-cosignature
