@@ -12,12 +12,15 @@ commitment.
 
 It is secure if instantiated with any secure hash of at least 256 bits and a
 secure AEAD based on a block cipher of at least 128 bits, with a key size of at
-least 128 bits and a nonce size of at least 96 bits. The recommended
-instantiation is SHA-256 and AES-128-GCM.
+least 128 bits and a nonce size of at least 96 bits.
+
+The recommended instantiation is named **Cobblestone-128** and uses SHA-512 and
+AES-128-GCM. A compliance-oriented instantiation is named **Cobblestone-256**
+and uses SHA-512 and AES-256-GCM.
 
 The maximum number of *messages* that can be encrypted under a single *input
 key* depends on the maximum size of each message. The concrete values for the
-recommended instantiation are shown in the table below.
+recommended instantiations are shown in the table below.
 
 | Max *message* size | Max *message* count | Max total data |
 |---|---|---|
@@ -29,8 +32,9 @@ recommended instantiation are shown in the table below.
 | 1 PiB | 32 | 32 PiB |
 | 4 PiB | 2 | 8 PiB |
 
-If instantiated with an AEAD having a tag length of 16 bytes, this scheme has a
-fixed overhead of 56 bytes and a marginal overhead of approximately 0.1%.
+If instantiated with an AEAD having a tag length of 16 bytes, like AES-GCM in
+the recommended instantiation, this scheme has a fixed overhead of 56 bytes and
+a marginal overhead of approximately 0.1%.
 
 ## Specification
 
@@ -47,7 +51,7 @@ encrypts messages with a *key* of *len(key)* bytes and a *nonce* of *len(nonce)*
 bytes. Applications and protocols SHOULD select a single hash and a single AEAD
 for use with each high-level application or protocol version.
 
-Absent other requirements, the use of SHA-256 and AES-128-GCM is RECOMMENDED.
+Absent other requirements, the use of SHA-512 and AES-128-GCM is RECOMMENDED.
 
 For each message, a tuple of unique, uniformly random *key*, *base nonce*, and
 *commitment* are derived from an *input key* of *len(key)* bytes (i.e. the same
@@ -298,6 +302,10 @@ encryption starts.)
 The key derivation uses HKDF-Expand without the Extract step to comply with NIST
 SP 800-108, and because the input key for an encryption API can be presumed to
 be uniformly random already.
+
+Using SHA-512 instead of SHA-256 in the recommended instantiation halves the
+HMAC calls in HKDF-Expand, and is anyway a better fit for modern 64-bit
+architectures.
 
 ## Appendix: raw mode
 
