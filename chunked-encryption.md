@@ -15,6 +15,20 @@ secure AEAD based on a block cipher of at least 128 bits, with a key size of at
 least 128 bits and a nonce size of at least 96 bits. The recommended
 instantiation is SHA-256 and AES-128-GCM.
 
+The maximum number of *messages* that can be encrypted under a single *input
+key* depends on the maximum size of each message. The concrete values for the
+recommended instantiation are shown in the table below.
+
+| Max *message* size | Max *message* count | Max total data |
+|---|---|---|
+| 32 MiB | 2⁵⁵ | 1 024 ZiB |
+| 1 GiB | 2⁴⁵ (~35 T) | 32 ZiB |
+| 32 GiB | 2³⁵ (~34 B) | 1 ZiB |
+| 1 TiB | 2²⁵ (~33 M) | 32 EiB |
+| 32 TiB | 32 768 | 1 EiB |
+| 1 PiB | 32 | 32 PiB |
+| 4 PiB | 2 | 8 PiB |
+
 If instantiated with an AEAD having a tag length of 16 bytes, this scheme has a
 fixed overhead of 56 bytes and a marginal overhead of approximately 0.1%.
 
@@ -153,13 +167,6 @@ for the same implementation.
 
 ## Security analysis
 
-Aside from the truncation protection, this scheme is essentially identical to
-the TLS 1.3 record layer, and benefits from its extensive security analysis. In
-particular, see [ePrint 2018/993][] for a multi-target analysis, and [ePrint
-2024/051][] for a single-key analysis of AEAD limits.
-
-However, we can also provide a simpler, more conservative analysis.
-
 At the AEAD level, we need to show that (key, nonce) pairs have a low chance of
 colliding. Even assuming a worst case scenario in which every message has length
 4 PiB, exhausting the 38-bit counter space in the nonce, and the AEAD has a key
@@ -168,18 +175,6 @@ of uniformly random space. Since the counter occupies at most the low-order 38
 bits, the remaining 58 bits of the base nonce are invariant across chunks within
 a message and can’t collide unless the whole base nonce collides. That produces
 a birthday bound of 2⁷⁷ messages for a chance of collision of 2⁻³².
-
-For the multi-target setting, again assuming a worst case scenario of 4 PiB
-messages, 128-bit keys, and 96-bit nonces, this scheme provides 128 + 96 - 38 -
-64 = 122 bits of security against an attacker which targets 2⁶⁴ messages. Each
-“effective” nonce (the prefix unaffected by the counter) is reused by (on
-average) 2⁶⁴ / 2⁵⁸ = 2⁶ users, producing an effort to succeed of 2¹²⁸⁻⁶. See
-Section 1.1 of [ePrint 2018/993][].
-
-At the block mode level, counter modes have a wearout limit of 2<sup>48.5</sup>
-blocks, or ~5.6 PiB for 128-bit ciphers like AES, for an attacker advantage of
-2⁻³². See Equation (7) of [ePrint 2024/051][]. That is above the maximum message
-size of 4 PiB, so the block mode does not become the bottleneck for security.
 
 At the key derivation level, using random 192-bit salts has a birthday bound of
 2⁸⁰ messages for a chance of collision of 2⁻³², which exceeds the derived key +
@@ -203,6 +198,57 @@ the *nonce* encodes counter (*length* // 16 KiB), and the *ciphertext* has
 length (*len(tag)* + *length* % 16 KiB). Without violating ciphertext
 unforgeability (INT-CTXT), this is only possible if such a tuple was output by
 an honest encryption operation, meaning the message length is the correct one.
+
+Aside from key derivation, key commitment, and truncation protection, the scheme
+is essentially identical to the TLS 1.3 record layer, and benefits from its
+extensive security analysis. In particular, we refer to [ePrint 2024/051][]
+(originally published in 2016) and [ePrint 2018/993][].
+
+Using Equation (7) of [ePrint 2024/051][] we can calculate the attacker’s
+single-file advantage for a series of sizes.
+
+| Size | Chunks *q* | Advantage *ϵ* |
+|---|---|---|
+| 32 MiB | 2¹¹ | 2⁻⁸⁷ |
+| 1 GiB | 2¹⁶ | 2⁻⁷⁷ |
+| 32 GiB | 2²¹ | 2⁻⁶⁷ |
+| 1 TiB | 2²⁶ | 2⁻⁵⁷ |
+| 32 TiB | 2³¹ | 2⁻⁴⁷ |
+| 1 PiB | 2³⁶ | 2⁻³⁷ |
+| 4 PiB | 2³⁸ | 2⁻³³ |
+
+Since each file is encrypted under an independent key (per the derivation
+analysis above) a standard hybrid argument bounds the advantage against *k*
+files by at most *k* × *ϵ*. Section 1.3 of [ePrint 2024/051][] and Section 1 of
+[ePrint 2017/435][] confirm there is no additional multi-key degradation for GCM
+as a mode. That means that if we want to bound the advantage at 2⁻³² we can
+encrypt at most 2⁻³² / *ϵ* files of that size, leading to the table of maximum
+file counts at the top.
+
+[ePrint 2018/993][] provides a stricter and more comprehensive (but more
+complex) analysis, combining the missing birthday advantage with the forgery
+advantage and the offline bruteforce advantage.
+
+We apply Theorem 4.3 with two scheme-specific refinements: the σB/2ⁿ birthday
+term ranges over encryption blocks only (Bad2/Bad3), and the forgery term
+charges each verification query its own length rather than B (Bad7/Bad8), since
+every AEAD invocation in this scheme is at most 2¹⁰ blocks. Assuming at most 2⁶⁰
+forgery attempts, *q* is 2⁶⁰ + the number of encrypted chunks (total data / 16
+KiB). *σ* is the number of encrypted blocks (total data / 128 bits). *B* is the
+number of encrypted blocks “per user” (file size / 128 bits). *d* is how many
+files share an effective nonce, 2⁷ at 2⁶⁵ files: the counter takes the low 38
+bits, so files collide only in the 2⁵⁸ invariant base-nonce prefixes. *p* is a
+bound on offline work: for 128-bit keys we need to pick 2⁸⁰ or the generic
+key-guessing attack dominates (note that no 128-bit-key scheme can meet a 2⁻³²
+advantage target against attackers exceeding ~2⁹⁶ AES evaluations), for 256-bit
+keys it’s irrelevant.
+
+Applying it to the numbers in the table yields advantage of 2⁻³⁰ for every row,
+dominated by the σB term, which represents the same missing-birthday
+distinguisher we analyzed above. (The factor 4 over Equation (7)’s 2⁻³² is proof
+bookkeeping in [ePrint 2018/993][], not a stronger attack: their Theorem 3.1
+charges the within-key collision event twice across two bad-event cases and
+drops the birthday ½ that Equation (7) retains.)
 
 ## Rationale
 
@@ -286,3 +332,4 @@ adjusted to remove the 56-byte prefix when implementing raw mode.
 [The FIPS Compliance of HKDF]: https://words.filippo.io/fips-hkdf/
 [ePrint 2018/993]: https://eprint.iacr.org/2018/993
 [ePrint 2024/051]: https://eprint.iacr.org/2024/051
+[ePrint 2017/435]: https://eprint.iacr.org/2017/435
