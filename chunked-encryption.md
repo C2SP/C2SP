@@ -271,8 +271,8 @@ Similarly, with full final chunks a valid ciphertext length can be both a valid
 truncation and a valid message, while with short final chunks a valid ciphertext
 length can only be a single valid message.
 
-Padding and variable chunk sizes are not supported, to allow random access
-decryption with a predictable mapping of plaintext indices.
+Variable per-chunk padding and variable chunk sizes are not supported, to allow
+random access decryption with a predictable mapping of plaintext indices.
 
 The chunk size was chosen to match the TLS 1.3 record size. This has a few
 advantages: systems can be expected to be capable to decrypt chunks whole if
@@ -332,6 +332,61 @@ protocols.
 The ciphertext offset and validity formulas in the implementation notes must be
 adjusted to remove the 56-byte prefix when implementing raw mode.
 
+## Appendix: plaintext padding
+
+The ciphertext leaks the exact length of the message, which may be undesirable
+in some applications. To mitigate this, the following scheme MAY be used to
+produce a padded message of length L + P + k (where k is the framing overhead,
+which is a function of L + P) from a message of length L.
+
+The value of P is selected by the application at encryption time, and can be any
+non-negative value such that L + P does not exceed 4 PiB - 512 GiB - 10 bytes.
+Padmé, specified in Algorithm 1 of [arXiv:1806.03160v4][], is RECOMMENDED.
+
+The message is padded by appending P zero bytes to it, a single 0x01 byte, and
+then the original message length as a big-endian uint64. The resulting padded
+message is then split into chunks of 16 KiB - 2 bytes, and each chunk is
+prepended with a big-endian uint16 encoding of how many of its bytes are part of
+the original message.
+
+An example of a 40 000 = 0x9C40 byte message with 35 000 bytes of padding, for a
+total of 75 019 bytes, including framing (10 bytes of prefixes and 9 bytes of
+suffix), is shown below.
+
+```
+0x3F 0xFE [ 16 382 = 0x3FFE bytes of message ]
+0x3F 0xFE [ 16 382 = 0x3FFE bytes of message ]
+0x1C 0x44 [  7 236 = 0x1C44 bytes of message ] [ 9 146 zero bytes ]
+0x00 0x00 [ 16 382 zero bytes ]
+0x00 0x00 [  9 472 zero bytes ] 0x01 0x00 0x00 0x00 0x00 0x00 0x00 0x9C 0x40
+```
+
+### Implementation notes
+
+The padding framing is layered on top of the chunked encryption scheme and does
+not directly interact with it: the resulting padded message is encrypted as a
+regular message. However, the padding scheme is designed to preserve the
+streaming and random access properties of the chunked encryption scheme,
+including efficient seeking from the end of the original message (decrypting at
+most the final two chunks), and to avoid additional buffering.
+
+In particular, it's possible to implement padded chunked encryption as nested
+`io.Reader`, `io.ReaderAt`, or `io.Writer` Go implementations, or equivalent.
+
+A streaming encryption implementation needs to buffer 16 KiB - 2 bytes of input
+but can then flush them as whole 16 KiB chunks, bypassing buffering at the
+encryption layer.
+
+A streaming decryption implementation uses the 2-byte chunk prefix to determine
+how many bytes of the decrypted chunk to surface, and then can find and validate
+the length trailer without lookahead, buffering, or signaling from the
+encryption layer, by consuming the zero bytes until the 0x01 byte.
+
+A random access decryption implementation can find the original message length
+by decrypting the last one or two chunks (the latter if the suffix straddles a
+chunk boundary), or by reading the last 8 bytes through an encryption layer
+abstraction.
+
 [STREAM]: https://eprint.iacr.org/2015/189
 [FLOE]: https://c2sp.org/FLOE
 [TLS 1.3]: https://datatracker.ietf.org/doc/html/rfc8446#section-5
@@ -341,3 +396,4 @@ adjusted to remove the 56-byte prefix when implementing raw mode.
 [ePrint 2018/993]: https://eprint.iacr.org/2018/993
 [ePrint 2024/051]: https://eprint.iacr.org/2024/051
 [ePrint 2017/435]: https://eprint.iacr.org/2017/435
+[arXiv:1806.03160v4]: https://arxiv.org/abs/1806.03160v4
