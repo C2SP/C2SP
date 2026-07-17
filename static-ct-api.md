@@ -93,20 +93,20 @@ verified.
 
 	enum {
 		leaf_index(0), (255)
-	} ExtensionType;
+	} CtExtensionType;
 	
 	struct {
-		ExtensionType extension_type;
+		CtExtensionType extension_type;
 		opaque extension_data<0..2^16-1>;
-	} Extension;
+	} CtExtension;
 	
-	Extension CtExtensions<0..2^16-1>;
+	CtExtension CtExtensions<0..2^16-1>;
 
 The `CtExtensions` type (opaque in RFC 6962) MUST be a list of zero or more
-`Extension`s, similarly to [RFC 5246][], but with a one-byte `ExtensionType`.
-The order of extensions in an extensions field is arbitrary and MUST be ignored.
-Duplicate extensions with the same `ExtensionType` MUST NOT be included in the
-same extensions field.
+`CtExtension`s. `CtExtension` is similar to the `Extension` structure in
+[RFC 8446][], but with a one-byte `CtExtensionType`. The order of extensions in
+an extensions field is arbitrary and MUST be ignored. Duplicate extensions with
+the same `CExtensionType` MUST NOT be included in the same extensions field.
 
 	uint8 uint40[5];
 	uint40 LeafIndex;
@@ -339,6 +339,5 @@ TrustFabric, and ISRG teams.
 
 [Certificate Transparency]: https://certificate.transparency.dev/
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
-[RFC 5246]: https://www.rfc-editor.org/rfc/rfc5246.html
 [checkpoint]: https://c2sp.org/tlog-checkpoint
 [note signature]: https://c2sp.org/signed-note
