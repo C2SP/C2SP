@@ -117,6 +117,12 @@ The AEAD’s AAD is not used and MUST be empty.
 The final ciphertext MUST be the concatenation of *salt*, *commitment*, and the
 AEAD ciphertexts.
 
+## Test vectors
+
+A full suite of test vectors is [provided as part of Project Wycheproof][vectors].
+
+[vectors]: https://github.com/C2SP/wycheproof/blob/main/doc/c2sp_chunked_encryption.md
+
 ## Implementation notes
 
 A streaming encryption implementation needs only buffer 16 KiB of input and can
@@ -306,6 +312,10 @@ be uniformly random already.
 Using SHA-512 instead of SHA-256 in the recommended instantiation halves the
 HMAC calls in HKDF-Expand, and is anyway a better fit for modern 64-bit
 architectures.
+
+## Implementations
+
+* [filippo.io/cobblestone](https://filippo.io/cobblestone) (Go)
 
 ## Appendix: raw mode
 
