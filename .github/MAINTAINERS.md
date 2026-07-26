@@ -124,6 +124,7 @@
 ### upki-revocation
 
 - [@cpu](https://github.com/cpu)
+- [@ctz](https://github.com/ctz)
 - [@djc](https://github.com/djc)
 - [@jschanck](https://github.com/jschanck)
 
