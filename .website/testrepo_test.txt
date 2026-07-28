@@ -4,9 +4,19 @@
 # Any :NNN marks (like ":1") are replaced with the corresponding SHA-1 hash,
 # while :NNN! is replaced with the SHA-1 hash truncated to 16 characters.
 
-# foo: has releases, @latest picks highest non-prerelease (v2.0.0)
+# foo: has releases, @latest redirects to the highest non-prerelease (v2.0.0)
+# so that the resulting link can be copied as a stable reference
 
 GET https://c2sp.org/foo
+redirect == /foo@v2.0.0
+
+GET https://c2sp.org/foo@latest
+code == 200
+body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
+
+# foo: explicit versions, including legacy ones without front matter
+
+GET https://c2sp.org/foo@v2.0.0
 code == 200
 header content-type == text/html; charset=utf-8
 body contains <h1>The Foo Specification</h1>
@@ -31,14 +41,10 @@ body !contains editor&#39;s copy
 body !contains description: Test spec foo
 body !contains class="notice"
 
-GET https://c2sp.org/foo@latest
-code == 200
-body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
-
 # Accept: text/markdown serves the source, without front matter and the
 # warning boilerplate
 
-GET https://c2sp.org/foo
+GET https://c2sp.org/foo@v2.0.0
 reqheader Accept text/markdown
 code == 200
 header content-type == text/markdown; charset=utf-8
@@ -58,12 +64,6 @@ reqheader Accept text/markdown
 code == 200
 header content-type == text/markdown; charset=utf-8
 body contains # Test Code of Conduct
-
-# foo: explicit versions, including legacy ones without front matter
-
-GET https://c2sp.org/foo@v2.0.0
-code == 200
-body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
 
 GET https://c2sp.org/foo@v0.0.1
 code == 200
@@ -121,6 +121,9 @@ code == 404
 # case-insensitively from the "### bar" section
 
 GET https://c2sp.org/BAR
+redirect == /BAR@v1.0.1-pre.1
+
+GET https://c2sp.org/BAR@v1.0.1-pre.1
 code == 200
 body contains BAR content 2
 body contains <a class="current" href="/BAR@v1.0.1-pre.1">v1.0.1-pre.1</a>

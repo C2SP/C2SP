@@ -57,8 +57,8 @@ type indexEntry struct {
 }
 
 func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
-	name, vers, ok := strings.Cut(r.PathValue("name"), "@")
-	if !ok {
+	name, vers, explicit := strings.Cut(r.PathValue("name"), "@")
+	if !explicit {
 		vers = "latest"
 	}
 	if !spec.ValidName(name) {
@@ -80,9 +80,17 @@ func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
 	latest := latestVersion(versions)
 
 	if vers == "latest" {
-		vers = latest
-		if vers == "" {
+		switch {
+		case latest == "":
+			// Untagged specs render the development version directly.
 			vers = "main"
+		case explicit:
+			vers = latest
+		default:
+			// Redirect the bare URL to the explicit latest version, so the
+			// resulting link can be copied as a stable reference.
+			http.Redirect(w, r, "/"+name+"@"+latest, http.StatusFound)
+			return
 		}
 	}
 
