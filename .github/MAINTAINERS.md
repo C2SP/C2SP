@@ -52,6 +52,10 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@rgdd](https://github.com/rgdd)
 
+### httpsig-pq
+
+- [@soatok](https://github.com/soatok)
+
 ### jq255
 
 - [@pornin](https://github.com/pornin)
