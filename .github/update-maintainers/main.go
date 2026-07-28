@@ -38,16 +38,22 @@ func main() {
 	}
 
 	// Get all teams and filter for child teams of maintainers
-	allTeams, _, err := githubClient.Teams.ListTeams(ctx, "C2SP", &github.ListOptions{})
-	if err != nil {
-		log.Fatalf("Failed to list teams: %v", err)
-	}
-
 	var childTeams []*github.Team
-	for _, team := range allTeams {
-		if team.Parent != nil && team.Parent.GetID() == maintainersTeam.GetID() {
-			childTeams = append(childTeams, team)
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		allTeams, resp, err := githubClient.Teams.ListTeams(ctx, "C2SP", opts)
+		if err != nil {
+			log.Fatalf("Failed to list teams: %v", err)
 		}
+		for _, team := range allTeams {
+			if team.Parent != nil && team.Parent.GetID() == maintainersTeam.GetID() {
+				childTeams = append(childTeams, team)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	var maintainerTeams []TeamInfo
@@ -101,16 +107,24 @@ func main() {
 }
 
 func getTeamInfo(ctx context.Context, client *github.Client, teamSlug string) (TeamInfo, error) {
-	members, _, err := client.Teams.ListTeamMembersBySlug(
-		ctx, "C2SP", teamSlug, &github.TeamListTeamMembersOptions{},
-	)
-	if err != nil {
-		return TeamInfo{}, err
-	}
-
 	var memberLogins []string
-	for _, member := range members {
-		memberLogins = append(memberLogins, member.GetLogin())
+	opts := &github.TeamListTeamMembersOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		members, resp, err := client.Teams.ListTeamMembersBySlug(
+			ctx, "C2SP", teamSlug, opts,
+		)
+		if err != nil {
+			return TeamInfo{}, err
+		}
+		for _, member := range members {
+			memberLogins = append(memberLogins, member.GetLogin())
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 	slices.Sort(memberLogins)
 
