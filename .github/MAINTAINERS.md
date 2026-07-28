@@ -137,3 +137,7 @@
 
 - [@crawshaw](https://github.com/crawshaw)
 
+### xaes-256-gcm
+
+- [@FiloSottile](https://github.com/FiloSottile)
+
