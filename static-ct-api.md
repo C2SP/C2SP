@@ -1,3 +1,11 @@
+---
+description: Static asset-based Certificate Transparency logs
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/static-ct-api](https://c2sp.org/static-ct-api).
+
 # The Static Certificate Transparency API
 
 https://c2sp.org/static-ct-api

@@ -1,3 +1,11 @@
+---
+description: Extended-nonce AEAD from NIST-approved components
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/XAES-256-GCM](https://c2sp.org/XAES-256-GCM).
+
 # The XAES-256-GCM extended-nonce AEAD
 
 https://c2sp.org/XAES-256-GCM

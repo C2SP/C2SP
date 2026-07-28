@@ -1,3 +1,11 @@
+---
+description: Password Hashing Competition string format
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/phc-strings](https://c2sp.org/phc-strings).
+
 # PHC Strings
 
 [Password Hashing Competition] (PHC) Strings are a storage format for password hashes which includes

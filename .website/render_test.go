@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -235,6 +237,44 @@ Content.
 		t.Run(tt.name, func(t *testing.T) {
 			if got := string(markdownSource([]byte(tt.src), tt.specName)); got != tt.want {
 				t.Errorf("markdownSource = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestRenderRepoSpecs renders every spec in the repository, checking that the
+// front matter, warning boilerplate, and title conform to what the website
+// expects.
+func TestRenderRepoSpecs(t *testing.T) {
+	paths, err := filepath.Glob("../*.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(paths) == 0 {
+		t.Fatal("no specs found")
+	}
+	for _, path := range paths {
+		name := strings.TrimSuffix(filepath.Base(path), ".md")
+		t.Run(name, func(t *testing.T) {
+			src, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, err := renderMarkdown(src, name, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if doc.Title == "" {
+				t.Error("no title")
+			}
+			if doc.Description == "" {
+				t.Error("no front matter description")
+			}
+			if strings.Contains(string(doc.Body), "editor&#39;s copy") {
+				t.Error("warning boilerplate not stripped")
+			}
+			if md := markdownSource(src, name); strings.Contains(string(md), "editor's copy") {
+				t.Error("warning boilerplate not stripped from Markdown source")
 			}
 		})
 	}

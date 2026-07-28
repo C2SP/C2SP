@@ -1,3 +1,11 @@
+---
+description: File encryption format
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/age](https://c2sp.org/age).
+
 # age
 
 [c2sp.org/age](https://c2sp.org/age),

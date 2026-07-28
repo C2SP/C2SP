@@ -1,3 +1,11 @@
+---
+description: HTTP protocol to obtain transparency log witness cosignatures
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-witness](https://c2sp.org/tlog-witness).
+
 # Transparency Log Witness Protocol
 
 This document describes a synchronous HTTP-based protocol to obtain

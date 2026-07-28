@@ -185,6 +185,8 @@ code == 200
 body contains <h1 class="home">The Test Project</h1>
 body contains Test project readme prose.
 body contains <h2 id="specifications">
+body contains Associated things.
+body ~ (?s)Test project readme prose\..*<h2 id="specifications">.*<h2 id="more">
 body contains href="/foo">c2sp.org/foo</a>
 body contains Test spec foo
 body contains href="/a-b-c">c2sp.org/a-b-c</a>

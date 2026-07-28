@@ -1,3 +1,11 @@
+---
+description: TupleHash-like functionality for arbitrary underlying hash functions
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/sequencehash](https://c2sp.org/sequencehash).
+
 # SequenceHash and SequenceMAC
 
 [c2sp.org/sequencehash](https://c2sp.org/sequencehash)

@@ -1,3 +1,11 @@
+---
+description: CRLite X.509 revocation data based on Clubcards
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/upki-revocation](https://c2sp.org/upki-revocation).
+
 # UPKI Revocation
 
 This document specifies the on-disk data structures and check procedure used to

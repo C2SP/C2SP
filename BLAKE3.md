@@ -1,3 +1,11 @@
+---
+description: A fast cryptographic hash function (and PRF, MAC, KDF, and XOF)
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/BLAKE3](https://c2sp.org/BLAKE3).
+
 # The BLAKE3 Hashing Framework
 
 [c2sp.org/BLAKE3](c2sp.org/BLAKE3)

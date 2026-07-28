@@ -1,3 +1,11 @@
+---
+description: Witness cosignatures for transparency log checkpoints
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-cosignature](https://c2sp.org/tlog-cosignature).
+
 # Transparency Log Cosignatures
 
 A cosignature is a statement by a *cosigner* that it verified

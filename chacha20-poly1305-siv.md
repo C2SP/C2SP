@@ -1,3 +1,11 @@
+---
+description: Misuse-resistant, key-committing AEAD scheme
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/chacha20-poly1305-siv](https://c2sp.org/chacha20-poly1305-siv).
+
 # ChaCha20-Poly1305-SIV
 
 <https://c2sp.org/chacha20-poly1305-siv>
