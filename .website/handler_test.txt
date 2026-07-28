@@ -16,11 +16,7 @@ GET https://c2sp.org/foo/bar?go-get=1
 body contains c2sp.org git https://github.com/C2SP/C2SP
 
 GET https://c2sp.org/age
-code == 200
-body contains age-encryption.org
-body contains FiloSottile
-body contains https://github.com/C2SP/C2SP/issues/new?title=age%3A%20
-body !contains class="notice"
+redirect ~ /age@v1\.[0-9.]+
 
 GET https://c2sp.org/age@latest
 code == 200
@@ -30,6 +26,8 @@ GET https://c2sp.org/age@main
 code == 200
 body contains development version
 body contains id="the-tagged-recipient-types"
+body contains FiloSottile
+body contains https://github.com/C2SP/C2SP/issues/new?title=age%3A%20
 
 GET https://c2sp.org/age@037e546d164a89fd7577df2c18df80bb54bd246e
 code == 200
@@ -47,6 +45,7 @@ body contains development version
 GET https://c2sp.org/tlog-witness@v0.1.0
 code == 200
 body contains <a class="current" href="/tlog-witness@v0.1.0">v0.1.0</a>
+body !contains class="notice"
 
 GET https://c2sp.org/static-ct-api@v1.0.0-rc.1
 code == 200
