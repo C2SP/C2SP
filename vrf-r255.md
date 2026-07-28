@@ -1,3 +1,11 @@
+---
+description: Simplified ristretto255-based ECVRF ciphersuite
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/vrf-r255](https://c2sp.org/vrf-r255).
+
 # ristretto255 VRF
 
 [c2sp.org/vrf-r255](https://c2sp.org/vrf-r255)

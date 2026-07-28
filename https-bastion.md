@@ -1,3 +1,11 @@
+---
+description: Bastion (reverse proxy) protocol for exposing HTTPS services
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/https-bastion](https://c2sp.org/https-bastion).
+
 # HTTPS Bastion
 
 This document specifies an HTTPS bastion: a service that acts as a reverse proxy

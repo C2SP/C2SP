@@ -62,13 +62,13 @@ release is <a href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>{{end}}.</div>
 
 <main>
 {{.Body}}
-{{if .Index}}
-<h2 id="specifications">Specifications</h2>
+</main>
+
+{{define "index"}}<h2 id="specifications">Specifications</h2>
 <table class="index">
-{{range .Index}}<tr><td><a href="/{{.Name}}">c2sp.org/{{.Name}}</a></td><td>{{.Description}}</td></tr>
+{{range .}}<tr><td><a href="/{{.Name}}">c2sp.org/{{.Name}}</a></td><td>{{.Description}}</td></tr>
 {{end}}</table>
 {{end}}
-</main>
 
 <footer>
 Specs <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,

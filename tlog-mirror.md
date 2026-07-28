@@ -1,3 +1,11 @@
+---
+description: HTTP protocol to mirror transparency logs
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-mirror](https://c2sp.org/tlog-mirror).
+
 # Transparency Log Mirrors
 
 This document describes how to mirror a transparency log, and how to obtain

@@ -1,3 +1,11 @@
+---
+description: The age plugin stdio protocol
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/age-plugin](https://c2sp.org/age-plugin).
+
 # Plugin system for age
 
 ## Introduction

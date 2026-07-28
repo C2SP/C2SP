@@ -1,3 +1,11 @@
+---
+description: Deterministic key pair generation from seed
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/det-keygen](https://c2sp.org/det-keygen).
+
 # Deterministic Key Generation
 
 [c2sp.org/det-keygen](https://c2sp.org/det-keygen)

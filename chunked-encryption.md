@@ -1,3 +1,11 @@
+---
+description: Authenticated, streaming, random-access encryption for large messages
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/chunked-encryption](https://c2sp.org/chunked-encryption).
+
 # Chunked encryption
 
 https://c2sp.org/chunked-encryption

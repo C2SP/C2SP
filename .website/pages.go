@@ -35,7 +35,6 @@ type pageData struct {
 	Description string
 	Home        bool
 	Spec        *specData
-	Index       []indexEntry
 	Body        template.HTML
 }
 
@@ -206,6 +205,21 @@ func (s *site) serveIndex(w http.ResponseWriter, r *http.Request) {
 		index = append(index, indexEntry{Name: name, Description: fm.Description})
 	}
 
+	// Splice the generated spec index into the README, above its first
+	// section heading (or at the end, if there is none).
+	var indexHTML bytes.Buffer
+	if err := pageTemplate.ExecuteTemplate(&indexHTML, "index", index); err != nil {
+		log.Printf("failed to execute index template: %v", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	body := string(doc.Body)
+	if i := strings.Index(body, "<h2"); i >= 0 {
+		body = body[:i] + indexHTML.String() + body[i:]
+	} else {
+		body += indexHTML.String()
+	}
+
 	title := doc.Title
 	if title == "" {
 		title = "The Community Cryptography Specification Project"
@@ -214,8 +228,7 @@ func (s *site) serveIndex(w http.ResponseWriter, r *http.Request) {
 		TabTitle: "C2SP — " + title,
 		Title:    title,
 		Home:     true,
-		Index:    index,
-		Body:     doc.Body,
+		Body:     template.HTML(body),
 	})
 }
 

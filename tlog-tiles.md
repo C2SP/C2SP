@@ -1,3 +1,11 @@
+---
+description: Static asset-based transparency log
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-tiles](https://c2sp.org/tlog-tiles).
+
 # Tiled Transparency Logs
 
 This document specifies an efficient HTTP API to fetch the signed checkpoint,

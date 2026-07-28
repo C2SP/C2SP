@@ -1,3 +1,11 @@
+---
+description: Interoperable transparency log signed tree heads
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-checkpoint](https://c2sp.org/tlog-checkpoint).
+
 # Transparency Log Checkpoints
 
 A checkpoint is a [signed note][] where the body is precisely formatted for use

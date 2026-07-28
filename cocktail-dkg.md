@@ -1,3 +1,11 @@
+---
+description: Distributed Key Generation protocol for FROST
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/cocktail-dkg](https://c2sp.org/cocktail-dkg).
+
 # COCKTAIL Distributed Key Generation
 
 [c2sp.org/cocktail-dkg](https://c2sp.org/cocktail-dkg)

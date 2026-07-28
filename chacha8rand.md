@@ -1,3 +1,11 @@
+---
+description: Fast cryptographic random number generator
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/chacha8rand](https://c2sp.org/chacha8rand).
+
 # ChaCha8Rand
 
 ChaCha8Rand is a ChaCha8-based key-erasure CSPRNG with performance similar to non-cryptographic random number generators, designed to be [the default source for the `math/rand{,v2}` and `runtime` Go packages](https://go.dev/issue/61716).

@@ -1,3 +1,11 @@
+---
+description: Cleartext signed messages
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/signed-note](https://c2sp.org/signed-note).
+
 # Note
 
 A note is text signed by one or more keys.

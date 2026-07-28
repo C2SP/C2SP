@@ -1,3 +1,11 @@
+---
+description: Online and random access authenticated encryption
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/FLOE](https://c2sp.org/FLOE).
+
 # Fast Lightweight Online Encryption (FLOE)
 
 [c2sp.org/FLOE](https://c2sp.org/FLOE)

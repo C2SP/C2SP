@@ -1,3 +1,11 @@
+---
+description: Offline-verifiable transparency log proofs (or "spicy signatures")
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-proof](https://c2sp.org/tlog-proof).
+
 # Transparency Log Proofs
 
 This document describes a textual format for a an offline-verifiable proof that

@@ -1,3 +1,11 @@
+---
+description: Encoding for transparency log proof cosigning policies
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/tlog-policy](https://c2sp.org/tlog-policy).
+
 # Transparency log trust policy
 
 ## Introduction

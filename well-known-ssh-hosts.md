@@ -1,3 +1,11 @@
+---
+description: .well-known HTTPS address for SSH known_hosts
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/well-known-ssh-hosts](https://c2sp.org/well-known-ssh-hosts).
+
 # .well-known/ssh-known-hosts
 
 [c2sp.org/well-known-ssh-hosts](https://c2sp.org/well-known-ssh-hosts)

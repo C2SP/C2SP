@@ -1,3 +1,11 @@
+---
+description: Post-quantum algorithms for HTTP Message Signatures
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/httpsig-pq](https://c2sp.org/httpsig-pq).
+
 # Post-Quantum Algorithms for HTTP Message Signatures
 
 [c2sp.org/httpsig-pq](https://c2sp.org/httpsig-pq)

@@ -1,3 +1,11 @@
+---
+description: A profile of Merkle Tree Certificates (MTCs) that uses tiled transparency logs
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/mtc-tlog](https://c2sp.org/mtc-tlog).
+
 # Merkle Tree Certificates With Tiled Transparency Logs
 
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
