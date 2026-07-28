@@ -119,7 +119,7 @@ use a signature type approprate respective function, see
 *duplicate* if they wrap the same underlying public key, even if they
 differ by key name and key id.
 
-[vkey]: https://github.com/C2SP/C2SP/blob/main/signed-note.md#verifier-keys
+[vkey]: https://c2sp.org/signed-note#verifier-keys
 [tlog-checkpoint]: ./tlog-checkpoint.md
 [tlog-cosignature]: ./tlog-cosignature.md
 
@@ -130,7 +130,7 @@ A log is defined by a line
 log <vkey> [<url>]
 ```
 When the policy is used for verifying a proof, all of the
-listed logs are accepted. 
+listed logs are accepted.
 
 The log's vkey includes a "key name". This name MUST correspond to the
 log's origin line, representing the identity of the log.
@@ -241,7 +241,7 @@ data, are to:
   international domain names in URLs (without resorting to punycode),
   and allow free use of non-ASCII comments.
 
-[signed note key name]: https://github.com/C2SP/C2SP/blob/main/signed-note.md#format
+[signed note key name]: https://c2sp.org/signed-note#format
 
 ### Implementation limits
 

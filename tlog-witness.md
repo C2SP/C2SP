@@ -15,6 +15,7 @@ This document describes a synchronous HTTP-based protocol to obtain
 [bastion]: https://c2sp.org/https-bastion
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [note]: https://c2sp.org/signed-note@v1.0.0
+[signed-note]: https://c2sp.org/signed-note@v1.0.0
 [subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03#section-4
 [draft-ietf-plants-merkle-tree-certs-03]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03
 

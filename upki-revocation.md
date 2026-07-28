@@ -51,9 +51,9 @@ length is equivalently a count of bytes and of elements.
 All integer fields are unsigned and encoded in **big-endian** order.
 
 `0x` followed by two hexadecimal characters denotes a byte value in the 0–255
-range. 
+range.
 
-`||` denotes concatenation. 
+`||` denotes concatenation.
 
 `SHA-256(x)` denotes the SHA-256 digest of `x` as specified in [FIPS 180-4][],
 producing a 32-byte value.
@@ -601,7 +601,7 @@ return **not covered** without consulting the index or cached filters.
    a. Binary-search the index log directory for `log_id`. If not found, continue
       with the next SCT.
 
-   b. Read the log's entry section from the index using the `offset` and 
+   b. Read the log's entry section from the index using the `offset` and
       `num_entries` fields of the matching `LogDirEntry`.
 
    c. Scan the index entries in order. Every entry satisfying
