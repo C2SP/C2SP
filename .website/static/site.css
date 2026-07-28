@@ -1,0 +1,289 @@
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/-/static/fonts/BerkeleyMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/-/static/fonts/BerkeleyMono-Oblique.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/-/static/fonts/BerkeleyMono-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/-/static/fonts/BerkeleyMono-SemiBold-Oblique.woff2") format("woff2");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#ffffff, #171719);
+  --fg: light-dark(#24292f, #e6e7ea);
+  --muted: light-dark(#59636e, #9da1a8);
+  --link: light-dark(#0b57d0, #8ab4f8);
+  --border: light-dark(#d1d9e0, #3e4046);
+  --code-bg: light-dark(#edf0f4, #26272c);
+  --notice-fg: light-dark(#9a6700, #d4a72c);
+  --notice-bg: light-dark(#fff8c5, #2a2413);
+  --note: light-dark(#0969da, #4493f8);
+  --tip: light-dark(#1a7f37, #3fb950);
+  --important: light-dark(#8250df, #ab7df8);
+  --warning: light-dark(#9a6700, #d4a72c);
+  --caution: light-dark(#cf222e, #f85149);
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-family: Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2.5rem;
+}
+
+code, pre, kbd, samp, .path {
+  font-family: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+code, kbd, samp {
+  font-size: 0.85em;
+  background: var(--code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+}
+
+pre {
+  font-size: 0.8em;
+  line-height: 1.45;
+  background: var(--code-bg);
+  padding: 0.9em 1.1em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+pre code {
+  font-size: inherit;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.25;
+  margin: 1.75em 0 0.6em;
+  font-weight: 600;
+}
+
+h1 { font-size: 1.7em; margin-top: 1.75em; }
+h2 { font-size: 1.35em; }
+h3 { font-size: 1.15em; }
+h4, h5, h6 { font-size: 1em; }
+
+h1.home {
+  text-align: center;
+  margin: 0;
+  padding-top: 1em;
+  padding-bottom: 2.5em;
+}
+
+.home-github {
+  text-align: center;
+  /* Nestle into the h1's bottom padding. */
+  margin: -2.75em 0 2.5em;
+}
+
+.home-github a {
+  color: var(--muted);
+}
+
+.home-github a:hover {
+  color: var(--fg);
+}
+
+.anchor {
+  opacity: 0;
+  font-weight: 400;
+  transition: opacity 0.1s ease-in;
+}
+
+h1:hover .anchor, h2:hover .anchor, h3:hover .anchor,
+h4:hover .anchor, h5:hover .anchor, h6:hover .anchor,
+.anchor:focus {
+  opacity: 0.6;
+}
+
+p, ul, ol, table, blockquote {
+  margin: 0.8em 0;
+}
+
+ul, ol {
+  padding-left: 1.8em;
+}
+
+li > p {
+  margin: 0.4em 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2em 0;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th, td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35em 0.9em 0.35em 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+}
+
+img {
+  max-width: 100%;
+}
+
+blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  color: var(--muted);
+}
+
+/* GitHub-style alerts. */
+.alert {
+  color: var(--fg);
+}
+.alert::before {
+  display: block;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.alert-note { border-color: var(--note); }
+.alert-note::before { content: "Note"; color: var(--note); }
+.alert-tip { border-color: var(--tip); }
+.alert-tip::before { content: "Tip"; color: var(--tip); }
+.alert-important { border-color: var(--important); }
+.alert-important::before { content: "Important"; color: var(--important); }
+.alert-warning { border-color: var(--warning); }
+.alert-warning::before { content: "Warning"; color: var(--warning); }
+.alert-caution { border-color: var(--caution); }
+.alert-caution::before { content: "Caution"; color: var(--caution); }
+
+/* Site header. */
+header.site {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  /* Match the body's top padding, so the logo is vertically centered
+     between the top of the page and the border. */
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+header.site .logo img {
+  display: block;
+}
+
+header.site .path {
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+header.home {
+  text-align: center;
+  padding-top: 10rem;
+}
+
+/* Spec metadata banner. */
+.banner {
+  padding: 4rem 0 0.9rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.banner h1 {
+  margin: 0 0 0.35em;
+}
+
+.banner .meta {
+  font-size: 0.85em;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
+.banner .meta .current {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.banner .meta a.current:hover {
+  text-decoration: underline;
+}
+
+.banner .meta a.maintainer {
+  margin-right: 0.15em;
+}
+
+.sep {
+  color: var(--muted);
+  padding: 0 0.25em;
+}
+
+.notice {
+  font-size: 0.9em;
+  color: var(--notice-fg);
+  background: var(--notice-bg);
+  border-radius: 6px;
+  padding: 0.6em 1em;
+  margin: 1.2em 0;
+}
+
+/* Home page spec index. */
+table.index td:first-child {
+  white-space: nowrap;
+  font-family: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  padding-top: 0.45em;
+}
+
+footer {
+  margin-top: 3.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85em;
+  color: var(--muted);
+  text-align: center;
+}

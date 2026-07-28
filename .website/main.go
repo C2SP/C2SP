@@ -9,8 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,7 +20,7 @@ import (
 
 func main() {
 	metricsMux := http.NewServeMux()
-	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsMux.Handle("/-/metrics", promhttp.Handler())
 	metricsServer := &http.Server{Addr: ":9091", Handler: metricsMux,
 		ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second}
 	go func() { log.Fatal(metricsServer.ListenAndServe()) }()
@@ -50,54 +48,24 @@ func main() {
 
 func handler(repo *Repo) http.Handler {
 	mux := http.NewServeMux()
+	s := &site{repo: repo}
 
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /-/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	mux.Handle("POST /_fetch", repo.FetchHandler())
+	mux.Handle("POST /-/fetch", repo.FetchHandler())
 
-	mux.Handle("/{$}", http.RedirectHandler("https://github.com/C2SP/C2SP/", http.StatusFound))
+	mux.HandleFunc("/{$}", s.serveIndex)
 	mux.Handle("/CCTV", http.RedirectHandler("https://github.com/C2SP/CCTV/", http.StatusFound))
 
-	mux.HandleFunc("/{name}", func(w http.ResponseWriter, r *http.Request) {
-		name, vers, ok := strings.Cut(r.PathValue("name"), "@")
-		if !ok {
-			vers = "latest"
-		}
-		if !spec.ValidName(name) {
-			http.Error(w, "invalid spec name", http.StatusBadRequest)
-			return
-		}
+	mux.HandleFunc("/{name}", s.serveSpec)
 
-		if vers == "latest" {
-			var err error
-			vers, err = repo.Latest(name)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to get latest version: %v", err), http.StatusInternalServerError)
-				return
-			}
-			if vers == "" {
-				vers = "main"
-			}
-		}
-
-		versions, err := repo.Versions(name)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to get versions: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		if vers == "main" {
-			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/main/"+name+".md", http.StatusFound)
-		} else if slices.Contains(versions, vers) {
-			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/"+name+"/"+vers+"/"+name+".md", http.StatusFound)
-		} else if repo.IsCommit(vers) {
-			http.Redirect(w, r, "https://github.com/C2SP/C2SP/blob/"+vers+"/"+name+".md", http.StatusFound)
-		} else {
-			http.Error(w, "version not found", http.StatusNotFound)
-		}
-	})
+	mux.HandleFunc("GET /-/coc", s.docHandler(".github/CODE_OF_CONDUCT.md", "Code of Conduct"))
+	mux.HandleFunc("GET /-/oids", s.docHandler(".github/OIDs.md", "OIDs"))
+	mux.HandleFunc("GET /-/manual", s.docHandler(".github/MANUAL.md", "C2SP Manual"))
+	mux.HandleFunc("GET /-/logo/{file}", s.serveLogo)
+	mux.Handle("GET /-/static/", staticHandler())
 
 	mux.HandleFunc("/CCTV/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")

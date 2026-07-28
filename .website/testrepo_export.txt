@@ -171,3 +171,119 @@ foo: divergent work
 from :14
 M 100644 :19 foo.md
 
+# A modern foo with front matter and warning boilerplate, plus the .github
+# documents and the logo used by the rendered website.
+blob
+mark :21
+data <<EOT
+---
+description: Test spec foo
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use https://c2sp.org/foo.
+
+# The Foo Specification
+
+[c2sp.org/foo](https://c2sp.org/foo),
+[foo-alias.example](https://foo-alias.example)
+
+Intro text with a [link](https://c2sp.org/BAR).
+
+## The `keyed_hash` Section
+
+Words.
+
+## Dup
+
+## Dup
+
+> [!NOTE]
+> An alert to render.
+
+> A regular blockquote.
+EOT
+
+blob
+mark :22
+data <<EOT
+<p align="center">
+  <picture>
+    <img alt="C2SP" src="/.logo/logo.svg" width="256">
+  </picture>
+</p>
+
+# The Test Project
+
+Test project readme prose.
+EOT
+
+blob
+mark :23
+data <<EOT
+## Stewards
+
+- [@steward](https://github.com/steward)
+
+## Specification Maintainers
+
+### bar
+
+- [@barmaint](https://github.com/barmaint)
+
+### foo
+
+- [@foomaint](https://github.com/foomaint)
+- [@foomaint2](https://github.com/foomaint2)
+EOT
+
+blob
+mark :24
+data <<EOT
+# Test Code of Conduct
+
+Be test-excellent to each other.
+EOT
+
+blob
+mark :25
+data <<EOT
+# Test OIDs
+
+OID registry content.
+EOT
+
+blob
+mark :26
+data <<EOT
+# Test Manual
+
+Manual content here.
+EOT
+
+blob
+mark :27
+data <<EOT
+<svg xmlns="http://www.w3.org/2000/svg"></svg>
+EOT
+
+commit refs/remotes/origin/main
+mark :28
+author Filippo Valsorda <filippo@example.com> 1772455900 +0100
+committer Filippo Valsorda <filippo@example.com> 1772455900 +0100
+data <<EOT
+foo: v2 with front matter, plus website files
+EOT
+from :18
+M 100644 :21 foo.md
+M 100644 :22 .github/README.md
+M 100644 :23 .github/MAINTAINERS.md
+M 100644 :24 .github/CODE_OF_CONDUCT.md
+M 100644 :25 .github/OIDs.md
+M 100644 :26 .github/MANUAL.md
+M 100644 :27 .logo/logo.svg
+
+reset refs/tags/foo/v2.0.0
+from :28
+

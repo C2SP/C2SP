@@ -5,7 +5,7 @@ app = "c2sp"
 
 [metrics]
   port = 9091
-  path = "/metrics"
+  path = "/-/metrics"
 
 [[services]]
   internal_port = 8080
@@ -30,5 +30,5 @@ app = "c2sp"
     restart_limit = 6
     timeout = "2s"
     method = "get"
-    path = "/healthz"
+    path = "/-/healthz"
     protocol = "http"

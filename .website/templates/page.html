@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.TabTitle}}</title>
+{{with .Description}}<meta name="description" content="{{.}}">
+{{end}}<link rel="stylesheet" href="/-/static/site.css">
+<link rel="icon" href="/-/logo/logo.svg" type="image/svg+xml">
+</head>
+<body>
+{{if .Home}}
+<header class="home">
+  <a href="/"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/-/logo/logo-light.svg">
+    <img alt="C2SP" src="/-/logo/logo.svg" width="256" height="103">
+  </picture></a>
+</header>
+{{else}}
+<header class="site">
+  <a class="logo" href="/"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="/-/logo/logo-light.svg">
+    <img alt="C2SP" src="/-/logo/logo.svg" height="36">
+  </picture></a>
+  {{if .Spec}}<span class="path">c2sp.org/{{.Spec.Name}}</span>{{end}}
+</header>
+{{end}}
+
+{{if .Spec}}
+<div class="banner">
+  <h1>{{.Title}}</h1>
+  <div class="meta">
+    <a class="current" href="/{{.Spec.Name}}@{{.Spec.Version}}">{{.Spec.Version}}</a>{{with .Spec.Date}} <span class="date">({{.}})</span>{{end}}
+    {{if .Spec.Maintainers}}<span class="sep">·</span>
+    maintained by
+    {{range .Spec.Maintainers}}<a class="maintainer" href="https://github.com/{{.}}">@{{.}}</a>
+    {{end}}{{end}}
+  </div>
+  <div class="meta">
+    versions:
+    {{range .Spec.Versions}}<a{{if eq . $.Spec.Version}} class="current"{{end}} href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>
+    {{end}}<a{{if eq .Spec.Version "main"}} class="current"{{end}} href="/{{.Spec.Name}}@main">main</a>
+    <span class="sep">·</span> <a href="{{.Spec.IssueURL}}">open an issue</a>
+    <span class="sep">·</span> <a href="{{.Spec.SourceURL}}">source</a>
+  </div>
+</div>
+{{if eq .Spec.Notice "development"}}
+<div class="notice">This is the development version of this specification,
+rendered from the tip of the main branch{{with .Spec.Latest}}; the latest
+release is <a href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>{{end}}.</div>
+{{else if eq .Spec.Notice "snapshot"}}
+<div class="notice">This is a historical snapshot of this specification at
+commit <code>{{.Spec.Version}}</code>{{with .Spec.Latest}}; the latest
+release is <a href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>{{end}}.</div>
+{{end}}
+{{else}}
+<h1{{if .Home}} class="home"{{end}}>{{.Title}}</h1>
+{{if .Home}}
+<p class="home-github"><a href="https://github.com/C2SP/C2SP" aria-label="C2SP on GitHub"><svg viewBox="0 0 16 16" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a></p>
+{{end}}
+{{end}}
+
+<main>
+{{.Body}}
+{{if .Index}}
+<h2 id="specifications">Specifications</h2>
+<table class="index">
+{{range .Index}}<tr><td><a href="/{{.Name}}">c2sp.org/{{.Name}}</a></td><td>{{.Description}}</td></tr>
+{{end}}</table>
+{{end}}
+</main>
+
+<footer>
+Specs <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>,
+code <a href="https://github.com/C2SP/C2SP/blob/main/.github/LICENSE-BSD-1-CLAUSE">BSD-1-Clause</a>
+<span class="sep">·</span> <a href="https://github.com/C2SP/C2SP">GitHub</a>
+<span class="sep">·</span> <a href="/-/coc">Code of Conduct</a>
+<span class="sep">·</span> <a href="/-/manual">Manual</a>
+</footer>
+</body>
+</html>
