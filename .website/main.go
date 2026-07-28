@@ -64,6 +64,7 @@ func handler(repo *Repo) http.Handler {
 	mux.HandleFunc("GET /-/coc", s.docHandler(".github/CODE_OF_CONDUCT.md", "Code of Conduct"))
 	mux.HandleFunc("GET /-/oids", s.docHandler(".github/OIDs.md", "OIDs"))
 	mux.HandleFunc("GET /-/manual", s.docHandler(".github/MANUAL.md", "C2SP Manual"))
+	mux.HandleFunc("GET /-/maintainers", s.docHandler(".github/MAINTAINERS.md", "Maintainers"))
 	mux.HandleFunc("GET /-/logo/{file}", s.serveLogo)
 	mux.Handle("GET /-/static/", staticHandler())
 

@@ -66,6 +66,11 @@ GET https://c2sp.org/-/coc
 code == 200
 body contains Code of Conduct
 
+GET https://c2sp.org/-/maintainers
+code == 200
+body contains FiloSottile
+body contains <h2 id="stewards">
+
 GET https://c2sp.org/-/oids
 code == 200
 body contains Private Enterprise Number

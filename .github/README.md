@@ -45,9 +45,9 @@ All C2SP specifications are licensed under [CC BY
 4.0](https://creativecommons.org/licenses/by/4.0/). All code and data in this
 repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 
-[maintainers]: https://github.com/C2SP/C2SP/blob/main/.github/MAINTAINERS.md
+[maintainers]: https://c2sp.org/-/maintainers
 [semantic versioning]: https://semver.org/
-[small team of stewards]: https://github.com/C2SP/C2SP/blob/main/.github/MAINTAINERS.md#stewards
+[small team of stewards]: https://c2sp.org/-/maintainers#stewards
 [C2SP Code of Conduct]: https://c2sp.org/-/coc
 [new specifications]: https://c2sp.org/-/manual#new-specifications
 [LICENSE-BSD-1-CLAUSE]: https://github.com/C2SP/C2SP/blob/main/.github/LICENSE-BSD-1-CLAUSE
