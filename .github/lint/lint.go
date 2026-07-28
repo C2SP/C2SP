@@ -112,6 +112,11 @@ var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Foo
 
 var htmlAnchorRE = regexp.MustCompile(`<a\s+(?:id|name)="([^"]+)"`)
 
+// githubSpecLinkRE matches GitHub content links to a top-level spec document,
+// which should use https://c2sp.org/<name> links instead.
+var githubSpecLinkRE = regexp.MustCompile(
+	`^https://(github\.com/C2SP/C2SP/(blob|tree|raw)|raw\.githubusercontent\.com/C2SP/C2SP)/[^/]+/[a-zA-Z0-9-]+\.md([#?]|$)`)
+
 // lintBody checks that the document has exactly one top-level heading, and
 // that all intra-document links resolve to a heading anchor.
 func lintBody(body string) []string {
@@ -148,12 +153,25 @@ func lintBody(body string) []string {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
-		l, ok := n.(*ast.Link)
-		if !ok {
+		var dest string
+		switch n := n.(type) {
+		case *ast.Link:
+			dest = string(n.Destination)
+		case *ast.Image:
+			dest = string(n.Destination)
+		case *ast.AutoLink:
+			dest = string(n.URL([]byte(body)))
+		default:
 			return ast.WalkContinue, nil
 		}
-		if frag, ok := strings.CutPrefix(string(l.Destination), "#"); ok && !anchors[frag] {
+		if frag, ok := strings.CutPrefix(dest, "#"); ok && !anchors[frag] {
 			errs = append(errs, fmt.Sprintf("broken anchor link #%s", frag))
+		}
+		// GitHub paths are not stable; specifications should be linked
+		// through c2sp.org. Ancillary files and directories (such as test
+		// vectors) have no c2sp.org equivalent and are allowed.
+		if githubSpecLinkRE.MatchString(dest) {
+			errs = append(errs, fmt.Sprintf("link to GitHub instead of c2sp.org: %s", dest))
 		}
 		return ast.WalkContinue, nil
 	})

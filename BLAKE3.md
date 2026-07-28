@@ -14,7 +14,7 @@ description: A fast cryptographic hash function (and PRF, MAC, KDF, and XOF)
 ## 1. Introduction
 
 This document specifies BLAKE3, a cryptographic hashing primitive
-designed to be fast and highly parallelizable. 
+designed to be fast and highly parallelizable.
 Apart from general-purpose hashing, BLAKE3 can realize the following
 cryptographic functionalities:
 
@@ -95,12 +95,12 @@ provide cryptographically secure hashing functionality.
 
 BLAKE3 must not be used as a password-based hash function or
 password-based key derivation function, functionalities for which
-dedicated algorithms must be used, such as Argon2. 
+dedicated algorithms must be used, such as Argon2.
 
 
 ### 1.3. Tree Hashing Overview
 
-BLAKE3 processes input data according to a binary tree structure: 
+BLAKE3 processes input data according to a binary tree structure:
 
 1. It splits its input into 1024-byte chunks, processing each chunk
 independently of the other chunks, using a compression function

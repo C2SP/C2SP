@@ -49,7 +49,7 @@ COCKTAIL is an independent derivative of ChillDKG intended to be used with any F
 
 ## Abstract
 
-COCKTAIL-DKG is a standalone, three-round distributed key generation protocol for threshold signature schemes like 
+COCKTAIL-DKG is a standalone, three-round distributed key generation protocol for threshold signature schemes like
 FROST.
 
 COCKTAIL-DKG allows a group of $n$ participants to securely generate a shared group public key and individual secret
@@ -73,7 +73,7 @@ facilitator**: it is responsible for receiving messages from all participants, a
 broadcasting them to all participants, but it is **not trusted** with the confidentiality, integrity, or consistency
 of any protocol message. A malicious coordinator can disrupt **availability** (a liveness concern: refusing to
 broadcast, dropping participants, or stalling the protocol; none of which can be prevented by cryptographic
-mechanisms), but it cannot break **confidentiality** (it never sees any participant's secret share or the final 
+mechanisms), but it cannot break **confidentiality** (it never sees any participant's secret share or the final
 group secret key) or **consistency** (any split-view attack, in which different participants receive different
 messages, causes the CertEq phase to fail safely with all-or-nothing semantics). The coordinator does not need any
 private key material. The role of the coordinator can be fulfilled by a simple broadcast channel, a peer-to-peer
@@ -175,9 +175,9 @@ representations of their constituent parts in the specified order.
 **1. $msg_{1|i}$ (Participant -> Coordinator, Round 1)**
 
 This message contains the participant's VSS commitment, their Proof-of-Possession, their ephemeral public key, and
-one encrypted share per participant; including a self-share $c_{i,i}$ addressed to participant $i$ themselves. The 
+one encrypted share per participant; including a self-share $c_{i,i}$ addressed to participant $i$ themselves. The
 self-share is encrypted under the same procedure as the others; including it keeps the message structure uniform, makes
-the recovery procedure symmetric across the $n$ participants, and ensures every entry of the recipient-indexed bundle 
+the recovery procedure symmetric across the $n$ participants, and ensures every entry of the recipient-indexed bundle
 $C^{rec}_i$ is non-empty.
 
 - $C_i$: The VSS commitment, which is a list of **exactly** $t$ elliptic curve points. Implementations **MUST** verify
@@ -189,8 +189,8 @@ $C^{rec}_i$ is non-empty.
 - $E_i$: The ephemeral public key, an elliptic curve point.
   - It does not refer to isogenies. Here, E stands for "ephemeral".
 - $c_{i,j}$: An encrypted ciphertext containing the secret share $s_{i,j}$ and an optional application-defined payload
-  $payload_{i,j}$. The plaintext format is $s_{i,j} \parallel payload_{i,j}$, where $payload_{i,j}$ may be empty. The 
-  ciphertext size depends on the AEAD scheme and the payload size. The minimum ciphertext size is the scalar encoding 
+  $payload_{i,j}$. The plaintext format is $s_{i,j} \parallel payload_{i,j}$, where $payload_{i,j}$ may be empty. The
+  ciphertext size depends on the AEAD scheme and the payload size. The minimum ciphertext size is the scalar encoding
   size plus the AEAD authentication tag size (e.g., 32 + 16 = 48 bytes for most ciphersuites).
   
   Implementations **MUST** configure an upper bound `MAX_CIPHERTEXT_SIZE` on each individual ciphertext and
@@ -243,7 +243,7 @@ msg_{2|i} = (C_1 \parallel PoP_1 \parallel E_1 \parallel \widetilde{c_{1,i}}) \p
 ```
 
 where $\widetilde{c_{j,i}}$ is the length-prefixed framed ciphertext defined under $msg_{1|i}$ above. Concrete encodings
-**MUST** preserve the participant ordering; $C_j$, $PoP_j$, and $E_j$ are fixed-length per the ciphersuite, and each 
+**MUST** preserve the participant ordering; $C_j$, $PoP_j$, and $E_j$ are fixed-length per the ciphersuite, and each
 $\widetilde{c_{j,i}}$ carries its own 64-bit big-endian length prefix, so the full message parses unambiguously.
 
 Implementations **MAY** instead broadcast the complete ordered list of all $msg_{1|j}$ messages to every participant.
@@ -283,17 +283,17 @@ Each participant $i$ is assumed to have:
 - A unique identifier $i$ from $1$ to $n$. Identifiers **MUST** be the contiguous integers $1, 2, \ldots, n$ assigned to
   participants in a canonical, agreed-upon ordering, and all participants **MUST** agree on this ordering before the DKG
   begins; disagreement **MUST** be treated as a setup failure. The ordering is the same ordering used to list
-  $P_1, \ldots, P_n$ throughout the protocol and the transcript. Identifiers **MUST NOT** be $0$ or congruent to $0$ 
+  $P_1, \ldots, P_n$ throughout the protocol and the transcript. Identifiers **MUST NOT** be $0$ or congruent to $0$
   modulo the group order $q$, as this would allow a [zero share attack](https://www.zkdocs.com/docs/zkdocs/protocol-primitives/verifiable-secret-sharing/).
 - The parameters $n$ (total participants) and $t$ (threshold). Both **MUST** satisfy $1 \le t \le n$ and
   $n \le 2^{32} - 1$ (the maximum representable in the transcript's `uint32_le` encoding of $n$ and $t$). $t = 1$
-  corresponds to a $1$ of $n$ deployment where any single participant can sign on behalf of the group; this is a 
+  corresponds to a $1$ of $n$ deployment where any single participant can sign on behalf of the group; this is a
   permitted-but-application-discouraged degenerate case (a single compromised participant can sign unilaterally, which
   defeats the threshold property). $t > n$, $t = 0$, $n = 0$, and any encoding that exceeds the 32-bit bound are invalid
   setups and participants **MUST** abort before Round 1.
 - A long-term static key pair $(d_i, P_i)$.
 - The ordered list of static public keys of all participants, ${P_1, P_2, \ldots, P_n}$ (including $P_i$ at index $i$).
-  All $P_j$ **MUST** be distinct, valid prime-order subgroup points; participants **MUST** abort if any duplicate or 
+  All $P_j$ **MUST** be distinct, valid prime-order subgroup points; participants **MUST** abort if any duplicate or
   otherwise invalid public key is observed during setup.
 - A ciphersuite defining the elliptic curve group, hash function, and AEAD scheme.
 - A `context` string. The `context` is a normative input to several security properties of the protocol, including the
@@ -605,7 +605,7 @@ for accountability in decentralized systems.
 - **Participant's Role and Public Proofs**: Participants **MUST** validate all data they receive.
   - If participant $i$ fails to verify a share $s_{j,i}$ from participant $j$, it **MUST** abort. To prove that $j$
     is cheating, participant $i$ can broadcast a blame message containing $j$'s index and the invalid share $s_{j,i}$.
-    Any third party can then verify this claim by checking the VSS equation 
+    Any third party can then verify this claim by checking the VSS equation
     ($s_{j,i} \cdot B = \sum_{k=0}^{t-1} i^k \cdot C_{j,k}$)
     using the public commitment $C_j$. A failure of this equation is a public and undeniable proof of $j$'s misbehavior.
   - Similarly, if a PoP from participant $j$ is invalid, this is also a publicly verifiable proof of misbehavior,
@@ -671,7 +671,7 @@ For ciphersuites based on SHA-256, where the output is smaller than 56 bytes, we
 invocations. For the key, $H6$ is called with $\mathrm{derive\\_extra}(context, \text{"key"})$ and the full 32-byte output is used.
 For the nonce, $H6$ is called with $\mathrm{derive\\_extra}(context, \text{"nonce"})$ and the first 24 bytes are used. The AEAD of
 choice for the SHA-256 based ciphersuites we specify here is
-[XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md).
+[XAES-256-GCM](https://c2sp.org/XAES-256-GCM).
 
 The $H6$ function is used to derive a symmetric key and nonce from ECDH shared secrets. Unless otherwise specified,
 it is defined as:
@@ -823,10 +823,10 @@ direct byte-string match above applies.
     1. Encode the Ristretto255 element $R$ to its canonical 32-byte Ristretto255 encoding per [RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2).
     2. Decode those 32 bytes per [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1)
        (the canonical decoding procedure). RFC 9496's decoding returns a specific Edwards point on Edwards25519
-       in the prime-order subgroup of order $q$. This Edwards point is the canonical Ed25519 representative of 
+       in the prime-order subgroup of order $q$. This Edwards point is the canonical Ed25519 representative of
        $R$ and is uniquely determined by the Ristretto255 byte encoding from step 1.
-    3. Encode that Edwards point as the standard 32-byte [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html) 
-       Ed25519 compressed point encoding: the affine $y$-coordinate written as a 32-byte little-endian integer 
+    3. Encode that Edwards point as the standard 32-byte [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html)
+       Ed25519 compressed point encoding: the affine $y$-coordinate written as a 32-byte little-endian integer
        with the sign bit of $x$ packed into the high bit of the last byte.
 
     Because step 1 and step 2 are both canonical and deterministic, two independent implementations that
@@ -835,7 +835,7 @@ direct byte-string match above applies.
     [Working with curves with small subgroups](#working-with-curves-with-small-subgroups) is **not** part of
     this output lift and **MUST NOT** be substituted for the RFC 9496-based procedure above; the Edwards
     point returned by [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1) is already
-    in the prime-order subgroup, and using a separate cofactor-clearing step would also fail to pin down a 
+    in the prime-order subgroup, and using a separate cofactor-clearing step would also fail to pin down a
     canonical Edwards representative across implementations.
 
     Secret shares $x_i$ are scalars and **MUST** be emitted in the 32-byte little-endian RFC 8032 Ed25519
@@ -881,7 +881,7 @@ direct byte-string match above applies.
 
     1. Encode the Decaf448 element $D$ to its canonical 56-byte Decaf448 encoding per [RFC 9496 §5.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.2).
     2. Decode those 56 bytes per [RFC 9496 §5.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.1).
-       RFC 9496's decoding procedure returns a specific internal Edwards448 representative `P = (x, y, 1, t)` 
+       RFC 9496's decoding procedure returns a specific internal Edwards448 representative `P = (x, y, 1, t)`
        of the Decaf448 element.
     3. Project that representative into the prime-order Edwards448 subgroup:
        $P' = [4^{-1} \bmod q] \cdot ([4] \cdot P)$.
@@ -911,11 +911,11 @@ direct byte-string match above applies.
   - **Key/Nonce**: Two domain-separated `H6` invocations are used.
     - The key **MUST** be `H6(x, E, P_s, P_r, derive_extra(context, "key"))` (the full 32-byte SHA-256 output).
     - The nonce **MUST** be the first 24 bytes of `H6(x, E, P_s, P_r, derive_extra(context, "nonce"))`.
-  - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
+  - **AEAD**: [XAES-256-GCM](https://c2sp.org/XAES-256-GCM)
 
 - **COCKTAIL(secp256k1, SHA-256)**
   - **Note**: This ciphersuite is **NOT** backwards-compatible with ChillDKG due to our key derivation including both
-    ephemeral-static and static-static ECDH, instead of just ephemeral-static (see 
+    ephemeral-static and static-static ECDH, instead of just ephemeral-static (see
     [Differences from ChillDKG](#differences-from-chilldkg) below).
   - **`H6` Definition**: A BIP-340-style tagged hash with the tag `COCKTAIL-DKG/H6`.
     The message is $x \parallel E \parallel P_s \parallel P_r \parallel extra$.
@@ -927,7 +927,7 @@ direct byte-string match above applies.
   - **Key/Nonce**: Two domain-separated `H6` invocations are used.
     - The key **MUST** be `H6(x, E, P_s, P_r, derive_extra(context, "key"))` (the full 32-byte SHA-256 output).
     - The nonce **MUST** be the first 24 bytes of `H6(x, E, P_s, P_r, derive_extra(context, "nonce"))`.
-  - **AEAD**: [XAES-256-GCM](https://github.com/C2SP/C2SP/blob/main/XAES-256-GCM.md)
+  - **AEAD**: [XAES-256-GCM](https://c2sp.org/XAES-256-GCM)
   - **Bitcoin Taproot Warning**: When using this ciphersuite for Bitcoin Taproot outputs, applications **MUST** be aware
     that a malicious participant could attempt to embed a hidden Taproot script-path commitment in the threshold public
     key. Applications intending to use the group public key $Y$ as a Taproot output **MUST** apply the BIP-341
@@ -955,7 +955,7 @@ direct byte-string match above applies.
 
 ### Schnorr Signature Scheme
 
-COCKTAIL-DKG uses a simple Schnorr signature scheme for both the Proof of Possession (PoP) and the transcript 
+COCKTAIL-DKG uses a simple Schnorr signature scheme for both the Proof of Possession (PoP) and the transcript
 certification in Round 3. The signature scheme is defined as follows:
 
 #### Schnorr Signature Format
@@ -1192,16 +1192,16 @@ COCKTAIL-DKG handles abstractions and underlying raw curves on a per-ciphersuite
 - **COCKTAIL(Ristretto255, SHA-512)**: operates entirely within the Ristretto255 abstraction and emits Ristretto255
   outputs. No lift to raw Ed25519 is performed.
 - **COCKTAIL(Ed25519, SHA-512)**: operates over Ristretto255 internally (for cofactor safety), but emits Ed25519
-  outputs. The cross-abstraction lift at output time is performed by the deterministic three-step output mapping 
+  outputs. The cross-abstraction lift at output time is performed by the deterministic three-step output mapping
   defined in the [COCKTAIL(Ed25519, SHA-512) ciphersuite definition](#ciphersuite-definitions); namely, encode the
   Ristretto255 element per [RFC 9496 §4.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.2),
   decode it per [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1) to obtain the
   canonical Edwards point in the prime-order subgroup, and encode that Edwards point per RFC 8032.
   
-  The generic cofactor-clearing identity discussed in this section is **not** part of that mapping and **MUST NOT** 
+  The generic cofactor-clearing identity discussed in this section is **not** part of that mapping and **MUST NOT**
   be used to emit Ed25519 outputs; the [RFC 9496 §4.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-4.3.1)
   procedure already returns a prime-order-subgroup point, so the cofactor-clearing step is redundant and would also
-  fail to pin down the canonical Edwards representative (different implementations would emit different bytes for 
+  fail to pin down the canonical Edwards representative (different implementations would emit different bytes for
   the same Ristretto255 element).
 
   Secret shares $x_i$ are scalars in $[0, q-1]$ and are emitted in the Ed25519 scalar encoding without
@@ -1209,9 +1209,9 @@ COCKTAIL-DKG handles abstractions and underlying raw curves on a per-ciphersuite
 - **COCKTAIL(Ed448, SHAKE256)**: may operate over Decaf448 internally (for cofactor safety), but emits Ed448
   outputs. The cross-abstraction lift at output time is performed by the deterministic output mapping defined in
   the [COCKTAIL(Ed448, SHAKE256) ciphersuite definition](#ciphersuite-definitions): encode the Decaf448 element
-  per [RFC 9496 §5.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.2), decode it per 
+  per [RFC 9496 §5.3.2](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.2), decode it per
   [RFC 9496 §5.3.1](https://www.rfc-editor.org/rfc/rfc9496.html#section-5.3.1) to obtain a canonical Edwards448
-  representative, project that representative into the prime-order subgroup as 
+  representative, project that representative into the prime-order subgroup as
   $P' = [4^{-1} \bmod q] \cdot ([4] \cdot P)$, and encode $P'$ per [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html).
   Raw-Edwards implementations instead perform explicit subgroup checks on every decoded point and encode
   outputs directly.
@@ -1307,7 +1307,7 @@ the resulting group public key $Y$ is safe to use as a Bitcoin Taproot output (p
 from embedding a hidden Taproot script-path commitment).
 
 COCKTAIL-DKG covers seven ciphersuites (most of which are not cryptocurrency-specific and therefore have no Taproot
-analogue) and therefore **does not specify a built-in Taproot tweak**. 
+analogue) and therefore **does not specify a built-in Taproot tweak**.
 
 Applications using COCKTAIL(secp256k1, SHA-256) as the input to a Bitcoin Taproot deployment **MUST** apply the
 externally-applied mitigation defined in the [Bitcoin Taproot Warning in the COCKTAIL(secp256k1, SHA-256) ciphersuite definition](#ciphersuite-definitions);
@@ -1322,7 +1322,7 @@ verifiable from the certificate alone.
 COCKTAIL-DKG's CertEq transcript binds only the ciphersuite identifier, context, parameters, static public keys, VSS
 commitments, PoPs, ephemeral public keys, and application-specific extension; but **not** the ciphertexts. This is a
 deliberate trade-off in favour of a smaller, simpler transcript and a smaller success certificate. The cost is that
-decryption failures are not publicly verifiable from the certificate alone, because the AEAD verification key 
+decryption failures are not publicly verifiable from the certificate alone, because the AEAD verification key
 $k_{j,i}$ is derived from recipient $i$'s static private key $d_i$ and is therefore not public.
 
 Decryption-failure attribution has two distinct sub-properties:
@@ -1335,17 +1335,17 @@ Decryption-failure attribution has two distinct sub-properties:
 
 The options below split along this axis. Applications that need ciphertext binding only (i.e., that are willing to trust
 the recipient's self-attested decryption outcome once the ciphertext is binding) **MUST** select option 1 or option 2.
-Applications that additionally need independent public verification of the decryption outcome itself **MUST** combine 
-option 3 with option 1 or option 2. Option 3 is not, by itself, sufficient because it proves the decryption outcome for 
-*some* claimed ciphertext but does not pin down *which* ciphertext sender $j$ actually addressed to recipient $i$. 
+Applications that additionally need independent public verification of the decryption outcome itself **MUST** combine
+option 3 with option 1 or option 2. Option 3 is not, by itself, sufficient because it proves the decryption outcome for
+*some* claimed ciphertext but does not pin down *which* ciphertext sender $j$ actually addressed to recipient $i$.
 
-Note that "fully-non-interactive certificate-only" adjudication (i.e., adjudication using only the signed success 
+Note that "fully-non-interactive certificate-only" adjudication (i.e., adjudication using only the signed success
 certificate, with no additional out-of-band material) is only achievable via the combination option 1 + option 3;
 option 2 + option 3 also yields third-party-verifiable blame, but requires an out-of-band republished $msg_{1|j}$
 and its application-layer authentication material in addition to the certificate.
 
-The three options also differ in *when* they apply. Option 1 binds ciphertexts via the success certificate, so it is 
-only available **after** a successful DKG run (e.g., for recovery-time disputes when an archived ciphertext fails 
+The three options also differ in *when* they apply. Option 1 binds ciphertexts via the success certificate, so it is
+only available **after** a successful DKG run (e.g., for recovery-time disputes when an archived ciphertext fails
 decryption). Options 2 and 3 are usable both during an active session (a Round 2 abort where no success certificate
 exists yet) and after a successful run; for active-session disputes, option 1 is not available and applications **MUST**
 rely on option 2, option 3, or some application-level transport authentication described separately.
@@ -1354,7 +1354,7 @@ rely on option 2, option 3, or some application-level transport authentication d
    only).* Place a binding commitment to all $msg_{1|j}$ ciphertexts (e.g., a hash of the participant-ordered
    concatenation of the framed ciphertexts) in the application-specific extension bytes that feed the transcript.
    The success certificate then binds the ciphertexts via the signed transcript; an after-the-fact dispute can reference
-   the certificate to fix the ciphertext under dispute. This requires the DKG to have completed successfully 
+   the certificate to fix the ciphertext under dispute. This requires the DKG to have completed successfully
    (a certificate to exist) and does **not** by itself let a third party verify the decryption outcome; for that,
    combine with option 3 or accept the recipient's self-attestation.
 2. **Preserve the original Round 1 messages out-of-band** *(ciphertext binding only; requires an application-level
@@ -1453,7 +1453,7 @@ rely on option 2, option 3, or some application-level transport authentication d
 In ChillDKG, recovery is possible from the participant's static secret key plus the common recovery data
 (transcript and certificate) alone.
 
-In COCKTAIL-DKG, recovery additionally requires a per-participant **encrypted share bundle** $C^{rec}_i$ 
+In COCKTAIL-DKG, recovery additionally requires a per-participant **encrypted share bundle** $C^{rec}_i$
 (the ordered, length-framed Round 1 ciphertexts addressed to the recovering participant). See
 [Backup Requirements](#backup-requirements) for the full backup set.
 
@@ -2204,7 +2204,7 @@ The full, byte-for-byte authoritative test vector data is published as JSON file
 | COCKTAIL(Pallas, BLAKE2b-512)   | `cocktail-dkg-pallas-blake2b512.json`   |
 
 Each file contains the 2-of-3, 3-of-5, and 7-of-14 threshold configurations plus the 2-of-3 payload-extension variant;
-each entry records `session_tag`, derived `context`, static keys, Round 1 outputs (ephemeral public keys, VSS 
+each entry records `session_tag`, derived `context`, static keys, Round 1 outputs (ephemeral public keys, VSS
 commitments, PoPs, encrypted shares), Round 2 outputs (secret share, verification share), Round 3 transcript hash, the
 final group public key, and (for the 2-of-3 configuration) recovery vectors with the ordered AEAD ciphertexts addressed
 to participant 1. Implementations **MUST** reproduce these JSON files byte-for-byte from the deterministic derivation

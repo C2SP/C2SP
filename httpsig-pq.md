@@ -35,10 +35,10 @@ This document normatively references the following fixed publications:
 - [RFC 9421, HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html), especially Sections 2.5, 3.1,
   3.2, 4.2, and 6.2.
 - [FIPS 204, Module-Lattice-Based Digital Signature Standard, published August 13, 2024](https://doi.org/10.6028/NIST.FIPS.204),
-  especially Section 3.6, Table 2, Algorithms 1, 2, 3, 6, and 13, and the key and signature encodings in Section 7.2 
+  especially Section 3.6, Table 2, Algorithms 1, 2, 3, 6, and 13, and the key and signature encodings in Section 7.2
   (Algorithms 22 through 27).
 
-In this document, “FIPS 204” means that specific August 13, 2024 publication. A later revision, successor, or 
+In this document, “FIPS 204” means that specific August 13, 2024 publication. A later revision, successor, or
 technically changed erratum is not automatically incorporated into these algorithm identifiers. Any incompatible change
 to an identifier defined here requires a new HTTP Signature Algorithms registry identifier.
 
@@ -62,12 +62,12 @@ The following values are defined for the RFC 9421 `alg` signature parameter:
 | `ml-dsa-65` | ML-DSA-65              |        32 octets |     1952 octets |   3309 octets |
 | `ml-dsa-87` | ML-DSA-87              |        32 octets |     2592 octets |   4627 octets |
 
-The `Ks`, `Kv`, and `S` columns describe the values at the `HTTP_SIGN` and `HTTP_VERIFY` algorithm boundary. In 
+The `Ks`, `Kv`, and `S` columns describe the values at the `HTTP_SIGN` and `HTTP_VERIFY` algorithm boundary. In
 particular, the `Ks` size is the seed representation defined below, not the size of the expanded `skEncode` value
 reported as a private key by FIPS 204 Table 2.
 
 Each `alg` value is an indivisible identifier for exactly the parameter set and operations defined below.
-Implementations MUST compare the complete identifier and MUST NOT construct or infer other algorithm identifiers by 
+Implementations MUST compare the complete identifier and MUST NOT construct or infer other algorithm identifiers by
 parsing its components. When carried in the RFC 9421 `alg` signature parameter, the identifier is a Structured Fields
 String value; for example, `ml-dsa-44` is serialized as `;alg="ml-dsa-44"`. Identifiers are case-sensitive, and no other
 spelling identifies an algorithm defined by this document.
