@@ -1,6 +1,10 @@
 GET https://c2sp.org/
-redirect == https://github.com/C2SP/C2SP/
+code == 200
 header strict-transport-security == max-age=63072000; includeSubDomains; preload
+header content-type == text/html; charset=utf-8
+body contains Community Cryptography
+body contains <h2 id="specifications">
+body contains href="/age">c2sp.org/age</a>
 
 GET https://c2sp.org/CCTV/age?go-get=1
 body contains c2sp.org/CCTV git https://github.com/C2SP/CCTV
@@ -12,28 +16,40 @@ GET https://c2sp.org/foo/bar?go-get=1
 body contains c2sp.org git https://github.com/C2SP/C2SP
 
 GET https://c2sp.org/age
-redirect ~ https://github.com/C2SP/C2SP/blob/age/v1\.[^/]+/age\.md
+code == 200
+body contains age-encryption.org
+body contains FiloSottile
+body contains https://github.com/C2SP/C2SP/issues/new?title=age%3A%20
+body !contains class="notice"
 
 GET https://c2sp.org/age@latest
-redirect ~ https://github.com/C2SP/C2SP/blob/age/v1\.[^/]+/age\.md
+code == 200
+body contains age-encryption.org
 
 GET https://c2sp.org/age@main
-redirect == https://github.com/C2SP/C2SP/blob/main/age.md
+code == 200
+body contains development version
+body contains id="the-tagged-recipient-types"
 
 GET https://c2sp.org/age@037e546d164a89fd7577df2c18df80bb54bd246e
-redirect == https://github.com/C2SP/C2SP/blob/037e546d164a89fd7577df2c18df80bb54bd246e/age.md
+code == 200
+body contains historical snapshot
+body contains age-encryption.org
 
 GET https://c2sp.org/age@037e546d1
-redirect == https://github.com/C2SP/C2SP/blob/037e546d1/age.md
+code == 200
+body contains historical snapshot
 
 GET https://c2sp.org/vrf-r255
-redirect == https://github.com/C2SP/C2SP/blob/main/vrf-r255.md
+code == 200
+body contains development version
 
 GET https://c2sp.org/tlog-witness@v0.1.0
-redirect == https://github.com/C2SP/C2SP/blob/tlog-witness/v0.1.0/tlog-witness.md
+code == 200
+body contains <a class="current" href="/tlog-witness@v0.1.0">v0.1.0</a>
 
 GET https://c2sp.org/static-ct-api@v1.0.0-rc.1
-redirect == https://github.com/C2SP/C2SP/blob/static-ct-api/v1.0.0-rc.1/static-ct-api.md
+code == 200
 
 GET https://c2sp.org/CCTV
 redirect == https://github.com/C2SP/CCTV/
@@ -47,4 +63,16 @@ redirect == https://c2sp.org/CCTV/ed25519
 GET https://c2sp.org/sunlight
 redirect == https://c2sp.org/static-ct-api
 
-GET https://c2sp.org/healthz
+GET https://c2sp.org/-/coc
+code == 200
+body contains Code of Conduct
+
+GET https://c2sp.org/-/oids
+code == 200
+body contains Private Enterprise Number
+
+GET https://c2sp.org/-/logo/logo.svg
+code == 200
+header content-type == image/svg+xml
+
+GET https://c2sp.org/-/healthz

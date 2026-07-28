@@ -11,8 +11,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/mod/semver"
@@ -27,6 +29,7 @@ var commitHashRE = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
 type Repo struct {
 	dir    string
 	mu     sync.RWMutex
+	gen    atomic.Uint64
 	fetchC chan struct{} // signal to trigger an immediate fetch
 }
 
@@ -40,10 +43,17 @@ func InitRepo(ctx context.Context, tmpDir string) (*Repo, error) {
 		if _, err := r.git("init", "--bare", dir); err != nil {
 			return nil, err
 		}
-	}
-	r.dir = dir
-	if _, err := r.git("remote", "add", "origin", repoURL); err != nil {
-		return nil, err
+		r.dir = dir
+		if _, err := r.git("remote", "add", "origin", repoURL); err != nil {
+			return nil, err
+		}
+	} else {
+		// The repository survived from a previous run; make sure the remote
+		// points at the right URL.
+		r.dir = dir
+		if _, err := r.git("remote", "set-url", "origin", repoURL); err != nil {
+			return nil, err
+		}
 	}
 	if err := r.fetch(); err != nil {
 		return nil, err
@@ -124,9 +134,21 @@ func (r *Repo) fetch() error {
 		return err
 	}
 
-	// Fetch tags.
-	_, err := r.git("fetch", "--depth=1", "origin", "+refs/tags/*:refs/tags/*")
-	return err
+	// Fetch tags. Note that this must not use --depth, which would mark the
+	// repository as shallow and break the reachability check in IsCommit.
+	// Tagged commits are reachable from main, so this fetches no extra history.
+	if _, err := r.git("fetch", "origin", "+refs/tags/*:refs/tags/*"); err != nil {
+		return err
+	}
+
+	r.gen.Add(1)
+	return nil
+}
+
+// Generation returns a counter that increments on every successful fetch. It
+// can be used to invalidate caches of repository-derived data.
+func (r *Repo) Generation() uint64 {
+	return r.gen.Load()
 }
 
 // Fetch signals the fetch loop to run immediately. It does not block.
@@ -140,7 +162,7 @@ func (r *Repo) Fetch() {
 	}
 }
 
-// FetchHandler returns an HTTP handler for POST /_fetch that triggers a fetch
+// FetchHandler returns an HTTP handler for POST /-/fetch that triggers a fetch
 // on all Fly.io instances. It requires a Bearer token matching the FETCH_TOKEN
 // environment variable.
 func (r *Repo) FetchHandler() http.Handler {
@@ -157,7 +179,7 @@ func (r *Repo) FetchHandler() http.Handler {
 
 		// If this is an internal fan-out request, just fetch locally.
 		if req.URL.Query().Get("fanout") == "1" {
-			log.Printf("/_fetch: received fan-out request, fetching locally")
+			log.Printf("/-/fetch: received fan-out request, fetching locally")
 			r.Fetch()
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -166,22 +188,22 @@ func (r *Repo) FetchHandler() http.Handler {
 		// Fan out to all instances via Fly internal DNS, including this one.
 		addrs, err := net.LookupHost("c2sp.internal")
 		if err != nil {
-			log.Printf("/_fetch: DNS lookup failed: %v, fetching locally", err)
+			log.Printf("/-/fetch: DNS lookup failed: %v, fetching locally", err)
 			r.Fetch()
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		for _, addr := range addrs {
 			go func() {
-				fanReq, err := http.NewRequest("POST", "http://["+addr+"]:8080/_fetch?fanout=1", nil)
+				fanReq, err := http.NewRequest("POST", "http://["+addr+"]:8080/-/fetch?fanout=1", nil)
 				if err != nil {
-					log.Printf("/_fetch: fan-out request: %v", err)
+					log.Printf("/-/fetch: fan-out request: %v", err)
 					return
 				}
 				fanReq.Header.Set("Authorization", "Bearer "+token)
 				resp, err := http.DefaultClient.Do(fanReq)
 				if err != nil {
-					log.Printf("/_fetch: fan-out to %s: %v", addr, err)
+					log.Printf("/-/fetch: fan-out to %s: %v", addr, err)
 					return
 				}
 				resp.Body.Close()
@@ -205,6 +227,46 @@ func (r *Repo) FileAt(path, tag string) ([]byte, error) {
 		ref = tag
 	}
 	return r.git("show", "--end-of-options", ref+":"+path)
+}
+
+// CommitTime returns the committer time of the given ref.
+func (r *Repo) CommitTime(ref string) (time.Time, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if strings.Contains(ref, ":") {
+		return time.Time{}, fmt.Errorf("invalid ref %q", ref)
+	}
+	out, err := r.git("log", "-1", "--format=%cI", "--end-of-options", ref, "--")
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Parse(time.RFC3339, strings.TrimSpace(string(out)))
+}
+
+// Specs returns the names of the top-level .md files at origin/main, sorted
+// case-insensitively.
+func (r *Repo) Specs() ([]string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	out, err := r.git("ls-tree", "--name-only", "origin/main")
+	if err != nil {
+		return nil, err
+	}
+	var specs []string
+	for line := range strings.Lines(string(out)) {
+		line = strings.TrimSuffix(line, "\n")
+		name, ok := strings.CutSuffix(line, ".md")
+		if !ok {
+			continue
+		}
+		specs = append(specs, name)
+	}
+	slices.SortFunc(specs, func(a, b string) int {
+		return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+	})
+	return specs, nil
 }
 
 // Versions returns the sorted list of semver versions for the given spec name,
@@ -232,14 +294,11 @@ func (r *Repo) Versions(name string) ([]string, error) {
 	return versions, nil
 }
 
-// Latest returns the latest version for the given spec name, following Go's
-// @latest logic: it returns the highest non-prerelease version, or the highest
-// prerelease version if no releases exist. It returns "" if there are no versions.
-func (r *Repo) Latest(name string) (string, error) {
-	versions, err := r.Versions(name)
-	if err != nil {
-		return "", err
-	}
+// latestVersion returns the latest of a sorted list of versions, following
+// Go's @latest logic: the highest non-prerelease version, or the highest
+// prerelease version if no releases exist. It returns "" if there are no
+// versions.
+func latestVersion(versions []string) string {
 	var latestRelease, latestPrerelease string
 	for _, v := range versions {
 		if semver.Prerelease(v) != "" {
@@ -249,9 +308,9 @@ func (r *Repo) Latest(name string) (string, error) {
 		}
 	}
 	if latestRelease != "" {
-		return latestRelease, nil
+		return latestRelease
 	}
-	return latestPrerelease, nil
+	return latestPrerelease
 }
 
 // IsCommit returns whether the given ref is a valid git commit hash reachable

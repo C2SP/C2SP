@@ -4,37 +4,102 @@
 # Any :NNN marks (like ":1") are replaced with the corresponding SHA-1 hash,
 # while :NNN! is replaced with the SHA-1 hash truncated to 16 characters.
 
-# foo: has releases, @latest picks highest non-prerelease (v1.0.0)
+# foo: has releases, @latest picks highest non-prerelease (v2.0.0)
 
 GET https://c2sp.org/foo
-redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+code == 200
+header content-type == text/html; charset=utf-8
+body contains <h1>The Foo Specification</h1>
+body contains c2sp.org/foo
+body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
+body contains href="/foo@v1.0.0"
+body contains href="/foo@main"
+body contains https://github.com/foomaint
+body contains @foomaint2
+body contains https://github.com/C2SP/C2SP/issues/new?title=foo%3A%20
+body contains https://github.com/C2SP/C2SP/blob/foo/v2.0.0/foo.md
+body contains <h2 id="the-keyed_hash-section">
+body contains <a class="anchor" href="#the-keyed_hash-section"
+body contains <h2 id="dup">
+body contains <h2 id="dup-1">
+body contains <blockquote class="alert alert-note">
+body contains <blockquote>
+body !contains foo-alias.example
+body !contains [!WARNING]
+body !contains [!NOTE]
+body !contains editor&#39;s copy
+body !contains description: Test spec foo
+body !contains class="notice"
 
 GET https://c2sp.org/foo@latest
-redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+code == 200
+body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
 
-# foo: explicit versions
+# Accept: text/markdown serves the source, without front matter and the
+# warning boilerplate
 
-GET https://c2sp.org/foo@v0.0.1
-redirect == https://github.com/C2SP/C2SP/blob/foo/v0.0.1/foo.md
+GET https://c2sp.org/foo
+reqheader Accept text/markdown
+code == 200
+header content-type == text/markdown; charset=utf-8
+header vary == Accept
+body contains # The Foo Specification
+body !contains description: Test spec foo
+body !contains [!WARNING]
+body !contains <h1>
 
 GET https://c2sp.org/foo@v1.0.0
-redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.0/foo.md
+reqheader Accept text/markdown
+code == 200
+body contains foo content 2
+
+GET https://c2sp.org/-/coc
+reqheader Accept text/markdown
+code == 200
+header content-type == text/markdown; charset=utf-8
+body contains # Test Code of Conduct
+
+# foo: explicit versions, including legacy ones without front matter
+
+GET https://c2sp.org/foo@v2.0.0
+code == 200
+body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
+
+GET https://c2sp.org/foo@v0.0.1
+code == 200
+body contains foo content 1
+body contains href="/foo@v2.0.0"
+
+GET https://c2sp.org/foo@v1.0.0
+code == 200
+body contains foo content 2
 
 GET https://c2sp.org/foo@v1.0.1-pre.1
-redirect == https://github.com/C2SP/C2SP/blob/foo/v1.0.1-pre.1/foo.md
+code == 200
+body contains foo content 3
 
 # foo: @<commit-hash> reachable from origin/main
 
 GET https://c2sp.org/foo@:18
-redirect == https://github.com/C2SP/C2SP/blob/:18/foo.md
+code == 200
+body contains historical snapshot
+body contains <code>:18</code>
+body contains href="/foo@v2.0.0">v2.0.0</a>
+body contains foo content 4
+body contains https://github.com/C2SP/C2SP/blob/:18/foo.md
 
 GET https://c2sp.org/foo@:18!
-redirect == https://github.com/C2SP/C2SP/blob/:18!/foo.md
+code == 200
+body contains foo content 4
 
 # foo: @main
 
 GET https://c2sp.org/foo@main
-redirect == https://github.com/C2SP/C2SP/blob/main/foo.md
+code == 200
+body contains development version
+body contains href="/foo@v2.0.0">v2.0.0</a>
+body contains <h1>The Foo Specification</h1>
+body contains https://github.com/C2SP/C2SP/blob/main/foo.md
 
 # foo: non-existent version
 
@@ -52,35 +117,41 @@ code == 404
 GET https://c2sp.org/foo@notahex
 code == 404
 
-# BAR: only has prerelease, @latest picks it
+# BAR: only has prerelease, @latest picks it; maintainers matched
+# case-insensitively from the "### bar" section
 
 GET https://c2sp.org/BAR
-redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
-
-GET https://c2sp.org/BAR@latest
-redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
-
-GET https://c2sp.org/BAR@v1.0.1-pre.1
-redirect == https://github.com/C2SP/C2SP/blob/BAR/v1.0.1-pre.1/BAR.md
+code == 200
+body contains BAR content 2
+body contains <a class="current" href="/BAR@v1.0.1-pre.1">v1.0.1-pre.1</a>
+body contains @barmaint
 
 GET https://c2sp.org/BAR@main
-redirect == https://github.com/C2SP/C2SP/blob/main/BAR.md
+code == 200
+body contains BAR content 3
+body contains development version
 
 # a-b-c: no tags at all, @latest falls back to main
 
 GET https://c2sp.org/a-b-c
-redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
-
-GET https://c2sp.org/a-b-c@latest
-redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
+code == 200
+body contains a-b-c content 1
+body contains development version
 
 GET https://c2sp.org/a-b-c@main
-redirect == https://github.com/C2SP/C2SP/blob/main/a-b-c.md
+code == 200
+body contains a-b-c content 1
 
 # a-b-c: non-existent version
 
 GET https://c2sp.org/a-b-c@v1.0.0
 code == 404
+
+# non-existent spec
+
+GET https://c2sp.org/nonexistent
+code == 404
+body contains spec not found
 
 # invalid spec names
 
@@ -103,3 +174,54 @@ code == 400
 
 GET https://c2sp.org/foo--bar
 code == 400
+
+# home page: README prose plus the generated spec index
+
+GET https://c2sp.org/
+code == 200
+body contains <h1 class="home">The Test Project</h1>
+body contains Test project readme prose.
+body contains <h2 id="specifications">
+body contains href="/foo">c2sp.org/foo</a>
+body contains Test spec foo
+body contains href="/a-b-c">c2sp.org/a-b-c</a>
+body contains class="home-github"
+body !contains /.logo/
+
+# project documents
+
+GET https://c2sp.org/-/coc
+code == 200
+body contains Test Code of Conduct
+body contains Be test-excellent to each other.
+
+GET https://c2sp.org/-/oids
+code == 200
+body contains OID registry content.
+
+GET https://c2sp.org/-/manual
+code == 200
+body contains Manual content here.
+
+# logo and static assets
+
+GET https://c2sp.org/-/logo/logo.svg
+code == 200
+header content-type == image/svg+xml
+body contains <svg
+
+GET https://c2sp.org/-/logo/nonexistent.svg
+code == 404
+
+GET https://c2sp.org/-/logo/logo.txt
+code == 404
+
+GET https://c2sp.org/-/static/site.css
+code == 200
+body contains Berkeley Mono
+
+GET https://c2sp.org/-/static/fonts/BerkeleyMono-Regular.woff2
+code == 200
+
+GET https://c2sp.org/-/healthz
+code == 200
