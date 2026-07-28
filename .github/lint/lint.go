@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"c2sp.org/C2SP/website/spec"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/text"
 )
 
 func main() {
@@ -74,6 +79,8 @@ func lintSpec(path string) []string {
 		errs = append(errs, "missing front matter description")
 	case len(desc) > 100:
 		errs = append(errs, "front matter description longer than 100 characters")
+	case strings.HasSuffix(desc, "."):
+		errs = append(errs, "front matter description should not end with a period")
 	}
 
 	warning := []string{
@@ -92,5 +99,63 @@ func lintSpec(path string) []string {
 	if title := line(end + 1 + len(warning)); !strings.HasPrefix(title, "# ") {
 		errs = append(errs, "missing title heading after the warning box")
 	}
+
+	// The body starts after the front matter, which would otherwise parse as
+	// Markdown (the closing fence turns the description into a setext heading).
+	body := strings.Join(lines[end+1:], "\n")
+	return append(errs, lintBody(body)...)
+}
+
+// markdown must match the parser configuration of the website, which
+// determines the anchors of the rendered pages.
+var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote))
+
+var htmlAnchorRE = regexp.MustCompile(`<a\s+(?:id|name)="([^"]+)"`)
+
+// lintBody checks that the document has exactly one top-level heading, and
+// that all intra-document links resolve to a heading anchor.
+func lintBody(body string) []string {
+	var errs []string
+	doc := markdown.Parser().Parse(text.NewReader([]byte(body)))
+
+	anchors := make(map[string]bool)
+	var s spec.Slugger
+	h1s := 0
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		h, ok := n.(*ast.Heading)
+		if !ok {
+			return ast.WalkContinue, nil
+		}
+		anchors[s.Slug(spec.Text(h, []byte(body)))] = true
+		if h.Level == 1 {
+			h1s++
+		}
+		return ast.WalkSkipChildren, nil
+	})
+	if h1s != 1 {
+		errs = append(errs, fmt.Sprintf("%d top-level headings, expected exactly one", h1s))
+	}
+
+	// Raw HTML anchors like <a id="foo"> are link targets, too.
+	for _, m := range htmlAnchorRE.FindAllStringSubmatch(body, -1) {
+		anchors[m[1]] = true
+	}
+
+	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		l, ok := n.(*ast.Link)
+		if !ok {
+			return ast.WalkContinue, nil
+		}
+		if frag, ok := strings.CutPrefix(string(l.Destination), "#"); ok && !anchors[frag] {
+			errs = append(errs, fmt.Sprintf("broken anchor link #%s", frag))
+		}
+		return ast.WalkContinue, nil
+	})
 	return errs
 }

@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	c2sp.org/C2SP/website v0.0.0
 	github.com/google/go-github/v73 v73.0.0
+	github.com/yuin/goldmark v1.8.5
 )
 
 require (
