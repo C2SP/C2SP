@@ -204,6 +204,12 @@ GET https://c2sp.org/-/oids
 code == 200
 body contains OID registry content.
 
+GET https://c2sp.org/-/maintainers
+code == 200
+body contains <title>Maintainers | C2SP</title>
+body contains @foomaint
+body contains <h2 id="stewards">
+
 GET https://c2sp.org/-/manual
 code == 200
 body contains Manual content here.
