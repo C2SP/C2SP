@@ -7,8 +7,8 @@ import (
 	"log"
 	"regexp"
 	"strings"
-	"unicode"
 
+	"c2sp.org/C2SP/website/spec"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -87,7 +87,7 @@ func renderMarkdown(src []byte, specName string, stripLogo bool) (*renderedDoc, 
 	var title string
 	h1 := firstH1(doc)
 	if h1 != nil {
-		title = textOf(h1, body)
+		title = spec.Text(h1, body)
 	}
 
 	addHeadingIDs(doc, body)
@@ -128,7 +128,7 @@ func stripBoilerplate(doc ast.Node, source []byte, specName string) {
 		}
 		if bq, ok := c.(*ast.Blockquote); ok {
 			if alertKind(bq, source) == "warning" &&
-				strings.Contains(textOf(bq, source), "c2sp.org/"+specName) {
+				strings.Contains(spec.Text(bq, source), "c2sp.org/"+specName) {
 				doc.RemoveChild(doc, bq)
 				return
 			}
@@ -209,7 +209,7 @@ func stripSpecURLs(doc ast.Node, source []byte, specName string) {
 	if !ok {
 		return
 	}
-	text := textOf(p, source)
+	text := spec.Text(p, source)
 	if len(text) < 100 && strings.Contains(text, "c2sp.org/"+specName) {
 		doc.RemoveChild(doc, p)
 	}
@@ -292,7 +292,7 @@ func transformAlerts(doc ast.Node, source []byte) {
 // links to GitHub-rendered sections keep working, and appends a clickable
 // anchor link to each heading.
 func addHeadingIDs(doc ast.Node, source []byte) {
-	var s slugger
+	var s spec.Slugger
 	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -301,7 +301,7 @@ func addHeadingIDs(doc ast.Node, source []byte) {
 		if !ok {
 			return ast.WalkContinue, nil
 		}
-		id := s.slug(textOf(h, source))
+		id := s.Slug(spec.Text(h, source))
 		h.SetAttribute([]byte("id"), []byte(id))
 		anchor := ast.NewString(fmt.Appendf(nil,
 			`&nbsp;<a class="anchor" href="#%s" aria-label="Link to this section">&sect;</a>`, id))
@@ -309,60 +309,6 @@ func addHeadingIDs(doc ast.Node, source []byte) {
 		h.AppendChild(h, anchor)
 		return ast.WalkSkipChildren, nil
 	})
-}
-
-// slugger generates GitHub-compatible heading anchors: lowercase, keeping
-// only word characters (letters, marks, numbers, and connectors), hyphens,
-// and spaces, with each space replaced by a hyphen. Duplicate slugs get a
-// numeric suffix.
-type slugger struct {
-	seen map[string]int
-}
-
-func (s *slugger) slug(text string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(text) {
-		switch {
-		case unicode.In(r, unicode.L, unicode.M, unicode.N, unicode.Pc) || r == '-':
-			b.WriteRune(r)
-		case r == ' ':
-			b.WriteRune('-')
-		}
-	}
-	slug := b.String()
-	if s.seen == nil {
-		s.seen = make(map[string]int)
-	}
-	n := s.seen[slug]
-	s.seen[slug]++
-	if n > 0 {
-		return fmt.Sprintf("%s-%d", slug, n)
-	}
-	return slug
-}
-
-// textOf extracts the plain text content of a node, approximating what
-// GitHub feeds its heading slugger: text, code spans, and autolinks, with
-// raw HTML dropped.
-func textOf(n ast.Node, source []byte) string {
-	var b strings.Builder
-	var walk func(n ast.Node)
-	walk = func(n ast.Node) {
-		switch n := n.(type) {
-		case *ast.Text:
-			b.Write(n.Segment.Value(source))
-		case *ast.String:
-			b.Write(n.Value)
-		case *ast.AutoLink:
-			b.Write(n.Label(source))
-		default:
-			for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-				walk(c)
-			}
-		}
-	}
-	walk(n)
-	return b.String()
 }
 
 // parseMaintainers extracts the maintainers of a spec from MAINTAINERS.md,
