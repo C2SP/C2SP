@@ -53,15 +53,15 @@ H(receipt)
 The first byte MUST be the byte `0x01`. Future versions of this leaf format
 MUST increment this byte value.
 
+The next 32 bytes MUST be the digest of a root of trust. The root of trust
+SHOULD be a public key, for example the signer's public key or a public key
+from a root certificate. The encoding of the public key is ecosystem-dependent.
+
 The next 32 bytes MUST be a digest of the `message` submitted to the log.
 `message` MUST be the digest of the original data. `message` is hashed again to
 prevent log poisoning where entries contain unwanted bytes, e.g. meaningful
 content is split into byte arrays with each chunk uploaded as a message. Logs
 MUST reject any messages that are not 32 bytes.
-
-The next 32 bytes MUST be the digest of a root of trust. The root of trust
-SHOULD be a public key, for example the signer's public key or a public key
-from a root certificate. The encoding of the public key is ecosystem-dependent.
 
 The following bytes are a key-value mapping of ecosystem-specific strings. A
 32-byte digest of the digest of a key name MUST be followed by the 32-byte
@@ -76,7 +76,7 @@ key.
 The last 32 bytes MUST be the digest of a _receipt_. The receipt provides
 non-repudiation for the log operator, proving the log received a valid
 _credential_ to upload to the log. The receipt MUST be stored outside of the
-entry bundle, due to its size. The log MAY NOT generate or the receipt, and in
+entry bundle, due to its size. The log MAY NOT generate or store the receipt, and in
 this case, the 32 bytes MUST only be NUL characters `0x00`. The log MAY set a
 time limit on how long a receipt is retained.
 
