@@ -279,6 +279,24 @@ table.index td:first-child {
   padding-top: 0.45em;
 }
 
+/* On narrow screens, stack each index entry as name over description. */
+@media (max-width: 40em) {
+  table.index, table.index tbody, table.index tr, table.index td {
+    display: block;
+  }
+  table.index tr {
+    border-bottom: 1px solid var(--border);
+    padding: 0.55em 0;
+  }
+  table.index td {
+    border-bottom: none;
+    padding: 0;
+  }
+  table.index td:first-child {
+    padding-top: 0;
+  }
+}
+
 footer {
   margin-top: 3.5rem;
   padding-top: 1rem;
