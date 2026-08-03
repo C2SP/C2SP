@@ -10,7 +10,7 @@ description: TupleHash-like functionality for arbitrary underlying hash function
 
 [c2sp.org/sequencehash](https://c2sp.org/sequencehash)
 
-- **Version**: v0.1.0
+- **Version**: v1.0.0
 - **Authors**: Opal Wright and Scott Arciszewski
 
 SequenceHash is a TupleHash-like construction for unambiguously hashing sequences of bytestrings.
@@ -43,7 +43,9 @@ SequenceHash has a sister function, SequenceMAC. SequenceMAC accepts keys that a
 
 ## Notation and terms
 
-We denote exponentiation with `^`, and concatenation of bytestrings with `||`. All bytestrings are given in hexadecimal; integer values are given in decimal.
+We use the term "byte" to refer to an 8-bit value (sometimes called an "octet"). We use the term "bytestring" to refer to an ordered sequence of bytes. We assume that an underlying hash function implementation handles bit ordering when hashing bytes and bytestrings.
+
+We denote exponentiation with `^`, concatenation of bytestrings with `||`, and exclusive-OR with `⨁`. Bytestrings are given in hexadecimal unless inside `'` characters, which are UTF-8 literals. Integer values are given in decimal, unless prefixed with `0x`, in which case they are given in hexadecimal.
 
 In some of the examples, we will place notes or comments next to inputs and pseudocode. These will be marked with the comment indicator `#`, which continues to the end of the line.
 
@@ -69,7 +71,7 @@ Implementations SHOULD emit warnings when using SequenceMAC with hashes whose ou
 
 ### Input lengths
 
-The SequenceHash and SequenceMAC _specification_ supports up to (2^128) - 1 inputs of (2^128) - 1 bytes each (plus a length encoding), which would require the underlying hash to process nearly 2^256 bytes of input. This exceeds the maximum input length of many hash functions, leading to potential confusion.
+The SequenceHash and SequenceMAC _specification_ supports up to (2^128) - 1 inputs of (2^128) - 1 bytes each (plus length encoding), which would require the underlying hash to process approximately 2^256 bytes of input. This exceeds the maximum input length of many hash functions, leading to potential confusion.
 
 Implementations MAY track aggregated input lengths to ensure that input length limits of underlying hash functions are not exceeded. Implementations that do so MUST refuse to accept data that would exceed the limits of the underlying hash function.
 
@@ -141,7 +143,7 @@ Implementations MAY impose upper bounds smaller than (2^128) - 1. For instance, 
 
 ### `Pad`
 
-`Pad` is used to pad a bytestring with zeroes on the right to the smallest _positive_ multiple of size of a positive integer `b` (in practice, `b` will be the underlying block size of a hash function `H`). A non-empty bytestring that is already a multiple of the block length requires no padding. Given a hash function `H` with a block size `b` and a bytestring `S`, `Pad(S, b) = S` if `len(S) % b == 0` and `len(S) > 0`; otherwise, `Pad(S, b) = S || 00 || ... || 00`, where the number of zero bytes is equal to `b - (len(S) % b)`. Note that the empty string is padded to a full block of zeroes: `Pad('', b) = 00 * b`.
+`Pad` is used to pad a bytestring with zeroes on the right to the smallest _positive_ multiple of a positive integer `b` (in practice, `b` will be the underlying block size of a hash function `H`). A non-empty bytestring that is already a multiple of the block length requires no padding. Given a hash function `H` with a block size `b` and a bytestring `S`, `Pad(S, b) = S` if `len(S) % b == 0` and `len(S) > 0`; otherwise, `Pad(S, b) = S || 00 || ... || 00`, where the number of zero bytes is equal to `b - (len(S) % b)`. Note that the empty string is padded to a full block of zeroes: `Pad('', b) = 00 * b`.
 
 The output of `Pad` MUST always be non-empty and have length equal to a positive integer multiple of `b`. The first `len(x)` bytes of the output of `Pad(x, b)` will always equal `x`.
 
@@ -170,7 +172,7 @@ Pad('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', 64) = 5
 
 ### `Encode`
 
-The `Encode` function provides an unambiguous encoding of a bytestring of length shorter than 2^128 bytes. It works by prepending a 128-bit (16-byte) length indicator, encoded with `EncodeLSBF`, to the bytestring. That is, `Encode(x) = EncodeLSBF(len(x)) || x`.
+The `Encode` function provides an unambiguous encoding of a bytestring of length shorter than 2^128 bytes. It works by appending a 128-bit (16-byte) length indicator, encoded with `EncodeLSBF`, to the bytestring. That is, `Encode(x) = x || EncodeLSBF(len(x))`.
 
 Note that empty bytestrings are NOT ignored. They are encoded as having length zero.
 
@@ -178,42 +180,44 @@ Examples:
 ```
 Encode('')  = 00000000000000000000000000000000
 
-Encode('AAA')  = 03000000000000000000000000000000414141
+Encode('AAA')  = 41414103000000000000000000000000000000
 
-Encode('SEQUENCEHASH')  = 0c00000000000000000000000000000053455155454e434548415348
+Encode('SEQUENCEHASH')  = 53455155454e4345484153480c000000000000000000000000000000
 ```
 
 Implementations MUST NOT accept bytestrings longer than (2^128) - 1 bytes.
 
-Implementations MAY limit bytestrings to lengths below (2^128) - 1. This can include limiting bytestring length based on the underlying hash function, or limiting bytestring length for performance or system compatibility issues.
+Implementations MAY limit bytestrings to lengths below (2^128) - 1. This can include limiting bytestring length based on the underlying hash function, or limiting bytestring length for performance or system compatibility issues. Implementation documentation MUST document input length limits.
 
 
 ### `Derive`
 
-The `Derive` function processes keys and customization strings into key and customizer blocks, following the HMAC model. Inputs that are no longer than the block length of the underlying hash function are padded to the block size of the hash. Inputs that are longer than the block size of the underlying hash are hashed, then padded to the block size of the hash.
+The `Derive` function processes keys and customization strings into key and customizer blocks, in a manner similar to HMAC key processing. Inputs that are no longer than the block length of the underlying hash function are padded to the block size of the hash. Inputs that are longer than the block size of the underlying hash are hashed, then padded to the block size of the hash. It also accepts a one-byte "tweak" value that is XORed against the first byte of the result.
 
-In pseudocode, given hash function `H` with block length `b` and an input bytestring `I`:
+In pseudocode, given hash function `H` with block length `b`, an input bytestring `I`, and a tweak byte `t`:
 
 ```
-Derive(I, H, b):
+Derive(I, H, t):
+    # Note that the block length b is a property of the hash function H
     if len(I) <= b:
         I' = Pad(I, b)
     else:
         I' = Pad(H(I), b)
+    I'[0] = I'[0] ⊕ t
     return I'
 ```
+
+In the above notation, `I'[0]` refers to the first byte of `I'`. Basically, the first byte of `I'` is XORed by the tweak value.
 
 Examples, given SHA-256 as `H`, which has `b = 64`:
 
 ```
-Derive('', SHA-256, 64) = 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+Derive('', SHA-256, 0x00) = 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 
-Derive('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', SHA-256, 64) = 57575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757
+Derive('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', SHA-256, 0xff) = a8575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757575757
 
-Derive('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', SHA-256, 64) = a86baffba4cd6018bebed0b8ed10bbe3ea892a8dfb03b992d2e270b3eb9faa8a0000000000000000000000000000000000000000000000000000000000000000
+Derive('WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', SHA-256, 0x5a) = f26baffba4cd6018bebed0b8ed10bbe3ea892a8dfb03b992d2e270b3eb9faa8a0000000000000000000000000000000000000000000000000000000000000000
 ```
-
-Note that `b` MUST match the block size of `H`.
 
 ## Function indicators
 
@@ -223,7 +227,7 @@ Currently, the only defined function indicators are `F_SEQHSH = 2` (for Sequence
 
 ## Header blocks
 
-As mentioned previously, SequenceHash and SequenceMAC rely on an HMAC-like construction. To ensure that the inner and outer hashes are derived independently, each has a distinct "run-up" before processing the derived key block (which will be all-zero in the case of SequenceHash). This ensures that the key blocks are processed from different starting states, leading to independently-keyed inner and outer hash functions. Our header functions are as follows:
+As mentioned previously, SequenceHash and SequenceMAC rely on an HMAC-like construction. To separate the inner and outer hash computations, each includes a distinct header block immediately after its derived key block. These headers commit to the selected function indicator and relevant input lengths, and further ensure that the inner and outer computations do not process the same byte sequence, even when SequenceHash uses an empty key. Our header functions are as follows:
 
 ```
 HeaderI(b, F, K):
@@ -250,17 +254,21 @@ Even when `S` and `K` are both empty strings, we can see that the output of `Hea
 
 Both SequenceHash and SequenceMAC are specific instances of a more general function we will call SequenceFunction. SequenceFunction is instantiated with four main parameters: a hash function `H` with block size `b`, a key `K` (possibly empty), a customization string `S` (possibly empty), and a function indicator `F`.
 
+First, we define `K_I` and `K_O` as `K_I = Derive(K, H, 0x55)` and `K_O = Derive(K, H, 0xaa)`, and `S' = Derive(S, H, 0x00)`.
+
+Then we have:
+
 ```
 SequenceFunction(H, K, S, F; M_1, M_2, ..., M_n) =
     H(
+        K_O                             ||
         HeaderO(b, F, S, K)             ||
         S'                              ||
-        K'                              ||
         EncodeMSBF(n)                   ||
         EncodeMSBF(L)                   ||
         H(
+            K_I                         ||
             HeaderI(b, F, K)            ||
-            K'                          ||
             Encode(M_1)                 ||
             ...                         ||
             Encode(M_n)
@@ -284,7 +292,7 @@ Implementations SHOULD emit warnings if a short hash is used.
 
 Implementations MAY prohibit short hashes.
 
-Implementations SHOULD zeroize `K` and `K'` when no longer needed for computations.
+Implementations SHOULD zeroize `K`, `K_I`, and `K_O` when no longer needed for computations.
 
 #### SequenceMAC keys and hash function selection
 
@@ -327,13 +335,7 @@ Matching streaming APIs can introduce compatibility problems when users rely on 
 
 Another popular API for hash functions is the "one-shot" API, in which the hash of a bytestring is computed as a single step-- e.g., `message_digest = SHA-256(input)`. This is the interface provided by the WebCrypto API's `Crypto.subtle.digest` method, for instance.
 
-Since SequenceHash and SequenceMAC operate on _sequences_ of bytestrings, one-shot APIs may need to be extended to include support for multiple bytestrings. This can present a challenge from an API standpoint. Some programming languages support variadic functions, while others might make it necessary to pass the inputs as part of an array or vector.
-
-#### Special considerations for large inputs
-
-It is not always possible to know the size of an input in advance, such as when hashing streamed data. Because SequenceHash relies on a length-_prefix_ encoding, this can be a problem, especially in low-memory systems where caching the data isn't always possible.
-
-In these cases, we recommend addressing the issue at the protocol level. For instance, users can apply their selected hash function to the incoming data while tracking its length, then update the SequenceHash or SequenceMAC instance twice: once with the length of the data (encoded using `EncodeLSBF`), then with the hash of the data.
+Since SequenceHash and SequenceMAC operate on _sequences_ of bytestrings, one-shot APIs may need to be extended to include support for multiple bytestrings. This can present a challenge for languages that don't support variadic functions. If variadic functions are not supported, one-shot APIs may need to be updated to accept vectors or lists of inputs, instead of a single value.
 
 #### Multiple customization strings
 
@@ -383,17 +385,18 @@ EncodeMSBF(L) =         00000000000000000000000000000020
 Deriving our key and customizer blocks, we get:
 
 ```
-K' = Derive(K, SHA-256, 64) = Pad('', 64) =   00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-S' = Derive(S, SHA-256, 64) = Pad('', 64) =   00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+K_I = Derive(K, SHA-256, 0x55) = 55000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+K_O = Derive(K, SHA-256, 0xaa) = aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+S' =  Derive(S, SHA-256, 0x00) = 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ```
 
 The inputs encode to:
 
 ```
 Encode(I_0)     =   00000000000000000000000000000000
-Encode(I_1)     =   0100000000000000000000000000000001
-Encode(I_2)     =   020000000000000000000000000000000202
-Encode(I_3)     =   03000000000000000000000000000000030303
+Encode(I_1)     =   0101000000000000000000000000000000
+Encode(I_2)     =   020202000000000000000000000000000000
+Encode(I_3)     =   03030303000000000000000000000000000000
 EncodeMSBF(n)   =   00000000000000000000000000000004
 ```
 
@@ -418,18 +421,18 @@ HDR_O = Pad(5345514853485f4f                    ||
 
 ```
 H(
+    aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||      # Key block
     5345514853485f4f0000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000    ||      # Outer header block
     00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||      # Customizer block
-    00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||      # Key block
     00000000000000000000000000000004                                                                                                    ||      # Item count
     00000000000000000000000000000020                                                                                                    ||      # Output length
     H(
+        55000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||  # Key block
         5345514853485f490000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000    ||  # Inner header block
-        00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||  # Key block
         00000000000000000000000000000000                                                                                                    ||  # Input 0 (encoded)
-        0100000000000000000000000000000001                                                                                                  ||  # Input 1 (encoded)
-        020000000000000000000000000000000202                                                                                                ||  # Input 2 (encoded)
-        03000000000000000000000000000000030303                                                                                                  # Input 3 (encoded)
+        0101000000000000000000000000000000                                                                                                  ||  # Input 1 (encoded)
+        020202000000000000000000000000000000                                                                                                ||  # Input 2 (encoded)
+        03030303000000000000000000000000000000                                                                                                  # Input 3 (encoded)
     )
 )
 ```
@@ -438,31 +441,31 @@ Computing the inner hash, we get:
 
 ```
 H(
+    55000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
     5345514853485f490000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
-    00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
     00000000000000000000000000000000 ||
-    0100000000000000000000000000000001 ||
-    020000000000000000000000000000000202 ||
-    03000000000000000000000000000000030303
+    0101000000000000000000000000000000 ||
+    020202000000000000000000000000000000 ||
+    03030303000000000000000000000000000000
 )
-        = 5fddec134eb7c02acf9aca2afe8f5c529267958713588f3ebb3543c9788cdc28
+        = 5af952c4c997d8339b92dd870ce384a75f07fdf3fa65af70f5755fab12b634c6
 ```
 
 Substituting into the outer hash, we get:
 
 ```
 H(
+    aa000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
     5345514853485f4f0000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
-    00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
     00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ||
     00000000000000000000000000000004 ||
     00000000000000000000000000000020 ||
-    5fddec134eb7c02acf9aca2afe8f5c529267958713588f3ebb3543c9788cdc28
+    5af952c4c997d8339b92dd870ce384a75f07fdf3fa65af70f5755fab12b634c6
 )
-        = 1339fb8e990da89ef98d7d8e7521f42d61566cc0b5388702b142cb57f02a4912
+        = fe550c163f7ce3e8f636ca8770333c4ce33a1d8424b4f383036d424929111144
 ```
 
-This gives us `SequenceHash(SHA-256, S; I_0, I_1, I_2, I_3) = 1339fb8e990da89ef98d7d8e7521f42d61566cc0b5388702b142cb57f02a4912`.
+This gives us `SequenceHash(SHA-256, S; I_0, I_1, I_2, I_3) = fe550c163f7ce3e8f636ca8770333c4ce33a1d8424b4f383036d424929111144`.
 
 
 ### SequenceMAC
@@ -480,19 +483,20 @@ EncodeMSBF(F) =         00000000000000000000000000000001
 EncodeMSBF(L) =         00000000000000000000000000000020
 ```
 
-Computing the derived key and customizer blocks, we get:
+Computing the derived keys and customizer blocks, we get:
 
 ```
-K' = Derive(K, SHA-256, 64) = Pad(K, 64) = 27ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000
-S' = Derive(S, SHA-256, 64) = Pad(S, 64) =    00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+K_I = Derive(K, SHA-256, 0x55) = 72ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000
+K_O = Derive(K, SHA-256, 0xaa) = 8dece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000
+S' = Derive(S, SHA-256, 0x00) = 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 ```
 
 We will use inputs `I_0 = 74aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d1` (23 bytes long), `I_1 = f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb9` (32 bytes), and `I_2 = bd121635c5c732` (7 bytes). Encoding these inputs and our input count `n = 3`, we get:
 
 ```
-Encode(I_0)     =   1700000000000000000000000000000074aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d1
-Encode(I_1)     =   20000000000000000000000000000000f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb9
-Encode(I_2)     =   07000000000000000000000000000000bd121635c5c732
+Encode(I_0)     =   74aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d117000000000000000000000000000000
+Encode(I_1)     =   f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb920000000000000000000000000000000
+Encode(I_2)     =   bd121635c5c73207000000000000000000000000000000
 EncodeMSBF(n)   =   00000000000000000000000000000003
 ```
 
@@ -519,17 +523,17 @@ Putting these together, we get:
 
 ```
 H(
+    8dece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||      # Key block
     5345514853485f4f0000000000000000000000000000000100000000000000000000000000000004000000000000000000000000000000200000000000000000    ||      # Outer header block
     00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||      # Customizer block
-    27ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||      # Key block
     00000000000000000000000000000003    ||                                                                                                      # Item count
     00000000000000000000000000000020    ||                                                                                                      # Output length
     H(
+        72ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||  # Key block
         5345514853485f490000000000000000000000000000000100000000000000000000000000000020000000000000000000000000000000000000000000000000    ||  # Inner header block
-        27ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||  # Key block
-        1700000000000000000000000000000074aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d1  ||                                                      # Input 0 (encoded)
-        20000000000000000000000000000000f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb9    ||                                  # Input 1 (encoded)
-        07000000000000000000000000000000bd121635c5c732                                                                                          # Input 2 (encoded)
+        74aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d117000000000000000000000000000000 ||                                                       # Input 0 (encoded)
+        f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb920000000000000000000000000000000   ||                                   # Input 1 (encoded)
+        bd121635c5c73207000000000000000000000000000000                                                                                          # Input 2 (encoded)
     )
 )
 ```
@@ -538,25 +542,26 @@ Computing the inner hash, we get:
 
 ```
 H(
+    72ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||
     5345514853485f490000000000000000000000000000000100000000000000000000000000000020000000000000000000000000000000000000000000000000    ||
-    27ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||
-    1700000000000000000000000000000074aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d1  ||
-    20000000000000000000000000000000f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb9    ||
-    07000000000000000000000000000000bd121635c5c732)
-        = 05a03dee856957821eb9c345835138af3bc3b8b01802effd1dfb477bff49f5c7
+    74aee83f30db3fd88d6e31ad41710cb8d9a5dd01aad1d117000000000000000000000000000000  ||
+    f1ed6e58d442903e34571544a8af4f49e86790417916f538746911edbbd34fb920000000000000000000000000000000    ||
+    bd121635c5c73207000000000000000000000000000000)
+        = f0ee9b4254b026b8200639073bd393aaf83c093f70fe2949aa0c05b33a9bf46d
 ```
 
 Our final hash computation simplifies to:
 
 ```
 H(
+    8dece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||
     5345514853485f4f0000000000000000000000000000000100000000000000000000000000000004000000000000000000000000000000200000000000000000    ||
     00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000    ||
-    27ece6764c77eb17e28a4031878198f37ce95207205fba8671390c8d7449dc910000000000000000000000000000000000000000000000000000000000000000    ||
     00000000000000000000000000000003    ||
     00000000000000000000000000000020    ||
-    05a03dee856957821eb9c345835138af3bc3b8b01802effd1dfb477bff49f5c7)
-            = 73440d6f3fcf4900428ee2e80c5b9bce04dd208dce14b892e6a0e220d2deb658
+    f0ee9b4254b026b8200639073bd393aaf83c093f70fe2949aa0c05b33a9bf46d
+    )
+            = 484ad123ab6f1fea03ac9ae765a38bd34128367f408eada7ff8c21b3cd8515c3
 ```
 
-This gives us `SequenceMAC(SHA-256, K, S; I_0, I_1, I_2) = 73440d6f3fcf4900428ee2e80c5b9bce04dd208dce14b892e6a0e220d2deb658`.
+This gives us `SequenceMAC(SHA-256, K, S; I_0, I_1, I_2) = 484ad123ab6f1fea03ac9ae765a38bd34128367f408eada7ff8c21b3cd8515c3`.
