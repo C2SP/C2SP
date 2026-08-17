@@ -10,40 +10,31 @@
 
 The Community Cryptography Specification Project (C2SP) is a project that
 facilitates the maintenance of cryptography specifications using software
-development methodologies. In other words, C2SP applies the successful processes
-of open source software development and maintenance to specification documents.
+development methodologies, applying the successful processes of open source
+to specification documents.
 
-* C2SP decisions are **not based on consensus**. Instead, each spec is developed
-  by its [maintainers], who are responsible for reviewing and accepting changes,
-  just like open source projects. This enables rapid, focused, and opinionated
-  development. Since C2SP produces **specifications, not standards**, technical
-  disagreements can be ultimately be resolved by forking.
-* C2SP specs are **updateable**, and follow [semantic versioning]. Most
-  specifications are expected to start at v0.x.x while in “draft” stage, then
-  stay at v1.x.x for as long as they maintain backwards compatibility, ideally
-  forever. Drafts are expected to bump the minor version on breaking changes.
-* C2SP documents are developed as Markdown files on GitHub, and can include
-  ancillary files such as test vectors and non-production reference
-  implementations.
+Each specification is developed by its [maintainers], who are responsible for
+reviewing and accepting changes, just like open source projects. This enables
+rapid, focused, and opinionated development.
+
+C2SP specifications follow [semantic versioning]. While each specific tagged
+version is immutable, new versions can be created to improve or fix the
+specification, preserving backwards compatibility for v1.x.x versions.
 
 A [small team of stewards] maintains the overall project, enforces the [C2SP
 Code of Conduct], assigns [new specifications] to proposed maintainers, and may
 intervene in case of maintainer conflict or to replace lapsed maintainers, but
-they are otherwise not involved in the development of individual specs (in their
-steward capacity).
+they are otherwise not involved in the development of individual specifications
+(in their steward capacity).
 
-Versions are tracked as git tags of the form `<spec-name>/vX.Y.Z` like
-`age/v1.2.3`.
+Specifications should be linked using their c2sp.org short-links, like
+`https://c2sp.org/<spec-name>` and `https://c2sp.org/<spec-name>@<version>`.
 
-Specifications should be linked using their c2sp.org short-links.
-`https://c2sp.org/<spec-name>` and `https://c2sp.org/<spec-name>@<version>` are
-supported. The former is equivalent to `@latest` and redirects to the latest
-tagged version. To link to the main branch, use `@main`. GitHub URLs should not
-be considered stable.
+For a list of C2SP specifications, see the [C2SP homepage]. To learn more about
+consuming and maintaining C2SP specifications, see the [C2SP Manual].
 
-All C2SP specifications are licensed under [CC BY
-4.0](https://creativecommons.org/licenses/by/4.0/). All code and data in this
-repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
+All C2SP specifications are licensed under [CC BY 4.0]. All code and data in
+this repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 
 [maintainers]: https://c2sp.org/-/maintainers
 [semantic versioning]: https://semver.org/
@@ -51,6 +42,9 @@ repository is licensed under the BSD 1-Clause License ([LICENSE-BSD-1-CLAUSE]).
 [C2SP Code of Conduct]: https://c2sp.org/-/coc
 [new specifications]: https://c2sp.org/-/manual#new-specifications
 [LICENSE-BSD-1-CLAUSE]: https://github.com/C2SP/C2SP/blob/main/.github/LICENSE-BSD-1-CLAUSE
+[C2SP homepage]: https://c2sp.org/
+[C2SP Manual]: https://c2sp.org/-/manual
+[CC BY 4.0]: https://creativecommons.org/licenses/by/4.0/
 
 ## Associated projects
 
