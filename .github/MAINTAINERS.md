@@ -67,6 +67,10 @@
 - [@jdeblasio](https://github.com/jdeblasio)
 - [@mcpherrinm](https://github.com/mcpherrinm)
 
+### passkey-record
+
+- [@FiloSottile](https://github.com/FiloSottile)
+
 ### phc-strings
 
 - [@tarcieri](https://github.com/tarcieri)
