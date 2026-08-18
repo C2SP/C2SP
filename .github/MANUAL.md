@@ -76,8 +76,8 @@ have different preferences for contributions.
 New specifications are approved by a quorum of two stewards and assigned to one
 or more maintainers.
 
-If you wish to maintain a new spec, open an issue with a `New spec:` prefix. The
-specification proposal must include:
+If you wish to maintain a new spec, [open a new specification request]. The
+proposal must include:
 
 * A description of the specification sufficient to assess its scope. A draft is
   useful but not required.
@@ -87,9 +87,9 @@ specification proposal must include:
 
 * The proposed maintainers.
 
-* The text `/cc @C2SP/stewards`
-
 See [#45](https://github.com/C2SP/C2SP/issues/45) for an example.
+
+[open a new specification request]: https://github.com/C2SP/C2SP/issues/new?template=new.md
 
 ### Formatting
 
@@ -163,23 +163,26 @@ Merge this file to main, and a GitHub Action will create the tag
 ### Updating maintainers
 
 The set of maintainers for a specification can unanimously request to add or
-remove maintainers by opening an issue with a `Maintainers:` prefix. The request
-will be serviced by a steward, without requiring a quorum.
+remove maintainers by [opening a maintainers change request]. The request will
+be serviced by a steward, without requiring a quorum.
 
 If unanimous agreement cannot be reached, that can be treated as either a
 maintainer conflict, or a lapsed maintainer, and the stewards may intervene to
 resolve the situation.
 
+[opening a maintainers change request]: https://github.com/C2SP/C2SP/issues/new?template=maintainers.md
+
 ### OIDs
 
 Specification maintainers may request OID assignments for their specifications
-under the C2SP Private Enterprise Number (PEN) arc 1.3.6.1.4.1.64829 by opening
-an issue with a `OID:` prefix. The request will be serviced by a steward,
-without requiring a quorum.
+under the C2SP Private Enterprise Number (PEN) arc 1.3.6.1.4.1.64829 by [opening
+an OID assignment request]. The request will be serviced by a steward, without
+requiring a quorum.
 
 Assigned OIDs are recorded in the [C2SP OID registry].
 
 [C2SP OID registry]: https://c2sp.org/-/oids
+[opening an OID assignment request]: https://github.com/C2SP/C2SP/issues/new?template=oid.md
 
 ## Stewarding C2SP
 
@@ -210,4 +213,3 @@ description: <!-- insert spec description here -->
 
 * Open a PR with all the changes above, mark it "Closes #NNN" for the issue
   number requesting the new spec, and have it approved by another steward.
-
