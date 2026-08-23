@@ -9,6 +9,15 @@ body contains href="/age">c2sp.org/age</a>
 GET https://c2sp.org/CCTV/age?go-get=1
 body contains c2sp.org/CCTV git https://github.com/C2SP/CCTV
 
+GET https://c2sp.org/CCTV/ML-DSA/accumulated?go-get=1
+body contains c2sp.org/CCTV git https://github.com/C2SP/CCTV
+
+GET https://c2sp.org/CCTV?go-get=1
+redirect == /CCTV/?go-get=1
+
+GET https://c2sp.org/CCTV/?go-get=1
+body contains c2sp.org/CCTV git https://github.com/C2SP/CCTV
+
 GET https://c2sp.org/foo?go-get=1
 body contains c2sp.org git https://github.com/C2SP/C2SP
 
@@ -55,6 +64,15 @@ redirect == https://github.com/C2SP/CCTV/
 
 GET https://c2sp.org/CCTV/age
 redirect == https://github.com/C2SP/CCTV/tree/main/age
+
+GET https://c2sp.org/CCTV/ML-DSA/accumulated
+redirect == https://github.com/C2SP/CCTV/tree/main/ML-DSA/accumulated
+
+GET https://c2sp.org/CCTV/age/testdata/file_v1.json
+redirect == https://github.com/C2SP/CCTV/tree/main/age/testdata/file_v1.json
+
+GET https://c2sp.org/CCTV/not_a_spec/foo
+code == 400
 
 GET https://c2sp.org/CCTV/ed25519vectors
 redirect == https://c2sp.org/CCTV/ed25519

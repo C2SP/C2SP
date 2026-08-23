@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,9 +69,9 @@ func handler(repo *Repo) http.Handler {
 	mux.HandleFunc("GET /-/logo/{file}", s.serveLogo)
 	mux.Handle("GET /-/static/", staticHandler())
 
-	mux.HandleFunc("/CCTV/{name}", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/CCTV/{name...}", func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
-		if !spec.ValidName(name) {
+		if first, _, _ := strings.Cut(name, "/"); !spec.ValidName(first) {
 			http.Error(w, "invalid spec name", http.StatusBadRequest)
 			return
 		}
