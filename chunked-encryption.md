@@ -324,6 +324,7 @@ architectures.
 ## Implementations
 
 * [filippo.io/cobblestone](https://filippo.io/cobblestone) (Go)
+* [pyca/cryptography](https://cryptography.io/en/latest/cobblestone/) (Python)
 
 ## Appendix: raw mode
 
