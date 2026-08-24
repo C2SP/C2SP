@@ -32,6 +32,14 @@ steward capacity).
 
 ## Consuming specifications
 
+### Versioning
+
+v0.x.y versions should be considered draft specifications, and may be updated
+with breaking changes. v1.x.y versions can be considered stable specifications
+and suitable interoperation targets.
+
+All tagged versions (both v0.x.y and v1.x.y) are immutable.
+
 ### Permanent links
 
 Specifications should be linked using their c2sp.org short-links, like
@@ -183,6 +191,15 @@ Assigned OIDs are recorded in the [C2SP OID registry].
 
 [C2SP OID registry]: https://c2sp.org/-/oids
 [opening an OID assignment request]: https://github.com/C2SP/C2SP/issues/new?template=oid.md
+
+### IANA registries
+
+If requesting a codepoint assignment in an IANA registry, use a [permanent
+link](#permanent-links) like `https://c2sp.org/<spec-name>@<version>`.
+
+See the [AEAD Algorithms registry] for an example.
+
+[AEAD Algorithms registry]: https://www.iana.org/assignments/aead-parameters#aead-parameters-2
 
 ## Stewarding C2SP
 
