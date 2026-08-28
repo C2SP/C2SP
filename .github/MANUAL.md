@@ -149,8 +149,7 @@ Next, a single top-level heading must be included with the title of the specific
 #### Mathematical expressions
 
 Specifications may use [GitHub-style mathematical expressions]. They are
-rendered server-side to native MathML on c2sp.org; they do not require
-client-side JavaScript.
+rendered server-side to native MathML on c2sp.org.
 
 Use dollar-sign delimiters for inline expressions:
 
@@ -186,19 +185,11 @@ $`\sqrt{\$4}`$
 ```
 
 To include a literal dollar sign outside an expression on the same line as
-math, wrap it in a `span` element. A backslash is not sufficient in this case.
-For example:
+math, wrap it in a `span` element. For example:
 
 ```markdown
 To split <span>$</span>100 in half, calculate $100/2$.
 ```
-
-Dollar-delimited formats and other text that is not mathematics should be put
-in code spans or code blocks.
-
-The repository lint checks mathematical expressions and rejects TeX that cannot
-be rendered. If an invalid expression nevertheless reaches c2sp.org, the page
-remains available and displays a warning in place of that expression.
 
 [GitHub-style mathematical expressions]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions
 
