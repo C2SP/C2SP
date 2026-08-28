@@ -124,20 +124,17 @@ var htmlAnchorRE = regexp.MustCompile(`<a\s+(?:id|name)="([^"]+)"`)
 var githubSpecLinkRE = regexp.MustCompile(
 	`^https://(github\.com/C2SP/C2SP/(blob|tree|raw)|raw\.githubusercontent\.com/C2SP/C2SP)/[^/]+/[a-zA-Z0-9-]+\.md([#?]|$)`)
 
-func lintRenderError(err error) string {
-	var mathErr *mathml.RenderError
-	if errors.As(err, &mathErr) {
-		return fmt.Sprintf("invalid mathematical expression: %v", mathErr)
-	}
-	return fmt.Sprintf("failed to render Markdown: %v", err)
-}
-
 // lintBody checks that the document has exactly one top-level heading, and
 // that all intra-document links resolve to a heading anchor.
 func lintBody(body string) []string {
 	var errs []string
 	if err := markdown.Convert([]byte(body), io.Discard); err != nil {
-		errs = append(errs, lintRenderError(err))
+		var mathErr *mathml.RenderError
+		if errors.As(err, &mathErr) {
+			errs = append(errs, fmt.Sprintf("invalid mathematical expression: %v", mathErr))
+		} else {
+			errs = append(errs, fmt.Sprintf("failed to render Markdown: %v", err))
+		}
 	}
 	doc := markdown.Parser().Parse(text.NewReader([]byte(body)))
 
