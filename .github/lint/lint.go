@@ -129,8 +129,7 @@ var githubSpecLinkRE = regexp.MustCompile(
 func lintBody(body string) []string {
 	var errs []string
 	if err := markdown.Convert([]byte(body), io.Discard); err != nil {
-		var mathErr *mathml.RenderError
-		if errors.As(err, &mathErr) {
+		if mathErr, ok := errors.AsType[*mathml.RenderError](err); ok {
 			errs = append(errs, fmt.Sprintf("invalid mathematical expression: %v", mathErr))
 		} else {
 			errs = append(errs, fmt.Sprintf("failed to render Markdown: %v", err))
