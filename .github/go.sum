@@ -4,8 +4,8 @@ github.com/dlclark/regexp2/v2 v2.5.2 h1:HAsucWRhsqcDzl6Ua9aR8JwYOTzrZyPrF0/FNxJV
 github.com/dlclark/regexp2/v2 v2.5.2/go.mod h1:avUrQvPaLz2DrFNHJF0taWAFFX2C1GMSSoeiqFjcBmU=
 github.com/dop251/goja v0.0.0-20260826204918-8f1c0696a37b h1:mYHoARbZ0mUYXXsaNeHoDFBft3TK4PpFEe3KU7hdDgg=
 github.com/dop251/goja v0.0.0-20260826204918-8f1c0696a37b/go.mod h1:u8yZRUavu+N4EnFFy6J5fVtjE7lEcZ2YyV2GcBXY9c8=
-github.com/filippo-agent/goldmark-mathml v0.3.1 h1:bETVF73KRSevdavS5y80/91FoxSlfvkd7DpLG1AgUU0=
-github.com/filippo-agent/goldmark-mathml v0.3.1/go.mod h1:H6iklJ9pornNuFm7ouHNDar2qOhuVPOVt2GIqcmWNEE=
+github.com/filippo-agent/goldmark-mathml v0.4.0 h1:jZ+fBi+Tje5VpO56OAHH31QRRMQ/vwg1utHnwJADMlk=
+github.com/filippo-agent/goldmark-mathml v0.4.0/go.mod h1:H6iklJ9pornNuFm7ouHNDar2qOhuVPOVt2GIqcmWNEE=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible h1:W1iEw64niKVGogNgBN3ePyLFfuisuzeidWPMPWmECqU=
 github.com/go-sourcemap/sourcemap v2.1.3+incompatible/go.mod h1:F8jJfvm2KbVjc5NqelyYJmf/v5J0dwNLS2mL4sNA1Jg=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=

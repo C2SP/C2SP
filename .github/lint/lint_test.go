@@ -1,9 +1,22 @@
 package main
 
 import (
+	"errors"
 	"strings"
 	"testing"
+
+	mathml "github.com/filippo-agent/goldmark-mathml"
 )
+
+func TestLintRenderError(t *testing.T) {
+	mathErr := &mathml.RenderError{Expression: `\frac{`, Err: errors.New("parse error")}
+	if got := lintRenderError(mathErr); !strings.HasPrefix(got, "invalid mathematical expression:") {
+		t.Fatalf("math error classified as %q", got)
+	}
+	if got := lintRenderError(errors.New("writer failed")); got != "failed to render Markdown: writer failed" {
+		t.Fatalf("generic error classified as %q", got)
+	}
+}
 
 func TestLintMath(t *testing.T) {
 	tests := []struct {
