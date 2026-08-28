@@ -10,7 +10,7 @@ require (
 
 require (
 	github.com/google/go-querystring v1.1.0 // indirect
-	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
 )
 
 replace c2sp.org/C2SP/website => ../.website

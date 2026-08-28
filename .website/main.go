@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"c2sp.org/C2SP/website/spec"
+	mathml "github.com/filippo-agent/goldmark-mathml"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -67,6 +68,7 @@ func handler(repo *Repo) http.Handler {
 	mux.HandleFunc("GET /-/manual", s.docHandler(".github/MANUAL.md", "C2SP Manual"))
 	mux.HandleFunc("GET /-/maintainers", s.docHandler(".github/MAINTAINERS.md", "Maintainers"))
 	mux.HandleFunc("GET /-/logo/{file}", s.serveLogo)
+	mux.Handle("GET /-/math/", http.StripPrefix("/-/math/", http.FileServerFS(mathml.Assets())))
 	mux.Handle("GET /-/static/", staticHandler())
 
 	mux.HandleFunc("/CCTV/{name...}", func(w http.ResponseWriter, r *http.Request) {

@@ -97,6 +97,51 @@ Some intro.
 	}
 }
 
+func TestRenderMath(t *testing.T) {
+	src := `# Math
+
+Inline $x^2$, escaped $` + "`" + `\sqrt{\$4}` + "`" + `$,
+and literal <span>$</span>100 next to $100/2$.
+
+$$
+x^2 + y^2 = z^2
+$$
+
+` + "```math" + `
+\sum_{i=1}^{n} i
+` + "```" + `
+
+Code stays literal: ` + "`$x$`" + `.
+`
+	doc, err := renderMarkdown([]byte(src), "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(doc.Body)
+	if got := strings.Count(body, "<math "); got != 5 {
+		t.Errorf("got %d math elements, want 5\n%s", got, body)
+	}
+	for _, want := range []string{
+		`xmlns="http://www.w3.org/1998/Math/MathML"`,
+		`encoding="application/x-tex"`,
+		`<span>$</span>100`,
+		`<code>$x$</code>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body does not contain %q\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "<script") {
+		t.Errorf("body contains client-side script\n%s", body)
+	}
+}
+
+func TestRenderInvalidMath(t *testing.T) {
+	if _, err := renderMarkdown([]byte("# Math\n\n$\\frac{$\n"), "", false); err == nil {
+		t.Fatal("invalid math rendered without an error")
+	}
+}
+
 func TestRenderMarkdownLegacy(t *testing.T) {
 	// Old tagged versions have no front matter and no warning boilerplate.
 	src := "# Old Spec\n\nContent with a [link](https://example.com).\n"
