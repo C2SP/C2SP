@@ -196,6 +196,10 @@ To split <span>$</span>100 in half, calculate $100/2$.
 Dollar-delimited formats and other text that is not mathematics should be put
 in code spans or code blocks.
 
+The repository lint checks mathematical expressions and rejects TeX that cannot
+be rendered. If an invalid expression nevertheless reaches c2sp.org, the page
+remains available and displays a warning in place of that expression.
+
 [GitHub-style mathematical expressions]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions
 
 ### GitHub permissions

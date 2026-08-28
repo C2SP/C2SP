@@ -21,7 +21,10 @@ import (
 // markdown renders GitHub Flavored Markdown. Raw HTML is allowed: all
 // rendered content comes from the C2SP repository itself.
 var markdown = goldmark.New(
-	goldmark.WithExtensions(extension.GFM, extension.Footnote, mathml.New()),
+	goldmark.WithExtensions(extension.GFM, extension.Footnote,
+		mathml.New(mathml.WithErrorFallback(func(expression string, display bool, err error) {
+			log.Printf("failed to render math expression %q: %v", expression, err)
+		}))),
 	goldmark.WithRendererOptions(ghtml.WithUnsafe()),
 )
 

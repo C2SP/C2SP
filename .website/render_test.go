@@ -137,8 +137,18 @@ Code stays literal: ` + "`$x$`" + `.
 }
 
 func TestRenderInvalidMath(t *testing.T) {
-	if _, err := renderMarkdown([]byte("# Math\n\n$\\frac{$\n"), "", false); err == nil {
-		t.Fatal("invalid math rendered without an error")
+	doc, err := renderMarkdown([]byte("# Math\n\n$\\frac{<script>$\n"), "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(doc.Body)
+	for _, want := range []string{`class="math-error"`, `Math rendering error`, `\frac{&lt;script&gt;`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("body does not contain %q\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "<script>") {
+		t.Errorf("body contains unescaped expression\n%s", body)
 	}
 }
 
