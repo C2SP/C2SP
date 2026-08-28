@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"c2sp.org/C2SP/website/spec"
+	mathml "github.com/filippo-agent/goldmark-mathml"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -20,7 +21,8 @@ import (
 // markdown renders GitHub Flavored Markdown. Raw HTML is allowed: all
 // rendered content comes from the C2SP repository itself.
 var markdown = goldmark.New(
-	goldmark.WithExtensions(extension.GFM, extension.Footnote),
+	goldmark.WithExtensions(extension.GFM, extension.Footnote,
+		mathml.New(mathml.WithErrorFallback(nil))),
 	goldmark.WithRendererOptions(ghtml.WithUnsafe()),
 )
 

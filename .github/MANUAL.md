@@ -146,6 +146,53 @@ will be removed by the c2sp.org renderer.
 
 Next, a single top-level heading must be included with the title of the specification.
 
+#### Mathematical expressions
+
+Specifications may use [GitHub-style mathematical expressions]. They are
+rendered server-side to native MathML on c2sp.org.
+
+Use dollar-sign delimiters for inline expressions:
+
+```markdown
+The value $x^2 + y^2$ is non-negative.
+```
+
+If the expression contains characters that Markdown might interpret, wrap the
+expression in backticks inside the dollar signs:
+
+```markdown
+The value $`x_{*}`$ is distinguished.
+```
+
+Use double dollar signs in their own paragraph, or a `math` code fence, for a
+display expression:
+
+````markdown
+$$
+x^2 + y^2 = z^2
+$$
+
+```math
+x^2 + y^2 = z^2
+```
+````
+
+To include a literal dollar sign inside an expression, use the backtick form and
+escape the dollar sign with a backslash:
+
+```markdown
+$`\sqrt{\$4}`$
+```
+
+To include a literal dollar sign outside an expression on the same line as
+math, wrap it in a `span` element. For example:
+
+```markdown
+To split <span>$</span>100 in half, calculate $100/2$.
+```
+
+[GitHub-style mathematical expressions]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions
+
 ### GitHub permissions
 
 Each maintainer has access to approve and merge any PR to their specifications

@@ -97,4 +97,13 @@ GET https://c2sp.org/-/logo/logo.svg
 code == 200
 header content-type == image/svg+xml
 
+GET https://c2sp.org/-/math/temml.css
+code == 200
+header content-type == text/css; charset=utf-8
+body contains math.tml-display
+
+GET https://c2sp.org/-/math/Temml.woff2
+code == 200
+header content-type == font/woff2
+
 GET https://c2sp.org/-/healthz
