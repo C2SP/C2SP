@@ -111,6 +111,8 @@ the following URL:
 <CA prefix URL>/<log number>/landmarks
 ```
 
+The content type MUST be `text/plain; charset=utf-8`.
+
 [CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
