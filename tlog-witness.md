@@ -273,10 +273,10 @@ If the request is valid, the consistency proof verifies, and the checkpoint is
 validly signed by the witness, the witness MUST respond with a "200 Success"
 HTTP status code. The response body MUST be a sequence of one or more [note][]
 signature lines for the subtree, each starting with the `—` character (U+2014)
-and ending with a newline character (U+000A). The signatures SHOULD be ML-DSA-44
+and ending with a newline character (U+000A). The signatures MUST be subtree
 [cosignatures][], and SHOULD be from one or more of the same witness key(s) that
-signed the checkpoint. The cosignature format MUST support subtree cosigning. If
-the cosignature format supports timestamps, the timestamp MUST be zero.
+signed the checkpoint. The cosignature algorithm MUST support subtree cosigning.
+Note that subtree cosignatures do not incorporate a timestamp.
 
 Example response body:
 
