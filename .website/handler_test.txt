@@ -36,7 +36,7 @@ code == 200
 body contains development version
 body contains id="the-tagged-recipient-types"
 body contains FiloSottile
-body contains https://github.com/C2SP/C2SP/issues/new?title=age%3A%20
+body contains <a href="https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22age%22">issue tracker</a> (<a href="https://github.com/C2SP/C2SP/issues/new?title=age%3A%20">new issue</a>)
 
 GET https://c2sp.org/age@037e546d164a89fd7577df2c18df80bb54bd246e
 code == 200
