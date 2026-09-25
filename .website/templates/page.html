@@ -41,7 +41,7 @@
     versions:
     {{range .Spec.Versions}}<a{{if eq . $.Spec.Version}} class="current"{{end}} href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>
     {{end}}<a{{if eq .Spec.Version "main"}} class="current"{{end}} href="/{{.Spec.Name}}@main">main</a>
-    <span class="sep">·</span> <a href="{{.Spec.IssueURL}}">open an issue</a>
+    <span class="sep">·</span> <a href="{{.Spec.IssuesURL}}">issue tracker</a> (<a href="{{.Spec.IssueURL}}">new issue</a>)
     <span class="sep">·</span> <a href="{{.Spec.SourceURL}}">source</a>
   </div>
 </div>

@@ -26,7 +26,7 @@ body contains href="/foo@v1.0.0"
 body contains href="/foo@main"
 body contains https://github.com/foomaint
 body contains @foomaint2
-body contains https://github.com/C2SP/C2SP/issues/new?title=foo%3A%20
+body contains <a href="https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22foo%22">issue tracker</a> (<a href="https://github.com/C2SP/C2SP/issues/new?title=foo%3A%20">new issue</a>)
 body contains https://github.com/C2SP/C2SP/blob/foo/v2.0.0/foo.md
 body contains <h2 id="the-keyed_hash-section">
 body contains <a class="anchor" href="#the-keyed_hash-section"

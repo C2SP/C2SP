@@ -47,6 +47,7 @@ type specData struct {
 	Versions    []string // tagged versions, newest first
 	Maintainers []string
 	SourceURL   string
+	IssuesURL   string
 	IssueURL    string
 }
 
@@ -151,6 +152,7 @@ func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
 		Versions:    newestFirst,
 		Maintainers: maintainers,
 		SourceURL:   "https://github.com/C2SP/C2SP/blob/" + blobRef + "/" + name + ".md",
+		IssuesURL:   "https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22" + name + "%22",
 		// Spec names are URL-safe, and "%3A%20" is ": ".
 		IssueURL: "https://github.com/C2SP/C2SP/issues/new?title=" + name + "%3A%20",
 	}
