@@ -230,7 +230,8 @@ base64.
 Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
 
-The checkpoint SHOULD only include signatures from the witness's key(s).
+The checkpoint MUST include exactly one note signature. That signature MUST be
+from one of the witness's keys(s).
 
 Example request body:
 
@@ -271,16 +272,14 @@ with a "403 Forbidden" HTTP status code.
 
 If the request is valid, the consistency proof verifies, and the checkpoint is
 validly signed by the witness, the witness MUST respond with a "200 Success"
-HTTP status code. The response body MUST be a sequence of one or more [note][]
-signature lines for the subtree, each starting with the `—` character (U+2014)
-and ending with a newline character (U+000A). The signatures MUST be subtree
-[cosignatures][], and SHOULD be from one or more of the same witness key(s) that
-signed the checkpoint. The cosignature algorithm MUST support subtree cosigning.
-Note that subtree cosignatures do not incorporate a timestamp.
+HTTP status code. The response body MUST be a base64-encoded subtree
+[cosignature][cosignatures], followed by a newline character (U+000A). The
+subtree cosignature MUST be from the same witness key that signed the
+checkpoint. Note that subtree cosignatures do not incorporate a timestamp.
 
 Example response body:
 
-    — witness.example/w1 GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
+    GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
 
 ### Monitor Retrieval Mechanism
 

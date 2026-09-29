@@ -115,16 +115,8 @@ below, also apply.
 
 ### Subtree cosignatures
 
-A subtree cosignature is formatted as a [note signature][], returned from the
-[sign-subtree][] endpoint of a cosigner. Below is an example of a `sign-subtree`
-response body:
-
-```
-— witness.example/w1 GuvvwNqqDmhh5OoDEJyEWiNUB2F1vR[...]qRHf6aZYGsZKA==
-```
-
-In the note signature, the signature value MUST be a `subtree_cosignature`
-structure:
+A subtree cosignature is returned from the [sign-subtree][] endpoint of a
+cosigner. It MUST be a `subtree_cosignature` structure:
 
     struct {
         select (signature_algorithm) {
@@ -144,7 +136,8 @@ specified root hash is consistent with all other historical views of the log
 observed by the cosigner of the log. No statement is made about the age of the
 subtree. Any additional statements by the cosigner, described below, also apply.
 
-Subtrees currently don't have a note text representation.
+Subtrees and subtree cosignatures currently don't have a signed note
+representation.
 
 ## Cosignature algorithms
 
