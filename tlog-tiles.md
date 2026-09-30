@@ -26,12 +26,13 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 ## Parameters
 
-A tiled transparency log is defined by a URL *prefix*, a [checkpoint][] origin,
-and one or more [signed note][] public keys.
+A tiled transparency log is defined by one or more URL *prefixes*, a
+[checkpoint][] origin, and one or more [signed note][] public keys.
 
-The origin line SHOULD be the scheme-less URL prefix of the log with no trailing
-slashes. For example, a log with *prefix* `https://rome.ct.example.com/tevere/`
-will use `rome.ct.example.com/tevere` as the checkpoint origin line.
+The origin line SHOULD be one of the URL prefixes of the log, with the scheme
+removed and no trailing slashes. For example, a log with *prefix*
+`https://rome.ct.example.com/tevere/` might use `rome.ct.example.com/tevere` as
+the checkpoint origin line.
 
 ## APIs
 
@@ -43,6 +44,12 @@ HTTP GET requests, and which can be efficiently cached and compressed.
 Note that all Merkle tree cryptographic operations are as specified by RFC 6962,
 so these APIs can be thought of as an alternative encoding format for the same
 data. The hashing algorithm is defined to be SHA-256.
+
+Logs MAY provide multiple URL prefixes as alternate serving URLs. This allows a
+log to, e.g., perform maintenance on one serving instance while other serving
+instances remain active. Clients SHOULD balance fetches between configured URL
+prefixes. If fetching a resource fails, clients SHOULD try fetching the
+corresponding resource on another URL prefix.
 
 ### Checkpoints
 
