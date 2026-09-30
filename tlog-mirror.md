@@ -58,8 +58,8 @@ APIs. A mirror MAY use the same value for both the *submission prefix* and the
 
 For each supported origin log, the mirror is configured with:
 
+* The log's [checkpoint][] origin
 * The log's public key
-* The log's URL prefix
 * A minimum index to start mirroring (see below for how this is configured)
 
 The mirror maintains a copy of each origin log and serves it publicly via the
