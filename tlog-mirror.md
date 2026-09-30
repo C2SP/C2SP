@@ -73,20 +73,25 @@ prefix MUST include a [cosignature][] from the mirror.
 The mirror update process is designed to be safely interruptible, while avoiding
 large atomic operations. For each origin log, a mirror maintains the following:
 
-* A copy of the log, [pruned][pruning] to its minimum index. The latest
-  checkpoint of this log copy is known as the *mirror checkpoint*.
+* A copy of the log, [pruned][pruning] to its minimum index.
+
+* A *mirror checkpoint* representing the latest state of the log for which the
+  mirror has a full copy.
 
 * A *pending checkpoint*, which is at or ahead of the mirror checkpoint. If
   ahead of the mirror checkpoint, the pending checkpoint describes entries that
   have yet to be incorporated into the mirror.
 
-* A list of *pending entries* that have yet to be incorporated into the mirror
-  checkpoint. The mirror's *next entry* is the log index of the first entry,
-  greater or equal to the minimum index, that is not in either the log or
-  pending entry list.
+* Optionally, a list of *past pending checkpoints*.
+
+* A contiguous sequence of *pending entries* that have yet to be incorporated into the mirror
+  checkpoint.
+
+* *Next entry*: the log index of the first entry, greater or equal to the minimum index, that
+  is not in either the log or pending entry list.
 
 The update process ensures that all current and past pending checkpoints are
-consistent, and all pending entries are contained in the current pending
+consistent with previous log states, and all pending entries are contained in the current pending
 checkpoint. Thus mirrors MAY commit pending entries to the log, serving them as
 entry bundles, as soon as they are added. That is, a mirror MAY use the same
 underlying storage for entry bundles and pending entries, without distinguishing
@@ -167,8 +172,8 @@ contain the following values, concatenated.
 * `ticket_size` bytes, containing an opaque `ticket` value, described below
 * A sequence of *entry packages*, described below
 
-`upload_end` MUST be equal to the pending checkpoint's tree size, or that of a
-previously valid pending checkpoint. `ticket` is an opaque value from the
+`upload_end` MUST be equal to the tree size of the pending checkpoint or a
+past pending checkpoint. `ticket` is an opaque value from the
 mirror, or the empty string, to help the mirror recover past pending
 checkpoints.
 
@@ -223,7 +228,7 @@ The request body has unbounded size, so the client and mirror SHOULD stream it.
 
 The mirror processes the request as follows:
 
-First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
+First, the mirror reads and validates `log_origin`, `upload_start`, `upload_end`, and
 `ticket`:
 
 * If `log_origin` is not a known log, the mirror MUST respond with a
@@ -232,10 +237,10 @@ First, the mirror reads `log_origin`, `upload_start`, `upload_end`, and
 * If the mirror has never received a pending checkpoint signed by the log, the
   mirror MUST respond with a "422 Unprocessable Entity" HTTP status code.
 
-* If `upload_end` is neither a known pending checkpoint value nor the mirror
-  checkpoint's tree size, the mirror MUST respond with a "409 Conflict" HTTP
-  status code. As described below, the mirror can maintain state or use `ticket`
-  to determine known pending checkpoint values.
+* If `upload_end` is not the tree size of the pending checkpoint or a past
+  pending checkpoint, the mirror MUST respond with a "409 Conflict" HTTP status
+  code. As described below, the mirror can maintain state or use `ticket` to
+  determine past pending checkpoint values.
 
 * If `upload_end` is less than the mirror checkpoint's tree size, the mirror
   MUST respond with a "409 Conflict" HTTP status code.
@@ -251,12 +256,12 @@ The mirror SHOULD send these error responses without waiting for the entire
 request body to be available. Conversely, the client SHOULD be prepared to
 receive an error response before the request body is fully sent.
 
-If `upload_end` and `upload_start` are valid, the mirror proceeds to read and
+If the validation succeeds, the mirror proceeds to read and
 process each entry package. For each entry package, it MUST authenticate the
 entries by verifying the subtree consistency proof: First, it reconstructs the
 subtree hash based on the received entries and entries already in the log. It
-then verifies the subtree consistency proof using this hash and the checkpoint
-at `upload_end`.
+then verifies the subtree consistency proof using this hash and the pending
+checkpoint or a past pending checkpoint with tree size equal to `upload_end`.
 
 If this verification process fails, it MUST respond with a
 "422 Unprocessable Entity" HTTP status code and end processing. Otherwise, it
@@ -282,33 +287,34 @@ When sending a "409 Conflict" or "202 Accepted" response, the response body
 MUST have a `Content-Type` of `text/x.tlog.mirror-info` and consist of three
 lines, each followed by a newline (U+000A):
 
-* The tree size of a valid pending checkpoint, in decimal
-* The next entry, in decimal
+* Proposed `upload_end`, in decimal
+* Proposed `upload_start`, in decimal, equal to the mirror's next entry
 * An opaque, possibly zero length, ticket value, encoded in base64
 
-If the client's `upload_end` value was valid, the first line SHOULD contain
-`upload_end`. This allows the client to resume an interrupted upload without
-recomputing subtree consistency proofs. Otherwise, the first line SHOULD be the
-tree size of the current pending checkpoint.
+The first and second lines MUST contain values that are currently valid in a
+request. If the request's `upload_end` and the mirror's next entry would
+make a valid request, the mirror SHOULD propose those. This allows the client
+to resume an interrupted upload without recomputing subtree consistency proofs.
+Otherwise, the first line SHOULD be the tree size of the pending checkpoint and
+the second line SHOULD be the mirror's next entry.
 
-After receiving a "409 Conflict" or "202 Accepted" response, the client
-SHOULD retry setting `upload_end` to the tree size, `upload_start` to the
-advertised next entry value, and the `ticket` to the received ticket. If a
-client doesn't have information on the mirror, it MAY initially make an
-`add-checkpoint` request to obtain a pending checkpoint size and fetch a
-checkpoint from the monitoring prefix; those can become stale before the
-`add-entries` request, but are a reasonable starting point for `upload_end`
-and `upload_start`, respectively.
+After receiving a "409 Conflict" or "202 Accepted" response, the client SHOULD
+retry, setting `upload_end` and `upload_start` to the proposed values, and the
+`ticket` to the received ticket. If a client doesn't have information on the
+mirror, it MAY initially make an `add-checkpoint` request to obtain the pending
+checkpoint size and fetch the mirror checkpoint from the monitoring prefix;
+those can become stale before the `add-entries` request, but are a reasonable
+starting point for `upload_end` and `upload_start`, respectively.
 
 To reduce the chance of retry failures as the mirror state changes, mirrors
-SHOULD accept any of the last several pending checkpoint values as `upload_end`.
+SHOULD maintain a list of past pending checkpoints.
 This MAY be implemented with extra state, or by storing the signed checkpoint in
 the ticket. The mirror MUST authenticate any information it derives from a
 ticket. For example, the ticket MAY be encrypted with a symmetric secret known
 only to the mirror.
 
 Once all expected entry packages are successfully validated and committed, the
-next entry will be greater or equal to `upload_end`. The mirror then finishes
+next entry will be greater than or equal to `upload_end`. The mirror then finishes
 committing entries up to `upload_end` to the log. For example, a mirror that
 stores individual tiles might compute new tiles and start serving them.
 
@@ -318,8 +324,9 @@ checkpoint may have changed since the start of this process.
 * Check if `upload_end` is still greater than or equal to the mirror
   checkpoint's tree size.
 
-* If so, update the mirror checkpoint to the pending checkpoint of size
-  `upload_end`.
+* If so, update the mirror checkpoint to:
+    - the pending checkpoint, if it is of size `upload_end`, or
+    - a past pending checkpoint that is of size `upload_end`.
 
 If `upload_end` was too small, the mirror MUST respond with a "409 Conflict"
 HTTP status code, as described above.
@@ -329,7 +336,7 @@ Otherwise, the mirror MUST respond with a
 [witness][]'s successful `add-checkpoint` response: a sequence of one or more
 [note][] signature lines, each starting with the `—` character (U+2014) and
 ending with a newline character (U+000A). The signatures MUST be
-[cosignatures][cosignature] from the mirror key(s) on the checkpoint.
+[cosignatures][cosignature] from the mirror key(s) on the updated mirror checkpoint.
 
 Example response body:
 
@@ -339,6 +346,9 @@ Example response body:
 
 As in the witness protocol, the client MUST ignore any cosignatures from unknown
 keys. The mirror MUST persist the new checkpoint before responding.
+
+After updating the mirror checkpoint, the mirror MAY drop any past pending
+checkpoints with tree size less than the mirror checkpoint.
 
 #### Implementation Considerations
 
