@@ -52,41 +52,28 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 This section defines two related cosignature formats, one for signing
 [checkpoints][checkpoint] and one for signing [subtrees][subtree].
 
-Each type of cosignature can be formatted as a [note signature][]. Per the
-signed note format, a note signature line is
-
-    — <key name> base64(32-bit key ID || signature)
-
-The key name SHOULD be a schema-less URL that identifies the cosigner. Like the
-checkpoint origin line, this is for disambiguation, and MAY match a publicly
-reachable endpoint or not. For ecosystems that use OIDs for identification, the
-key name MAY be the string `oid/` followed by an OID in dotted decimal form.
-
-The key IDs are computed based on the cosignature algorithm, defined below.
-
 Clients are configured with tuples of (cosigner name, public key, supported
-cosignature version) and based on that they can compute the expected name and
-key ID, and ignore any signature lines that don't match the name and key ID.
+cosignature version). The cosigner name SHOULD be a schema-less URL that
+identifies the cosigner. Like checkpoint origin lines, this is for
+disambiguation, and MAY match a publicly reachable endpoint or not. For
+ecosystems that use OIDs for identification, the key name MAY be the string
+`oid/` followed by an OID in dotted decimal form.
 
-The signature value differs between checkpoint and subtree cosignatures and is
-defined below.
+The signature formats differ between checkpoint and subtree cosignatures. They
+are defined below.
 
 ### Checkpoint cosignatures
 
 A checkpoint cosignature is formatted as a [note signature][] applied to a
-[checkpoint][]. Below is an example of a checkpoint that contains a cosignature.
+[checkpoint][]. Per the signed note format, a note signature line is
 
-```
-example.com/behind-the-sofa
-20852163
-CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
+    — <key name> base64(32-bit key ID || signature)
 
-— example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
-— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
-```
+The key name MUST be the cosigner name, defined above. The key ID is computed
+based on the cosignature algorithm, defined below. Clients ignore any signature
+lines that don't match the name and key ID.
 
-In the note signature, the signature value MUST be a `checkpoint_cosignature`
-structure:
+The signature value MUST be a `checkpoint_cosignature` structure:
 
     struct {
         u64 timestamp;
@@ -112,6 +99,17 @@ cosigner of the log identified by the origin line. It is also a statement that,
 as of the specified time, this is the largest consistent tree the cosigner has
 observed for the log. Any additional statements by the cosigner, described
 below, also apply.
+
+Below is an example of a checkpoint that contains a cosignature.
+
+```
+example.com/behind-the-sofa
+20852163
+CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
+
+— example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
+— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
+```
 
 ### Subtree cosignatures
 
