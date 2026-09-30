@@ -50,11 +50,12 @@ The note text is a sequence of at least three non-empty lines, separated by
 newlines (U+000A).
 
  1. The first line is the **origin**, a unique identifier for the log identity
-    which issued the checkpoint. The origin MUST be non-empty, and it SHOULD be
-    a schema-less URL containing neither Unicode spaces nor plus (U+002B), such
-    as `example.com/log42`. This is only a recommendation to avoid collisions,
-    and clients MUST NOT assume that the origin is following this format or that
-    the URL corresponds to a reachable endpoint.
+    which issued the checkpoint. The origin MUST be non-empty and MUST be at
+    most 255 bytes long. It SHOULD be a schema-less URL containing neither
+    Unicode spaces nor plus (U+002B), such as `example.com/log42`. This is only
+    a recommendation to avoid collisions, and clients MUST NOT assume that the
+    origin is following this format or that the URL corresponds to a reachable
+    endpoint.
 
  2. The second line is the **tree size**, the ASCII decimal representation of
     the number of leaves in the tree, with no leading zeroes (unless the tree is
