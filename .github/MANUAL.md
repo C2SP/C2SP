@@ -185,6 +185,14 @@ replacement section; the linter cannot determine whether two sections have
 equivalent meaning. Links outside the checked repository corpus are not known
 to the linter, so preserving additional old anchors is encouraged.
 
+Undefined full (`[text][label]`) and collapsed (`[label][]`) references, including
+image references, and undefined footnotes (`[^label]`) are errors in the normal
+source lint, not just at release time. Definitions can appear later in the
+document. Code, math, and escaped literal brackets are not treated as references.
+An undefined shortcut reference (`[label]`) is indistinguishable from ordinary
+bracketed prose, so it is not flagged; use an explicit reference form to have
+missing definitions checked.
+
 To check a change locally, fetch main and all tags, then run:
 
 ```sh
@@ -296,20 +304,26 @@ branch.
 Merge this file to main, and a GitHub Action will create the tag
 `<spec-name>/v1.2.3` and remove the `.new-tag` file.
 
-While a `.new-tag` is present, CI also applies release-only checks to that
-specification at the recorded commit, not to its current main or to the other
-specifications at that commit. The tag-creation action repeats these checks
-before creating any tags. Existing published tags are not retroactively
-subject to new release policies; the ordinary repository-wide link checks
-still apply.
+While a `.new-tag` is present, CI runs the latest linters on that specification's
+source at the recorded commit, including the ordinary format, math, reference,
+and link checks. It uses the current linter code, not code from the historical
+commit, and does not run source lints on the other specifications at that commit.
+The tag-creation action repeats these checks before creating any tags. Existing
+published tags are not retroactively subject to new source-lint rules; the
+ordinary repository-wide link graph checks still apply.
 
 A proposed release, including a prerelease or v0.x version, must not link to
-another specification's `@main`, or to its own `@main`. Use a released version
-for dependencies and a local `#fragment` for links within the released document.
-Bare and `@latest` links to untagged specifications also fail, since they
-implicitly select main. This check considers all pending tags together, so
-dependencies can be released together. Bare and `@latest` links to tagged
-specifications remain allowed, subject to the ordinary section-link checks.
+another specification's explicit `@main`, or to its own explicit `@main`. Use a
+bare spec URL or a released version for dependencies, and a local `#fragment` for
+links within the released document. Bare and `@latest` links remain allowed even
+when they implicitly select main: untagged dependencies have no released version
+to reference. The ordinary destination and section checks still apply.
+
+Release-only checks also reject the unfinished-content markers `TODO`, `TK`,
+`TBD`, and `FIXME`. These are matched as exact uppercase words throughout the
+selected source, including comments and code, not as substrings of identifiers.
+They remain allowed during ordinary development. Unchecked task-list items are
+allowed, including in releases.
 
 ### Announcements
 

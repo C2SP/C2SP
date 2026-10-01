@@ -176,6 +176,15 @@ Run the same check before the tag-creation action pushes any tags, so tagging an
 older commit cannot bypass the check. Proposed tags must not make a currently
 nonexistent pinned link pass the current-resolution check.
 
+Run current source linters on each selected spec blob as well, using the same
+implementation as ordinary main-branch linting, not historical linter code.
+Undefined full/collapsed Markdown references and footnotes are ordinary source
+lints; ambiguous shortcut references are left alone. Only proposed releases
+add prohibitions on explicit `@main` links and uppercase whole-word
+`TODO`/`TK`/`TBD`/`FIXME` markers. Bare and `@latest` links to untagged dependencies
+are allowed, since no released version exists to reference. Task lists are
+allowed. Existing tags are not retroactively subjected to new source rules.
+
 ## Acceptance tests
 
 Use temporary Git repositories with real tags and a base/candidate pair:

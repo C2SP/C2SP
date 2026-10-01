@@ -43,6 +43,14 @@ func (s *snapshot) walk() error {
 					message: problem.Message, phase: s.phase,
 				})
 			}
+			// Project-document references are checked on main without requiring
+			// a spec's front matter. Specifications use the shared source lints.
+			for _, problem := range src.record.references {
+				s.failures = append(s.failures, &failure{
+					source: src, line: problem.Line, key: "reference:" + problem.Message,
+					message: problem.Message, phase: s.phase,
+				})
+			}
 			for _, link := range src.record.doc.Links {
 				target, err := spec.ParseLink(link.Destination, src.public)
 				if err != nil {

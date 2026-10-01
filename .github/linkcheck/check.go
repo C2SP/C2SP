@@ -26,8 +26,9 @@ type Diagnostic struct {
 }
 
 type record struct {
-	data []byte
-	doc  *document.Document
+	data       []byte
+	doc        *document.Document
+	references []document.Problem
 }
 
 type source struct {
@@ -165,6 +166,12 @@ func (s *snapshot) load(p, version, ref, public string) (*source, error) {
 			return nil, fmt.Errorf("render %s at %s: %w", p, version, err)
 		}
 		rec = &record{data: data, doc: doc}
+		if name == "" {
+			// Project documents have no spec-format checks. For specifications,
+			// speclint runs current source lints on main and proposed releases,
+			// without retroactively imposing them on existing immutable tags.
+			rec.references = document.UndefinedReferences(data)
+		}
 		s.repo.cache[cacheKey] = rec
 	}
 	src := &source{path: p, version: version, ref: ref, public: public, record: rec}
@@ -260,10 +267,10 @@ func analyze(r *repository, ref, tip string, tags map[string]string, checkPropos
 			}
 			releases = append(releases, release)
 		}
-		// Evaluate release policy against the complete proposed inventory, so
-		// bare/latest dependencies can be released together, in any name order.
+		// Apply the current linters to only the selected release blobs. The
+		// graph walk below still checks the complete proposed inventory.
 		for _, release := range releases {
-			virtual.failures = append(virtual.failures, virtual.lintRelease(release)...)
+			virtual.failures = append(virtual.failures, lintRelease(release)...)
 		}
 		if err := virtual.walk(); err != nil {
 			return nil, err

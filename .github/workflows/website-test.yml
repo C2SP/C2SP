@@ -5,11 +5,13 @@ on:
       - .website/**
       - .github/lint/**
       - .github/linkcheck/**
+      - .github/speclint/**
   pull_request:
     paths:
       - .website/**
       - .github/lint/**
       - .github/linkcheck/**
+      - .github/speclint/**
 jobs:
   test:
     runs-on: ubuntu-latest

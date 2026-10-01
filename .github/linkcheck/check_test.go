@@ -1,6 +1,7 @@
 package linkcheck
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,8 +10,9 @@ import (
 )
 
 type testRepo struct {
-	t    *testing.T
-	root string
+	t           *testing.T
+	root        string
+	formatSpecs bool
 }
 
 func newRepo(t *testing.T) *testRepo {
@@ -20,6 +22,23 @@ func newRepo(t *testing.T) *testRepo {
 	r.git("config", "user.email", "test@example.com")
 	r.git("config", "user.name", "Test")
 	return r
+}
+
+// Release fixtures must satisfy the current format lints as well as link checks.
+// Ordinary graph tests deliberately keep their small source/line-number fixtures.
+func newReleaseRepo(t *testing.T) *testRepo {
+	r := newRepo(t)
+	r.formatSpecs = true
+	return r
+}
+
+const specPreambleLines = 8
+
+func testSpec(name, body string) string {
+	return fmt.Sprintf("---\ndescription: Test spec\n---\n\n"+
+		"> [!WARNING]\n> This is the editor's copy of this specification.\n"+
+		"> For a stable rendered reference, use [c2sp.org/%s](https://c2sp.org/%s).\n\n%s",
+		name, name, body)
 }
 
 func (r *testRepo) git(args ...string) string {
@@ -34,6 +53,10 @@ func (r *testRepo) git(args ...string) string {
 
 func (r *testRepo) write(p, data string) {
 	r.t.Helper()
+	if r.formatSpecs && strings.HasSuffix(p, ".md") && !strings.Contains(p, "/") &&
+		!strings.HasPrefix(data, "---\n") {
+		data = testSpec(strings.TrimSuffix(p, ".md"), data)
+	}
 	p = filepath.Join(r.root, filepath.FromSlash(p))
 	if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
 		r.t.Fatal(err)
@@ -282,7 +305,7 @@ func TestCommitSnapshotOutgoingLinks(t *testing.T) {
 }
 
 func TestProposalsCannotRepairCurrentLinks(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n\n## New\n")
 	old := r.commit()
 	r.write("producer/.new-tag", "v1.0.0\n"+old+"\n")
@@ -298,7 +321,7 @@ func TestProposalsCannotRepairCurrentLinks(t *testing.T) {
 }
 
 func TestProposedOldCommitChangesLatest(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n\n## Old\n")
 	old := r.commit()
 	r.write("producer.md", "# Producer\n\n## New\n")
@@ -316,7 +339,7 @@ func TestProposedOldCommitChangesLatest(t *testing.T) {
 }
 
 func TestProposedOldCommitOutgoingLinks(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n\n[broken](https://c2sp.org/missing@main)\n")
 	old := r.commit()
 	r.write("producer.md", "# Producer\n")
@@ -326,7 +349,7 @@ func TestProposedOldCommitOutgoingLinks(t *testing.T) {
 }
 
 func TestInvalidProposals(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	commit := r.commit()
 	for _, data := range []string{
@@ -342,7 +365,7 @@ func TestInvalidProposals(t *testing.T) {
 }
 
 func TestProposalUnreachableCommit(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	main := r.commit()
 	r.git("checkout", "-qb", "side")
@@ -354,7 +377,7 @@ func TestProposalUnreachableCommit(t *testing.T) {
 }
 
 func TestProposalMissingFile(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	old := r.commit()
 	r.write("missing/.new-tag", "v1.0.0\n"+old+"\n")
@@ -368,7 +391,7 @@ func TestProposalMissingFile(t *testing.T) {
 }
 
 func TestCommittedProposalIsNotGrandfathered(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n\n## Old\n")
 	old := r.commit()
 	r.write("producer.md", "# Producer\n\n## New\n")
@@ -387,7 +410,7 @@ func TestCommittedProposalIsNotGrandfathered(t *testing.T) {
 }
 
 func TestCommittedInvalidProposalIsNotGrandfathered(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	r.write("producer/.new-tag", "v1.0.0\nbad-commit\n")
 	r.commit()
@@ -395,7 +418,7 @@ func TestCommittedInvalidProposalIsNotGrandfathered(t *testing.T) {
 }
 
 func TestProposalDoesNotDuplicateCurrentDebt(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	commit := r.commit()
 	r.write("consumer.md", "# Consumer\n\n[broken](https://c2sp.org/producer#typo)\n")
@@ -612,7 +635,7 @@ func TestNonRegularWorkingTreeSourceRejected(t *testing.T) {
 }
 
 func TestProposalSourceSymlinkRejected(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	commit := r.commit()
 	target := filepath.Join(t.TempDir(), "proposal")
@@ -632,7 +655,7 @@ func TestProposalSourceSymlinkRejected(t *testing.T) {
 }
 
 func TestTrackedProposalSymlinkDirectoryRejected(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n")
 	commit := r.commit()
 	r.write("producer/.new-tag", "v1.0.0\n"+commit+"\n")
@@ -651,7 +674,7 @@ func TestTrackedProposalSymlinkDirectoryRejected(t *testing.T) {
 }
 
 func TestProposalThroughTrackedSymlinkToHiddenDirectoryRejected(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer.md", "# Producer\n\n[broken](https://c2sp.org/missing@main)\n")
 	old := r.commit()
 	r.write("producer.md", "# Producer\n")
@@ -676,7 +699,7 @@ func TestProposalThroughTrackedSymlinkToHiddenDirectoryRejected(t *testing.T) {
 }
 
 func TestProposalPathsAreRootRelative(t *testing.T) {
-	r := newRepo(t)
+	r := newReleaseRepo(t)
 	r.write("producer/.new-tag", "proposal contents are not read\n")
 	r.write("consumer/.new-tag", "proposal contents are not read\n")
 	r.write(".github/nested/.new-tag", "not a creator proposal\n")
