@@ -45,11 +45,12 @@ Note that all Merkle tree cryptographic operations are as specified by RFC 6962,
 so these APIs can be thought of as an alternative encoding format for the same
 data. The hashing algorithm is defined to be SHA-256.
 
-Logs MAY provide multiple URL prefixes as alternate serving URLs. This allows a
-log to, e.g., perform maintenance on one serving instance while other serving
-instances remain active. Clients SHOULD balance fetches between configured URL
-prefixes. If fetching a resource fails, clients SHOULD try fetching the
-corresponding resource on another URL prefix.
+The resources defined in this document MUST NOT serve redirect responses.
+Instead, logs MAY provide multiple URL prefixes as alternate serving URLs. This
+allows a log to, e.g., perform maintenance on one serving instance while other
+serving instances remain online. Clients SHOULD balance fetches between
+configured URL prefixes. If fetching a resource fails, clients SHOULD try
+fetching the corresponding resource on another URL prefix.
 
 ### Checkpoints
 
