@@ -54,7 +54,8 @@ body contains development version
 GET https://c2sp.org/tlog-witness@v0.1.0
 code == 200
 body contains <a class="current" href="/tlog-witness@v0.1.0">v0.1.0</a>
-body !contains class="notice"
+body contains <div class="notice">This is an older version of this specification; the latest
+body contains release is <a href="/tlog-witness@
 
 GET https://c2sp.org/static-ct-api@v1.0.0-rc.1
 code == 200
