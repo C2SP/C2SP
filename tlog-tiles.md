@@ -175,7 +175,7 @@ In some log applications, such as [Certificate Transparency][], entries expire
 and are replaced with renewed versions. As this happens, the total size of the
 log grows, even if the unexpired subset remains fixed. To mitigate this, this
 section defines procedures to *prune* a log. Pruning makes some prefix of the
-log unavailable, without changing the tree structure.
+log unavailable, without changing entry indices or Merkle Tree hashes.
 
 Logs maintain a *minimum index* value. The minimum index is a lower bound on
 log entry indices that the log publishes. It MUST be less than or equal to the
@@ -212,7 +212,7 @@ Tiles and bundles necessary to obtain other entries, root hashes, or proofs may
 not be available.
 
 Pruning is similar to the practice of [temporal sharding][] of logs, except it
-does not change the structure of the tree or the identity of the log. This means
+preserves entry indices, hash calculations, and log identity. This means
 all existing proofs remain valid, and existing log clients remain compatible
 with the pruned log.
 
