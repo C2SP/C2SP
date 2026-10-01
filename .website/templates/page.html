@@ -49,6 +49,9 @@
 <div class="notice">This is the development version of this specification,
 rendered from the tip of the main branch{{with .Spec.Latest}}; the latest
 release is <a href="/{{$.Spec.Name}}@{{.}}">{{.}}</a>{{end}}.</div>
+{{else if eq .Spec.Notice "outdated"}}
+<div class="notice">This is an older version of this specification; the latest
+release is <a href="/{{.Spec.Name}}@{{.Spec.Latest}}">{{.Spec.Latest}}</a>.</div>
 {{else if eq .Spec.Notice "snapshot"}}
 <div class="notice">This is a historical snapshot of this specification at
 commit <code>{{.Spec.Version}}</code>{{with .Spec.Latest}}; the latest
