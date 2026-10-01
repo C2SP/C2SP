@@ -159,7 +159,7 @@ supported log:
 The request body MUST have `Content-Type` of `application/octet-stream` and
 contain the following values, concatenated.
 
-* 2 bytes, encoding a big-endian uint16: `log_origin_size`
+* 1 byte, encoding a uint8: `log_origin_size`
 * `log_origin_size` bytes, containing the log origin: `log_origin`
 * 8 bytes, encoding a big-endian uint64: `upload_start`
 * 8 bytes, encoding a big-endian uint64: `upload_end`
