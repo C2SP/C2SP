@@ -70,7 +70,7 @@ A checkpoint cosignature is formatted as a [note signature][] applied to a
     — <key name> base64(32-bit key ID || signature)
 
 The key name MUST be the cosigner name, defined above. The key ID is computed
-based on the cosignature algorithm, defined below. Clients ignore any signature
+based on the cosignature algorithm, defined below. Clients MUST ignore any signature
 lines that don't match the name and key ID.
 
 The signature value MUST be a `checkpoint_cosignature` structure:
@@ -145,7 +145,7 @@ based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments.
 Unlike the Ed25519 algorithm, the ML-DSA-44 algorithm is secure against quantum
 computers. Moreover, it commits to the cosigner's name, and supports signing
 [subtrees][subtree] in addition to [checkpoints][checkpoint]. The ML-DSA-44
-parameter set was selected because at NIST Level 2 it provides some margin
+parameter set was selected because, at NIST Level 2, it provides some margin
 beyond the 128-bit security level.
 
 The following sections define the algorithms, including how to format their keys
