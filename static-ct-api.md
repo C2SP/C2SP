@@ -23,7 +23,7 @@ developed alongside the [Sunlight](https://sunlight.dev) CT log implementation.
 ## Conventions used in this document
 
 Data structures are defined according to the conventions laid out in Section 3
-of [RFC 8446][], and with references to structures defined in [RFC 6962][].
+of [RFC 9846][], and with references to structures defined in [RFC 6962][].
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
@@ -34,7 +34,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 8174][] when, and only when, they appear in all capitals, as shown here.
 
-[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
+[RFC 9846]: https://www.rfc-editor.org/rfc/rfc9846.html
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
@@ -103,7 +103,7 @@ verified.
 
 The `CtExtensions` type (opaque in RFC 6962) MUST be a list of zero or more
 `CtExtension`s. `CtExtension` is similar to the `Extension` structure in
-[RFC 8446][], but with a one-byte `CtExtensionType`. The order of extensions in
+[RFC 9846][], but with a one-byte `CtExtensionType`. The order of extensions in
 an extensions field is arbitrary and MUST be ignored. Duplicate extensions with
 the same `CExtensionType` MUST NOT be included in the same extensions field.
 
