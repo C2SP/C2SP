@@ -20,8 +20,6 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 — example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
 ```
 
-[signed note]: https://c2sp.org/signed-note@v1.0.0
-
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
@@ -46,8 +44,8 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 ## Note text
 
-The note text is a sequence of at least three non-empty lines, separated by
-newlines (U+000A).
+The note text of a checkpoint is a sequence of at least three non-empty lines,
+separated by newlines (U+000A).
 
  1. The first line is the **origin**, a unique identifier for the log identity
     which issued the checkpoint. The origin MUST be non-empty and MUST be at
@@ -70,6 +68,9 @@ newlines (U+000A).
 
 ## Signatures
 
+Adhering to the [signed note][] specification, an empty line separates the note
+text from its signatures.
+
 A log MUST not sign any checkpoint which is inconsistent with any checkpoint it
 previously signed. Two checkpoints are inconsistent if a consistency proof can't
 be constructed from one to the other.
@@ -85,7 +86,8 @@ There MAY be multiple signature lines with the same key name. However,
 there MUST NOT be multiple signature lines with both the same key
 name and the same key id.
 
-According to the note specification, clients MUST ignore unknown signatures.
-This enables, for example, log key rotation, and witness cosigning.
+According to the [signed note][] specification, clients MUST ignore unknown
+signatures. This enables, for example, log key rotation, and witness cosigning.
 
 [cosignatures]: https://c2sp.org/tlog-cosignature
+[signed note]: https://c2sp.org/signed-note@v1.0.0
