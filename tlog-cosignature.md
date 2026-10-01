@@ -93,7 +93,7 @@ ML-DSA-44 public keys MAY be encoded as [vkeys][] with signature type 0x06 and t
 Future cosignature formats MAY reuse the same cosigner public key with a
 different key ID algorithm byte (and a different newline-terminated prefix).
 
-The signature MUST be a `timestamped_signature` structure.
+The signature MUST be a `TimestampedSignature` structure.
 
     struct {
         u64 timestamp;
@@ -101,7 +101,7 @@ The signature MUST be a `timestamped_signature` structure.
             case ed25519: opaque ed25519_signature[64];
             case ml-dsa-44: opaque ml_dsa_44_signature[2420];
         } signature;
-    } timestamped_signature;
+    } TimestampedSignature;
 
 `timestamp` is the time at which the cosignature was generated, as a POSIX
 timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
@@ -123,7 +123,7 @@ The header line MUST be the fixed string `cosignature/v1`, and provides domain
 separation.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
-`timestamped_signature.timestamp` encoded as an ASCII decimal with no leading
+`TimestampedSignature.timestamp` encoded as an ASCII decimal with no leading
 zeroes.
 
     cosignature/v1
@@ -150,7 +150,7 @@ so the same public key can't be used across multiple cosigners.
 
 ## ML-DSA-44 signed message
 
-The signed message MUST be a `cosigned_message` structure.
+The signed message MUST be a `CosignedSubtree` structure.
 
     struct {
         uint8 label[12] = "subtree/v1\n\0";
@@ -160,11 +160,11 @@ The signed message MUST be a `cosigned_message` structure.
         uint64 start;
         uint64 end;
         uint8 hash[32];
-    } cosigned_message;
+    } CosignedSubtree;
 
 `cosigner_name` is the cosigner name.
 
-`timestamp` is `timestamped_signature.timestamp`. These two values MAY be zero
+`timestamp` is `TimestampedSignature.timestamp`. These two values MAY be zero
 if the cosigner doesn't make any statement as to the tree being the largest
 observed at time of signing. If `start` is not zero, these values MUST be zero.
 
