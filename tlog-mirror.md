@@ -19,13 +19,16 @@ signatures asserting that a mirror has done so.
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [retention policy]: https://c2sp.org/tlog-tiles#retention-policies
 [witness]: https://c2sp.org/tlog-witness
-[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtrees
-[subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtree-consistency-proofs
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
+[subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtree-consistency-proofs
+[additional statement]: https://c2sp.org/tlog-cosignature@main#additional-statements
 
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
-in [RFC 4648][], Section 4.
+in [RFC 4648][], Section 4, with `=` padding. Encoders MUST generate
+canonical base64 according to RFC 4648, Section 3.5, and decoders MUST reject
+non-canonical encodings.
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
@@ -48,25 +51,24 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 ## Introduction
 
 A mirror is a [cosigner][] that stores a copy of a log. A mirror's
-[cosignature][] makes the additional statement that the mirror has
+[cosignature][] makes the [additional statement][] that the mirror has
 durably logged the contents of the [checkpoint][] and made them accessible.
 
-A mirror is defined by a name, a public key, and by two URL prefixes:
-the *submission prefix* for write APIs and the *monitoring prefix* for read
-APIs. A mirror MAY use the same value for both the *submission prefix* and the
-*monitoring prefix*.
+A mirror is defined by a name, a public key, a *submission prefix* for write
+APIs, and one or more *monitoring prefixes* for read APIs. A mirror MAY use the
+same value for both the *submission prefix* and one of its *monitoring prefix*.
 
 For each supported origin log, the mirror is configured with:
 
+* The log's [checkpoint][] origin
 * The log's public key
-* The log's URL prefix
 * A minimum index to start mirroring (see below for how this is configured)
 
 The mirror maintains a copy of each origin log and serves it publicly via the
-[tiled transparency log][] interface. It uses a URL prefix of
-`<monitoring prefix>/<origin hash>`, where `origin hash` is the SHA-256 hash of
-the log's origin, hex encoded, in lowercase. The checkpoint served from this
-prefix MUST include a [cosignature][] from the mirror.
+[tiled transparency log][] interface. For each monitoring prefix, this copy has
+a URL prefix of `<monitoring prefix>/<origin hash>`, where `origin hash` is the
+SHA-256 hash of the log's origin, hex encoded, in lowercase. The checkpoint
+served from this prefix MUST include a [cosignature][] from the mirror.
 
 ## Updating a Mirror
 
@@ -159,7 +161,7 @@ supported log:
 The request body MUST have `Content-Type` of `application/octet-stream` and
 contain the following values, concatenated.
 
-* 2 bytes, encoding a big-endian uint16: `log_origin_size`
+* 1 byte, encoding a uint8: `log_origin_size`
 * `log_origin_size` bytes, containing the log origin: `log_origin`
 * 8 bytes, encoding a big-endian uint64: `upload_start`
 * 8 bytes, encoding a big-endian uint64: `upload_end`
@@ -296,7 +298,7 @@ SHOULD retry setting `upload_end` to the tree size, `upload_start` to the
 advertised next entry value, and the `ticket` to the received ticket. If a
 client doesn't have information on the mirror, it MAY initially make an
 `add-checkpoint` request to obtain a pending checkpoint size and fetch a
-checkpoint from the monitoring prefix; those can become stale before the
+checkpoint from a monitoring prefix; those can become stale before the
 `add-entries` request, but are a reasonable starting point for `upload_end`
 and `upload_start`, respectively.
 

@@ -11,7 +11,7 @@ description: A profile of Merkle Tree Certificates (MTCs) that uses tiled transp
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
-[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html
+[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html
 [tiled transparency logs]: https://c2sp.org/tlog-tiles
 
 ## Conventions used in this document
@@ -28,23 +28,25 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][]
 ## Parameters
 
 An MTC CA following this profile has, in addition to [CA parameters][] defined
-in the MTC specification, a *CA prefix URL*. The CA prefix URL determines the
-serving URL for each issuance URL, as described below.
+in the MTC specification, one or more *CA prefix URLs*. Each CA prefix URL
+determines a set of serving URLs for the CA's issuance logs, as described below.
 
 When such a CA is [represented as an X.509 certificate][], the certificate has a
-non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.1 and syntax an
-IA5String, as defined below. The IA5String's contents are the CA prefix URL.
-Presence of this extension indicates that the certificate subject follows this
-specification.
+non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.2 and syntax a
+SEQUENCE OF IA5String, as defined below. Each IA5String's contents are one of
+the CA prefix URLs. Presence of this extension indicates that the certificate
+subject follows this specification.
 
 ``` asn.1
-id-mtcTlogPrefixURL OBJECT IDENTIFIER ::= {
+id-mtcTlogPrefixURLs OBJECT IDENTIFIER ::= {
     iso(1) org(3) dod(6) internet(1) private(4) enterprise(1) C2SP(64829)
-    mtc-tlog(2) 1 }
+    mtc-tlog(2) 2 }
 
-ext-mtcTlogPrefixURL EXTENSION ::= {
-    SYNTAX IA5String
-    IDENTIFIED BY id-mtcTlogPrefixURL
+MTCTlogPrefixURLs ::= SEQUENCE SIZE (1..MAX) OF IA5String
+
+ext-mtcTlogPrefixURLs EXTENSION ::= {
+    SYNTAX MTCTlogPrefixURLs
+    IDENTIFIED BY id-mtcTlogPrefixURLs
     CRITICALITY FALSE
 }
 ```
@@ -53,8 +55,8 @@ ext-mtcTlogPrefixURL EXTENSION ::= {
 with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
 algorithm.
 
-[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authorities
-[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-representing-certification-
+[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
@@ -73,17 +75,17 @@ This is equivalent to the concatenation of:
 For example, the trust anchor ID `32473.1` is represented as
 `oid/1.3.6.1.4.1.32473.1`.
 
-[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-04.html#name-trust-anchor-identifiers
+[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html#name-trust-anchor-identifiers
 [checkpoint]: https://c2sp.org/tlog-checkpoint
-[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-04.html
+[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html
 [witness]: https://c2sp.org/tlog-witness
 
 ## Serving Issuance Logs
 
 MTC CAs following this profile MUST serve issuance logs as
-[tiled transparency logs][]. Each log's [prefix URL][] is the concatenation of
-the CA prefix URL and the log number, encoded as an ASCII decimal integer with
-no additional leading zeros:
+[tiled transparency logs][]. Each log's [prefix URLs][] are determined by
+concatenating the log number, encoded as an ASCII decimal integer with no
+additional leading zeros, to each CA prefix URL:
 
 ```
 <CA prefix URL>/<log number>
@@ -102,10 +104,10 @@ additional cosignatures, including ones from cosigners that are not
 
 Relying parties SHOULD set restrictions on [pruning][], such as requiring
 that the log's minimum index be at most the minimum trusted index in
-up-to-date copies of the relying party's trust anchors
+up-to-date copies of the relying party's trust anchors.
 
-An issuance log with a landmark sequence MUST [publish active landmarks][] at
-the following URL:
+For each CA prefix URL, an issuance log with a landmark sequence MUST
+[publish active landmarks][] at the following URL:
 
 ```
 <CA prefix URL>/<log number>/landmarks
@@ -113,13 +115,23 @@ the following URL:
 
 The content type MUST be `text/plain; charset=utf-8`.
 
-[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
-[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
-[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
+Most deployments obtain landmark-relative certificates directly from the CA.
+Alternatively, a party holding a [standalone certificate][standalone certificates]
+can construct the corresponding [landmark-relative certificate][] by following
+the generic [construction procedure][constructing landmark-relative]. The
+landmark sequence is available at the URL above, and the required inclusion
+proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles].
+
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+[merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
+[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authority-cos
+[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-issuance-logs
+[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
-[prefix URL]: https://c2sp.org/tlog-tiles#parameters
+[prefix URLs]: https://c2sp.org/tlog-tiles#parameters
 [pruning]: https://c2sp.org/tlog-tiles#pruning
-[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-publishing-landmarks
+[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
 
 ## Cosigners
@@ -151,6 +163,6 @@ configured to accept the next few unused log numbers.
 
 [mirror]: https://c2sp.org/tlog-mirror
 [ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
-[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-signature-format
+[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
-[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-standalone-certificates
+[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates

@@ -27,7 +27,9 @@ ed è subito sera.
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
-in [RFC 4648][], Section 4. The hex encoding of a positive integer is the fixed
+in [RFC 4648][], Section 4, with `=` padding. Encoders MUST generate
+canonical base64 according to RFC 4648, Section 3.5, and decoders MUST reject
+non-canonical encodings. The hex encoding of a positive integer is the fixed
 length lowercase Base 16 encoding of its zero-padded big endian representation.
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be

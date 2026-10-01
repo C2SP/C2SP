@@ -25,7 +25,7 @@ cosignatures in one or both of these formats.
 ## Conventions used in this document
 
 Data structures are defined according to the conventions laid out in Section 3
-of [RFC 8446][].
+of [RFC 9846][].
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
@@ -39,7 +39,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 8174][] when, and only when, they appear in all capitals, as shown here.
 
-[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
+[RFC 9846]: https://www.rfc-editor.org/rfc/rfc9846.html
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
@@ -73,7 +73,7 @@ The key name MUST be the cosigner name, defined above. The key ID is computed
 based on the cosignature algorithm, defined below. Clients MUST ignore any signature
 lines that don't match the name and key ID.
 
-The signature value MUST be a `checkpoint_cosignature` structure:
+The signature value MUST be a `CheckpointCosignature` structure:
 
     struct {
         u64 timestamp;
@@ -81,7 +81,7 @@ The signature value MUST be a `checkpoint_cosignature` structure:
             case ed25519: opaque ed25519_signature[64];
             case ml-dsa-44: opaque ml_dsa_44_signature[2420];
         } signature;
-    } checkpoint_cosignature;
+    } CheckpointCosignature;
 
 `timestamp` is the time at which the cosignature was generated, as a POSIX
 timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
@@ -90,7 +90,7 @@ with timestamps in the future.
 `signature` is an Ed25519 ([RFC 8032][]) or ML-DSA-44 ([FIPS 204][]) signature
 from the cosigner public key over the message defined below.
 
-Per [RFC 8446][], Section 3.3, these are serialized in sequence, with the
+Per [RFC 9846][], Section 3.3, these are serialized in sequence, with the
 timestamp encoded in big-endian order.
 
 Semantically, a checkpoint cosignature is a statement that the specified
@@ -113,15 +113,15 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
 ### Subtree cosignatures
 
-A subtree cosignature is a `subtree_cosignature` structure, defined below:
+A subtree cosignature is a `SubtreeCosignature` structure, defined below:
 
     struct {
         select (signature_algorithm) {
             case ml-dsa-44: opaque ml_dsa_44_signature[2420];
         } signature;
-    } subtree_cosignature;
+    } SubtreeCosignature;
 
-Unlike a `checkpoint_cosignature`, defined above, there is no `timestamp` field.
+Unlike a `CheckpointCosignature`, defined above, there is no `timestamp` field.
 Additionally, Ed25519 is not supported.
 
 `signature` is an ML-DSA-44 ([FIPS 204][]) signature from the cosigner public
@@ -173,7 +173,7 @@ The header line MUST be the fixed string `cosignature/v1`, and provides domain
 separation.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
-`timestamped_signature.timestamp` encoded as an ASCII decimal with no leading
+`CheckpointCosignature.timestamp` encoded as an ASCII decimal with no leading
 zeroes.
 
     cosignature/v1
@@ -207,7 +207,7 @@ In a [note signature][], the key ID MUST be computed as
 ML-DSA-44 cosigners can generate both checkpoint cosignatures and subtree
 cosignatures.
 
-In both cases, the signed message MUST be a `cosigned_message` structure.
+In both cases, the signed message MUST be a `CosignedSubtree` structure.
 
     struct {
         uint8 label[12] = "subtree/v1\n\0";
@@ -217,11 +217,11 @@ In both cases, the signed message MUST be a `cosigned_message` structure.
         uint64 start;
         uint64 end;
         uint8 hash[32];
-    } cosigned_message;
+    } CosignedSubtree;
 
 `cosigner_name` is the cosigner name.
 
-`timestamp` is `timestamped_signature.timestamp` if signing a [checkpoint][] and
+`timestamp` is `CheckpointCosignature.timestamp` if signing a [checkpoint][] and
 zero if signing a [subtree][].
 
 `log_origin` is the log's origin, as represented in a checkpoint's origin line
@@ -260,5 +260,4 @@ key associations in the log leaves".  See [tlog-mirror][] for an example.
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror
 [FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
-[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-05.html#name-subtrees
-[sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees

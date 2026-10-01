@@ -36,7 +36,7 @@ code == 200
 body contains development version
 body contains id="the-tagged-recipient-types"
 body contains FiloSottile
-body contains https://github.com/C2SP/C2SP/issues/new?title=age%3A%20
+body contains <a href="https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22age%22">issue tracker</a> (<a href="https://github.com/C2SP/C2SP/issues/new?title=age%3A%20">new issue</a>)
 
 GET https://c2sp.org/age@037e546d164a89fd7577df2c18df80bb54bd246e
 code == 200
@@ -54,7 +54,8 @@ body contains development version
 GET https://c2sp.org/tlog-witness@v0.1.0
 code == 200
 body contains <a class="current" href="/tlog-witness@v0.1.0">v0.1.0</a>
-body !contains class="notice"
+body contains <div class="notice">This is an older version of this specification; the latest
+body contains release is <a href="/tlog-witness@
 
 GET https://c2sp.org/static-ct-api@v1.0.0-rc.1
 code == 200

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"c2sp.org/C2SP/website/spec"
+	"golang.org/x/mod/semver"
 )
 
 //go:embed templates
@@ -42,11 +43,12 @@ type specData struct {
 	Name        string
 	Version     string   // "v1.0.0", "main", or a commit hash
 	Date        string   // committer date of the rendered version
-	Notice      string   // "", "development", or "snapshot"
+	Notice      string   // "", "development", "outdated", or "snapshot"
 	Latest      string   // latest release, shown in the notice
 	Versions    []string // tagged versions, newest first
 	Maintainers []string
 	SourceURL   string
+	IssuesURL   string
 	IssueURL    string
 }
 
@@ -101,6 +103,9 @@ func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
 		notice = "development"
 	case slices.Contains(versions, vers):
 		ref, blobRef = name+"/"+vers, name+"/"+vers
+		if semver.Compare(vers, latest) < 0 {
+			notice = "outdated"
+		}
 	case s.repo.IsCommit(vers):
 		ref, blobRef = vers, vers
 		notice = "snapshot"
@@ -151,6 +156,7 @@ func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
 		Versions:    newestFirst,
 		Maintainers: maintainers,
 		SourceURL:   "https://github.com/C2SP/C2SP/blob/" + blobRef + "/" + name + ".md",
+		IssuesURL:   "https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22" + name + "%22",
 		// Spec names are URL-safe, and "%3A%20" is ": ".
 		IssueURL: "https://github.com/C2SP/C2SP/issues/new?title=" + name + "%3A%20",
 	}

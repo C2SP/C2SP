@@ -13,6 +13,7 @@ redirect == /foo@v2.0.0
 GET https://c2sp.org/foo@latest
 code == 200
 body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
+body !contains class="notice"
 
 # foo: explicit versions, including legacy ones without front matter
 
@@ -26,7 +27,7 @@ body contains href="/foo@v1.0.0"
 body contains href="/foo@main"
 body contains https://github.com/foomaint
 body contains @foomaint2
-body contains https://github.com/C2SP/C2SP/issues/new?title=foo%3A%20
+body contains <a href="https://github.com/C2SP/C2SP/issues?q=in%3Atitle%20%22foo%22">issue tracker</a> (<a href="https://github.com/C2SP/C2SP/issues/new?title=foo%3A%20">new issue</a>)
 body contains https://github.com/C2SP/C2SP/blob/foo/v2.0.0/foo.md
 body contains <h2 id="the-keyed_hash-section">
 body contains <a class="anchor" href="#the-keyed_hash-section"
@@ -68,15 +69,20 @@ body contains # Test Code of Conduct
 GET https://c2sp.org/foo@v0.0.1
 code == 200
 body contains foo content 1
-body contains href="/foo@v2.0.0"
+body contains <div class="notice">This is an older version of this specification; the latest
+body contains release is <a href="/foo@v2.0.0">v2.0.0</a>.</div>
 
 GET https://c2sp.org/foo@v1.0.0
 code == 200
 body contains foo content 2
+body contains <div class="notice">This is an older version of this specification; the latest
+body contains release is <a href="/foo@v2.0.0">v2.0.0</a>.</div>
 
 GET https://c2sp.org/foo@v1.0.1-pre.1
 code == 200
 body contains foo content 3
+body contains <div class="notice">This is an older version of this specification; the latest
+body contains release is <a href="/foo@v2.0.0">v2.0.0</a>.</div>
 
 # foo: @<commit-hash> reachable from origin/main
 
@@ -128,6 +134,7 @@ code == 200
 body contains BAR content 2
 body contains <a class="current" href="/BAR@v1.0.1-pre.1">v1.0.1-pre.1</a>
 body contains @barmaint
+body !contains class="notice"
 
 GET https://c2sp.org/BAR@main
 code == 200
