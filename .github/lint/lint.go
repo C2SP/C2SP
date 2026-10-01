@@ -2,36 +2,96 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"c2sp.org/C2SP/.github/linkcheck"
+	"c2sp.org/C2SP/website/document"
 	"c2sp.org/C2SP/website/spec"
 	mathml "github.com/filippo-agent/goldmark-mathml"
-	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/text"
 )
 
 func main() {
-	paths, err := filepath.Glob("../../*.md")
+	root := flag.String("root", "", "repository root (default: current Git repository)")
+	base := flag.String("base", "", "base commit for regression checks (default: full audit)")
+	linksOnly := flag.Bool("links-only", false, "skip specification formatting checks")
+	annotations := flag.Bool("github-actions", os.Getenv("GITHUB_ACTIONS") == "true", "emit GitHub Actions annotations")
+	flag.Parse()
+	if *root == "" {
+		out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "lint: locate repository:", err)
+			os.Exit(1)
+		}
+		*root = strings.TrimSpace(string(out))
+	}
+	paths, err := filepath.Glob(filepath.Join(*root, "*.md"))
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "lint:", err)
+		os.Exit(1)
 	}
 	failed := false
-	for _, path := range paths {
-		for _, e := range lintSpec(path) {
-			fmt.Printf("%s: %s\n", filepath.Base(path), e)
-			failed = true
+	if !*linksOnly {
+		for _, path := range paths {
+			for _, e := range lintSpec(path) {
+				printDiagnostic(os.Stdout, linkcheck.Diagnostic{
+					File: filepath.Base(path), Message: e,
+				}, *annotations)
+				failed = true
+			}
 		}
+	}
+	diagnostics, err := linkcheck.Check(*root, *base)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "lint:", err)
+		os.Exit(1)
+	}
+	for _, d := range diagnostics {
+		printDiagnostic(os.Stdout, d, *annotations)
+		failed = failed || !d.Existing
 	}
 	if failed {
 		os.Exit(1)
 	}
+}
+
+func printDiagnostic(w io.Writer, d linkcheck.Diagnostic, annotations bool) {
+	location := d.File
+	if d.Line > 0 {
+		location += fmt.Sprintf(":%d", d.Line)
+	}
+	if d.Existing {
+		// Prefix continuation lines too, so an ID containing a newline cannot
+		// inject a workflow command while reporting pre-existing debt.
+		message := strings.ReplaceAll(d.Message, "\r", "\\r")
+		message = strings.ReplaceAll(message, "\n", "\n  ")
+		location = strings.NewReplacer("\r", "\\r", "\n", "\\n").Replace(location)
+		fmt.Fprintf(w, "existing: %s: %s\n", location, message)
+		return
+	}
+	if !annotations {
+		fmt.Fprintf(w, "%s: %s\n", location, d.Message)
+		return
+	}
+	// Escape workflow command data, including untrusted Markdown and file names.
+	escape := strings.NewReplacer("%", "%25", "\r", "%0D", "\n", "%0A")
+	propertyEscape := strings.NewReplacer(":", "%3A", ",", "%2C")
+	properties := ""
+	if d.File != "" {
+		properties = " file=" + propertyEscape.Replace(escape.Replace(d.File))
+		if d.Line > 0 {
+			properties += fmt.Sprintf(",line=%d", d.Line)
+		}
+	}
+	fmt.Fprintf(w, "::error%s::%s\n", properties, escape.Replace(d.Message))
 }
 
 // lintSpec checks that a spec has a valid name and starts with the front
@@ -43,6 +103,13 @@ func lintSpec(path string) []string {
 		errs = append(errs, "invalid spec name")
 	}
 
+	info, err := os.Lstat(path)
+	if err != nil {
+		return append(errs, err.Error())
+	}
+	if !info.Mode().IsRegular() {
+		return append(errs, "specification must be a regular file, not a symlink")
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return append(errs, err.Error())
@@ -109,26 +176,20 @@ func lintSpec(path string) []string {
 	return append(errs, lintBody(body)...)
 }
 
-// markdown must match the parser configuration of the website, which
-// determines the anchors of the rendered pages.
-var markdown = goldmark.New(goldmark.WithExtensions(
-	extension.GFM,
-	extension.Footnote,
-	mathml.New(),
-))
-
-var htmlAnchorRE = regexp.MustCompile(`<a\s+(?:id|name)="([^"]+)"`)
+// Formatting lint uses the shared parser, validating math separately in strict
+// mode while historical document rendering remains tolerant.
+var markdown = document.NewMarkdown()
 
 // githubSpecLinkRE matches GitHub content links to a top-level spec document,
 // which should use https://c2sp.org/<name> links instead.
 var githubSpecLinkRE = regexp.MustCompile(
 	`^https://(github\.com/C2SP/C2SP/(blob|tree|raw)|raw\.githubusercontent\.com/C2SP/C2SP)/[^/]+/[a-zA-Z0-9-]+\.md([#?]|$)`)
 
-// lintBody checks that the document has exactly one top-level heading, and
-// that all intra-document links resolve to a heading anchor.
+// lintBody checks the document's formatting and GitHub-link policy. Fragment
+// validation uses the rendered document and repository graph in linkcheck.
 func lintBody(body string) []string {
 	var errs []string
-	if err := markdown.Convert([]byte(body), io.Discard); err != nil {
+	if err := document.ValidateMath([]byte(body)); err != nil {
 		if mathErr, ok := errors.AsType[*mathml.RenderError](err); ok {
 			errs = append(errs, fmt.Sprintf("invalid mathematical expression: %v", mathErr))
 		} else {
@@ -137,8 +198,6 @@ func lintBody(body string) []string {
 	}
 	doc := markdown.Parser().Parse(text.NewReader([]byte(body)))
 
-	anchors := make(map[string]bool)
-	var s spec.Slugger
 	h1s := 0
 	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -148,7 +207,7 @@ func lintBody(body string) []string {
 		if !ok {
 			return ast.WalkContinue, nil
 		}
-		anchors[s.Slug(spec.Text(h, []byte(body)))] = true
+
 		if h.Level == 1 {
 			h1s++
 		}
@@ -156,11 +215,6 @@ func lintBody(body string) []string {
 	})
 	if h1s != 1 {
 		errs = append(errs, fmt.Sprintf("%d top-level headings, expected exactly one", h1s))
-	}
-
-	// Raw HTML anchors like <a id="foo"> are link targets, too.
-	for _, m := range htmlAnchorRE.FindAllStringSubmatch(body, -1) {
-		anchors[m[1]] = true
 	}
 
 	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -178,9 +232,7 @@ func lintBody(body string) []string {
 		default:
 			return ast.WalkContinue, nil
 		}
-		if frag, ok := strings.CutPrefix(dest, "#"); ok && !anchors[frag] {
-			errs = append(errs, fmt.Sprintf("broken anchor link #%s", frag))
-		}
+
 		// GitHub paths are not stable; specifications should be linked
 		// through c2sp.org. Ancillary files and directories (such as test
 		// vectors) have no c2sp.org equivalent and are allowed.
