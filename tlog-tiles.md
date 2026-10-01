@@ -50,7 +50,9 @@ Instead, logs MAY provide multiple URL prefixes as alternate serving URLs. This
 allows a log to, e.g., perform maintenance on one serving instance while other
 serving instances remain online. Clients SHOULD balance fetches between
 configured URL prefixes. If fetching a resource fails, clients SHOULD try
-fetching the corresponding resource on another URL prefix.
+fetching the corresponding resource on another URL prefix. The resources at each
+URL prefix MUST serve the same content, up to temporary differences such as
+caching and propagation delay.
 
 ### Checkpoints
 
