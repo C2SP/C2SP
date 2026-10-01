@@ -113,8 +113,7 @@ CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
 
 ### Subtree cosignatures
 
-A subtree cosignature is returned from the [sign-subtree][] endpoint of a
-cosigner. It MUST be a `subtree_cosignature` structure:
+A subtree cosignature is a `subtree_cosignature` structure, defined below:
 
     struct {
         select (signature_algorithm) {
