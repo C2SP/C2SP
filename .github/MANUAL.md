@@ -296,6 +296,21 @@ branch.
 Merge this file to main, and a GitHub Action will create the tag
 `<spec-name>/v1.2.3` and remove the `.new-tag` file.
 
+While a `.new-tag` is present, CI also applies release-only checks to that
+specification at the recorded commit, not to its current main or to the other
+specifications at that commit. The tag-creation action repeats these checks
+before creating any tags. Existing published tags are not retroactively
+subject to new release policies; the ordinary repository-wide link checks
+still apply.
+
+A proposed release, including a prerelease or v0.x version, must not link to
+another specification's `@main`, or to its own `@main`. Use a released version
+for dependencies and a local `#fragment` for links within the released document.
+Bare and `@latest` links to untagged specifications also fail, since they
+implicitly select main. This check considers all pending tags together, so
+dependencies can be released together. Bare and `@latest` links to tagged
+specifications remain allowed, subject to the ordinary section-link checks.
+
 ### Announcements
 
 Maintainers should subscribe to the [Announcements category] on the C2SP

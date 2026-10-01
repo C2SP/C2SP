@@ -247,14 +247,23 @@ func analyze(r *repository, ref, tip string, tags map[string]string, checkPropos
 				virtual.sources[id] = src
 			}
 		}
+		var releases []*source
 		for _, tag := range sortedKeys(proposals) {
 			commit := proposals[tag]
 			virtual.tags[tag] = commit
 			name, version, _ := strings.Cut(tag, "/")
-			if _, err := virtual.load(name+".md", version, commit, "/"+name+"@"+version); err != nil {
+			release, err := virtual.load(name+".md", version, commit, "/"+name+"@"+version)
+			if err != nil {
 				src := &source{path: name + "/.new-tag", version: "main", record: s.sources[name+"/.new-tag@main"].record}
 				virtual.failures = append(virtual.failures, &failure{source: src, line: 2, key: "proposed-file:" + tag, message: err.Error(), phase: virtual.phase})
+				continue
 			}
+			releases = append(releases, release)
+		}
+		// Evaluate release policy against the complete proposed inventory, so
+		// bare/latest dependencies can be released together, in any name order.
+		for _, release := range releases {
+			virtual.failures = append(virtual.failures, virtual.lintRelease(release)...)
 		}
 		if err := virtual.walk(); err != nil {
 			return nil, err
