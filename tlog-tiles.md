@@ -151,8 +151,6 @@ Each entry in a bundle hashes to the corresponding entry in the corresponding
 6962, Section 2.1.  As above, a full bundle has a *start index* and *end index*,
 defined the same as above for “level 0”.
 
-TODO: check if current logs need bigger leaves.
-
 A client, such as a Monitor, that “tails” a rapidly (> 200 entries per
 checkpoint) growing log SHOULD, as an optimization, avoid fetching partial entry
 bundles when possible. If applying this optimization, the client MUST fetch the
