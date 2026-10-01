@@ -8,7 +8,7 @@ description: Post-quantum KEM designed for public keys and/or ciphertexts obfusc
 
 # The Kopis Key Encapsulation Mechanism
 
-This document contains a specification for the [Kopis](https://eprint.iacr.org/2026/2268) key encapsulation mechanism (KEM). We do this in two parts, first defining an IND-CPA-secure public key encryption (PKE) scheme, then defining the IND-CCA-secure KEM via the Fujisaki-Okamoto transform.
+This document contains a specification for the [Kopis](https://eprint.iacr.org/2026/2268) post-quantum key encapsulation mechanism (KEM). We do this in two parts, first defining an IND-CPA-secure public key encryption (PKE) scheme, then defining the IND-CCA-secure KEM via the Fujisaki-Okamoto transform.
 
 # Preliminaries
 
