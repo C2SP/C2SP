@@ -6,7 +6,7 @@ root of OIDs used as identifiers in C2SP specifications.
 C2SP OIDs are assigned by the [C2SP stewards].
 
 [RFC 9371]: https://www.rfc-editor.org/rfc/rfc9371.html
-[C2SP stewards]: MAINTAINERS.md#stewards
+[C2SP stewards]: https://c2sp.org/-/maintainers#stewards
 
 ## Requesting a C2SP OID assignment
 
