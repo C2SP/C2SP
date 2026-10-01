@@ -11,28 +11,16 @@ description: Witness cosignatures for transparency log checkpoints
 A cosignature is a statement by a *cosigner* that it verified
 the consistency of a [checkpoint][] or [subtree][]. Log clients can verify a quorum of
 cosignatures to prevent split-view attacks before trusting an inclusion proof.
-A cosigner may make additional statements relating to a checkpoint.  Log clients
-that know about this can then be assured of additional cosigning properties.
+A cosigner may make additional statements relating to a checkpoint or subtree.
+Log clients that know about this can then be assured of additional cosigning
+properties.
 
-Below is an example of a checkpoint that contains a cosignature.
+This document specifies two cosignature formats: checkpoint cosignatures and
+subtree cosignatures. The two formats differ slightly in their handling of
+timestamps, but the same key can sign both compatibly.
 
-```
-example.com/behind-the-sofa
-20852163
-CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
-
-— example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
-— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
-```
-
-This document specifies two cosignature types: one based on Ed25519, and one
-based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments.
-
-Unlike the Ed25519 type, the ML-DSA-44 type is secure against quantum computers.
-Moreover, it commits to the cosigner's name, and supports signing
-[subtrees][subtree] in addition to [checkpoints][checkpoint]. The ML-DSA-44
-parameter set was selected because at NIST Level 2 it provides some margin
-beyond the 128-bit security level.
+This document additionally specifies cosignature algorithms that can produce
+cosignatures in one or both of these formats.
 
 ## Conventions used in this document
 
@@ -59,41 +47,33 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [seconds since the Epoch]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap04.html#tag_04_19
 [POSIX.1-2024]: https://pubs.opengroup.org/onlinepubs/9799919799
 
-## Format
+## Cosignature formats
 
-Concretely, a cosignature is a [note signature][] applied to a [checkpoint][].
+This section defines two related cosignature formats, one for signing
+[checkpoints][checkpoint] and one for signing [subtrees][subtree].
 
-Per the signed note format, a note signature line is
+Clients are configured with tuples of (cosigner name, public key, supported
+cosignature version). The cosigner name SHOULD be a schema-less URL that
+identifies the cosigner. Like checkpoint origin lines, this is for
+disambiguation, and MAY match a publicly reachable endpoint or not. For
+ecosystems that use OIDs for identification, the key name MAY be the string
+`oid/` followed by an OID in dotted decimal form.
+
+The signature formats differ between checkpoint and subtree cosignatures. They
+are defined below.
+
+### Checkpoint cosignatures
+
+A checkpoint cosignature is formatted as a [note signature][] applied to a
+[checkpoint][]. Per the signed note format, a note signature line is
 
     — <key name> base64(32-bit key ID || signature)
 
-The key name SHOULD be a schema-less URL that identifies the cosigner. Like the
-checkpoint origin line, this is for disambiguation, and MAY match a publicly
-reachable endpoint or not. For ecosystems that use OIDs for identification, the
-key name MAY be the string `oid/` followed by an OID in dotted decimal form.
+The key name MUST be the cosigner name, defined above. The key ID is computed
+based on the cosignature algorithm, defined below. Clients MUST ignore any signature
+lines that don't match the name and key ID.
 
-The key ID for Ed25519 cosignatures MUST be computed as
-
-    SHA-256(<name> || "\n" || 0x04 || 32-byte Ed25519 cosigner public key)[:4]
-
-The key ID for ML-DSA-44 cosignatures MUST be computed as
-
-    SHA-256(<name> || "\n" || 0x06 || 1312-byte ML-DSA-44 cosigner public key)[:4]
-
-Clients are configured with tuples of (cosigner name, public key, supported
-cosignature version) and based on that they can compute the expected name and
-key ID, and ignore any signature lines that don't match the name and key ID.
-
-Ed25519 public keys MAY be encoded as [vkeys][] with signature type 0x04 and the
-32-byte Ed25519 cosigner public key as the public key material.
-
-ML-DSA-44 public keys MAY be encoded as [vkeys][] with signature type 0x06 and the
-1312-byte ML-DSA-44 cosigner public key as the public key material.
-
-Future cosignature formats MAY reuse the same cosigner public key with a
-different key ID algorithm byte (and a different newline-terminated prefix).
-
-The signature MUST be a `TimestampedSignature` structure.
+The signature value MUST be a `CheckpointCosignature` structure:
 
     struct {
         u64 timestamp;
@@ -101,7 +81,7 @@ The signature MUST be a `TimestampedSignature` structure.
             case ed25519: opaque ed25519_signature[64];
             case ml-dsa-44: opaque ml_dsa_44_signature[2420];
         } signature;
-    } TimestampedSignature;
+    } CheckpointCosignature;
 
 `timestamp` is the time at which the cosignature was generated, as a POSIX
 timestamp.  It MUST NOT exceed 2^63 - 1, and verifiers MAY reject cosignatures
@@ -113,7 +93,77 @@ from the cosigner public key over the message defined below.
 Per [RFC 9846][], Section 3.3, these are serialized in sequence, with the
 timestamp encoded in big-endian order.
 
-## Ed25519 signed message
+Semantically, a checkpoint cosignature is a statement that the specified
+checkpoint is consistent with all other historical views observed by the
+cosigner of the log identified by the origin line. It is also a statement that,
+as of the specified time, this is the largest consistent tree the cosigner has
+observed for the log. Any additional statements by the cosigner, described
+below, also apply.
+
+Below is an example of a checkpoint that contains a cosignature.
+
+```
+example.com/behind-the-sofa
+20852163
+CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
+
+— example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
+— witness.example.com/w1 jWbPPwAAAABkGFDLEZMHwSRaJNiIDoe9DYn/zXcrtPHeolMI5OWXEhZCB9dlrDJsX3b2oyin1nPZqhf5nNo0xUe+mbIUBkBIfZ+qnA==
+```
+
+### Subtree cosignatures
+
+A subtree cosignature is a `SubtreeCosignature` structure, defined below:
+
+    struct {
+        select (signature_algorithm) {
+            case ml-dsa-44: opaque ml_dsa_44_signature[2420];
+        } signature;
+    } SubtreeCosignature;
+
+Unlike a `CheckpointCosignature`, defined above, there is no `timestamp` field.
+Additionally, Ed25519 is not supported.
+
+`signature` is an ML-DSA-44 ([FIPS 204][]) signature from the cosigner public
+key. The signature is computed over the message defined below and specifies the
+root hash of some subtree of some log.
+
+Semantically, a subtree cosignature is a statement that the subtree with the
+specified root hash is consistent with all other historical views of the log
+observed by the cosigner of the log. No statement is made about the age of the
+subtree. Any additional statements by the cosigner, described below, also apply.
+
+Subtrees and subtree cosignatures currently don't have a signed note
+representation.
+
+## Cosignature algorithms
+
+This section specifies two cosignature algorithms: one based on Ed25519, and one
+based on ML-DSA-44. The ML-DSA version SHOULD be used for new deployments.
+
+Unlike the Ed25519 algorithm, the ML-DSA-44 algorithm is secure against quantum
+computers. Moreover, it commits to the cosigner's name, and supports signing
+[subtrees][subtree] in addition to [checkpoints][checkpoint]. The ML-DSA-44
+parameter set was selected because, at NIST Level 2, it provides some margin
+beyond the 128-bit security level.
+
+The following sections define the algorithms, including how to format their keys
+and signed messages. Future cosignature algorithms MAY reuse the same cosigner
+public key with a different key ID algorithm byte and a domain-separated signed
+message format.
+
+### Ed25519
+
+An Ed25519 cosigner is configured with an Ed25519 private key. The corresponding
+public key MAY be encoded as a [vkey][] with signature type 0x04 and the 32-byte
+Ed25519 cosigner public key as the public key material.
+
+In a [note signature][], the key ID MUST be computed as
+
+    SHA-256(<name> || "\n" || 0x04 || 32-byte Ed25519 cosigner public key)[:4]
+
+Ed25519 cosigners can only generate checkpoint cosignatures and not subtree
+cosignatures.
 
 The signed message MUST be two newline (U+000A) terminated lines (one header
 line and one timestamp line) followed by the whole note body of the cosigned
@@ -123,7 +173,7 @@ The header line MUST be the fixed string `cosignature/v1`, and provides domain
 separation.
 
 The timestamp line MUST consist of the string `time`, a single space (0x20), and
-`TimestampedSignature.timestamp` encoded as an ASCII decimal with no leading
+`CheckpointCosignature.timestamp` encoded as an ASCII decimal with no leading
 zeroes.
 
     cosignature/v1
@@ -131,10 +181,6 @@ zeroes.
     example.com/behind-the-sofa
     20852163
     CsUYapGGPo4dkMgIAUqom/Xajj7h2fB2MPA3j2jxq2I=
-
-Semantically, a v1 cosignature is a statement that, as of the specified time,
-the consistent tree head with the largest size the cosigner has observed for the
-log identified by the origin line has the specified root hash.
 
 Extension lines MAY be included in the checkpoint by the log, and if present
 MUST be included in the cosigned message. However, it's important to understand
@@ -148,9 +194,20 @@ additional statements, see below) MUST use distinct public keys for each
 cosigner. The Ed25519 signed message format doesn't commit to the cosigner name,
 so the same public key can't be used across multiple cosigners.
 
-## ML-DSA-44 signed message
+### ML-DSA-44
 
-The signed message MUST be a `CosignedSubtree` structure.
+An ML-DSA-44 cosigner is configured with an ML-DSA-44 private key. The
+corresponding public key MAY be encoded as a [vkey][] with signature type 0x06
+and the 1312-byte ML-DSA-44 cosigner public key as the public key material.
+
+In a [note signature][], the key ID MUST be computed as
+
+    SHA-256(<name> || "\n" || 0x06 || 1312-byte ML-DSA-44 cosigner public key)[:4]
+
+ML-DSA-44 cosigners can generate both checkpoint cosignatures and subtree
+cosignatures.
+
+In both cases, the signed message MUST be a `CosignedSubtree` structure.
 
     struct {
         uint8 label[12] = "subtree/v1\n\0";
@@ -164,16 +221,14 @@ The signed message MUST be a `CosignedSubtree` structure.
 
 `cosigner_name` is the cosigner name.
 
-`timestamp` is `TimestampedSignature.timestamp`. These two values MAY be zero
-if the cosigner doesn't make any statement as to the tree being the largest
-observed at time of signing. If `start` is not zero, these values MUST be zero.
+`timestamp` is `CheckpointCosignature.timestamp` if signing a [checkpoint][] and
+zero if signing a [subtree][].
 
 `log_origin` is the log's origin, as represented in a checkpoint's origin line
 without the final newline.
 
 `start` is the index of the first leaf included in the [subtree][] being signed.
-If signing a [checkpoint][], it MUST be zero. If `start` is not zero,
-`timestamp` MUST be zero.
+If signing a [checkpoint][], it MUST be zero.
 
 `end` is the exclusive upper bound of the indexes of the leaves in the
 [subtree][] being signed: the index of the last included leaf plus one. If
@@ -181,19 +236,17 @@ signing a [checkpoint][], it is the size of the tree.
 
 `hash` is the root hash of the subtree being signed.
 
-Semantically, a v1 subtree cosignature is a statement that the subtree with the
-specified root hash is consistent with all other historical views observed by
-the cosigner of the log identified by the origin line. If the timestamp is not
-zero, it is also a statement that, as of the specified time, this is the largest
-consistent tree the cosigner has observed for the log.
-
 Note that checkpoint extension lines are not included in the signed message for
-ML-DSA-44 cosignatures, and no statement is made about them. Subtrees with
-non-zero start values currently don't have a checkpoint representation.
+ML-DSA-44 cosignatures, and no statement is made about them.
+
+If `start` is non-zero, `timestamp` will always be zero. If `start` is zero,
+`timestamp` may be zero or the current time, depending on whether the subtree
+denoted by `start` and `end` is signed as the latest checkpoint, or an arbitrary
+subtree.
 
 ## Additional statements
 
-A cosigner MAY make additional statements about a checkpoint.  These
+A cosigner MAY make additional statements about a subtree or checkpoint.  These
 additional statements need to be communicated out of band to those defining
 trust policies based on tuples of (public key, supported cosignature version).
 A given tuple MUST imply a single set of statements.  These statements MUST
@@ -203,7 +256,7 @@ mirrored the log up until the checkpoint size" and "I certify the SAN ←→ pub
 key associations in the log leaves".  See [tlog-mirror][] for an example.
 
 [note signature]: https://c2sp.org/signed-note@v1.0.0
-[vkeys]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
+[vkey]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror
 [FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
