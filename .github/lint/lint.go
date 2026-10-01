@@ -1,13 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"c2sp.org/C2SP/website/spec"
+	mathml "github.com/filippo-agent/goldmark-mathml"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -108,7 +111,11 @@ func lintSpec(path string) []string {
 
 // markdown must match the parser configuration of the website, which
 // determines the anchors of the rendered pages.
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, extension.Footnote))
+var markdown = goldmark.New(goldmark.WithExtensions(
+	extension.GFM,
+	extension.Footnote,
+	mathml.New(),
+))
 
 var htmlAnchorRE = regexp.MustCompile(`<a\s+(?:id|name)="([^"]+)"`)
 
@@ -121,6 +128,13 @@ var githubSpecLinkRE = regexp.MustCompile(
 // that all intra-document links resolve to a heading anchor.
 func lintBody(body string) []string {
 	var errs []string
+	if err := markdown.Convert([]byte(body), io.Discard); err != nil {
+		if mathErr, ok := errors.AsType[*mathml.RenderError](err); ok {
+			errs = append(errs, fmt.Sprintf("invalid mathematical expression: %v", mathErr))
+		} else {
+			errs = append(errs, fmt.Sprintf("failed to render Markdown: %v", err))
+		}
+	}
 	doc := markdown.Parser().Parse(text.NewReader([]byte(body)))
 
 	anchors := make(map[string]bool)

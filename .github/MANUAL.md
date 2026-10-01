@@ -69,6 +69,33 @@ License ([LICENSE-BSD-1-CLAUSE]).
 [LICENSE-BSD-1-CLAUSE]: https://github.com/C2SP/C2SP/blob/main/.github/LICENSE-BSD-1-CLAUSE
 [CC BY 4.0]: https://creativecommons.org/licenses/by/4.0/
 
+### Discourse
+
+You can discuss C2SP specifications and other cryptography topics on the [C2SP
+Discourse forum].
+
+Discourse forums are divided into categories, which can each pertain to a
+specification, to a group of specifications, or to a general
+cryptography-related topic.
+
+After creating an account online, you can consume and interact with the forum
+entirely via email, if you wish. To subscribe to a category like a mailing list,
+set its notification level to Watching (the bell icon on the category page):
+every post in that category will be delivered by email, and you can reply
+directly to those emails. To open a new thread, send an email to the category’s
+email address, which is shown on the category page.
+
+Similarly to C2SP specifications, each category has one or more maintainers, who
+autonomously manage and moderate it. Maintainers have broad discretion to
+moderate their category, may choose to adopt a written moderation policy or not,
+and may choose to delegate moderation to other trusted users. Moderation
+decisions are not subject to appeal, unless they violate the [C2SP Code of
+Conduct]. The only issues that escalate to stewards are [C2SP Code of Conduct]
+violations, conflicts among maintainers of the same category, and lapsed
+maintainers.
+
+[C2SP Discourse forum]: https://disc.c2sp.org/
+
 ## Maintaining specifications
 
 Anyone is welcome to contribute new specifications or collaborate on existing
@@ -119,6 +146,53 @@ will be removed by the c2sp.org renderer.
 
 Next, a single top-level heading must be included with the title of the specification.
 
+#### Mathematical expressions
+
+Specifications may use [GitHub-style mathematical expressions]. They are
+rendered server-side to native MathML on c2sp.org.
+
+Use dollar-sign delimiters for inline expressions:
+
+```markdown
+The value $x^2 + y^2$ is non-negative.
+```
+
+If the expression contains characters that Markdown might interpret, wrap the
+expression in backticks inside the dollar signs:
+
+```markdown
+The value $`x_{*}`$ is distinguished.
+```
+
+Use double dollar signs in their own paragraph, or a `math` code fence, for a
+display expression:
+
+````markdown
+$$
+x^2 + y^2 = z^2
+$$
+
+```math
+x^2 + y^2 = z^2
+```
+````
+
+To include a literal dollar sign inside an expression, use the backtick form and
+escape the dollar sign with a backslash:
+
+```markdown
+$`\sqrt{\$4}`$
+```
+
+To include a literal dollar sign outside an expression on the same line as
+math, wrap it in a `span` element. For example:
+
+```markdown
+To split <span>$</span>100 in half, calculate $100/2$.
+```
+
+[GitHub-style mathematical expressions]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions
+
 ### GitHub permissions
 
 Each maintainer has access to approve and merge any PR to their specifications
@@ -167,6 +241,30 @@ branch.
 
 Merge this file to main, and a GitHub Action will create the tag
 `<spec-name>/v1.2.3` and remove the `.new-tag` file.
+
+### Announcements
+
+Maintainers should subscribe to the [Announcements category] on the C2SP
+Discourse forum to learn about project-wide changes. New forum accounts are
+subscribed to it by default.
+
+[Announcements category]: https://disc.c2sp.org/c/announcements
+
+### Creating Discourse categories
+
+Any specification maintainer may request a new Discourse category by [opening a
+category request]. The category can be for a single specification, a group of
+specifications, or a general cryptography-related topic.
+
+The maintainer(s) of the category are responsible for moderating it. If they
+systematically fail to do so, the stewards may replace them or close the category.
+
+There is no hard limit on how many categories a maintainer may request, but the
+stewards may reject requests that go beyond what one person can realistically
+moderate. If a category is clearly tied to a spec or group of specs, stewards
+will check with the relevant maintainers before creating it.
+
+[opening a category request]: https://github.com/C2SP/C2SP/issues/new?template=category.md
 
 ### Updating maintainers
 
