@@ -120,8 +120,8 @@ use a signature type approprate respective function, see
 differ by key name and key id.
 
 [vkey]: https://c2sp.org/signed-note#verifier-keys
-[tlog-checkpoint]: ./tlog-checkpoint.md
-[tlog-cosignature]: ./tlog-cosignature.md
+[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint
+[tlog-cosignature]: https://c2sp.org/tlog-cosignature
 
 ### Defining a log
 
@@ -163,7 +163,7 @@ defined by the [tlog-witness][] protocol.
 Duplicate witnesses, i.e., multiple witness lines with the same public
 key, are not allowed.
 
-[tlog-witness]: ./tlog-witness.md
+[tlog-witness]: https://c2sp.org/tlog-witness
 
 ### Defining the quorum
 

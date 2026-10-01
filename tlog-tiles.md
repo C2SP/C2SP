@@ -26,12 +26,13 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 
 ## Parameters
 
-A tiled transparency log is defined by a URL *prefix*, a [checkpoint][] origin,
-and one or more [signed note][] public keys.
+A tiled transparency log is defined by one or more URL *prefixes*, a
+[checkpoint][] origin, and one or more [signed note][] public keys.
 
-The origin line SHOULD be the scheme-less URL prefix of the log with no trailing
-slashes. For example, a log with *prefix* `https://rome.ct.example.com/tevere/`
-will use `rome.ct.example.com/tevere` as the checkpoint origin line.
+The origin line SHOULD be one of the URL prefixes of the log, with the scheme
+removed and no trailing slashes. For example, a log with *prefix*
+`https://rome.ct.example.com/tevere/` might use `rome.ct.example.com/tevere` as
+the checkpoint origin line.
 
 ## APIs
 
@@ -44,6 +45,15 @@ Note that all Merkle tree cryptographic operations are as specified by RFC 6962,
 so these APIs can be thought of as an alternative encoding format for the same
 data. The hashing algorithm is defined to be SHA-256.
 
+The resources defined in this document MUST NOT serve redirect responses.
+Instead, logs MAY provide multiple URL prefixes as alternate serving URLs. This
+allows a log to, e.g., perform maintenance on one serving instance while other
+serving instances remain online. Clients SHOULD balance fetches between
+configured URL prefixes. If fetching a resource fails, clients SHOULD try
+fetching the corresponding resource on another URL prefix. The resources at each
+URL prefix MUST serve the same content, up to temporary differences such as
+caching and propagation delay.
+
 ### Checkpoints
 
 The Signed Tree Head MUST be served as a [checkpoint][] at
@@ -54,11 +64,6 @@ with `Content-Type: text/plain; charset=utf-8`.
 
 This endpoint is mutable, so its headers SHOULD prevent caching beyond a few
 seconds.
-
-If the log is public, or is interacting in any way with the public witness
-network, the checkpoint MUST carry at least one Ed25519 signature by the log.
-The checkpoint MAY carry additional signatures of other types, by the log or
-otherwise.
 
 ### Merkle Tree
 
@@ -151,8 +156,6 @@ Each entry in a bundle hashes to the corresponding entry in the corresponding
 6962, Section 2.1.  As above, a full bundle has a *start index* and *end index*,
 defined the same as above for “level 0”.
 
-TODO: check if current logs need bigger leaves.
-
 A client, such as a Monitor, that “tails” a rapidly (> 200 entries per
 checkpoint) growing log SHOULD, as an optimization, avoid fetching partial entry
 bundles when possible. If applying this optimization, the client MUST fetch the
@@ -213,11 +216,6 @@ Pruning is similar to the practice of [temporal sharding][] of logs, except it
 does not change the structure of the tree or the identity of the log. This means
 all existing proofs remain valid, and existing log clients remain compatible
 with the pruned log.
-
-TODO: Some HTTP endpoint for fetching the minimum index? The semantics would be
-something like: serving a minimum index equivalent to returning 404 from the
-tiles that would be deleted by the pruning criteria, including when evaluating a
-log client's availability policies.
 
 #### Retention Policies
 
