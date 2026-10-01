@@ -127,7 +127,8 @@ tree of size 256 will be represented by a full level 0 tile and a partial level
 
 Logs MUST serve partial tiles corresponding to tree sizes for which a checkpoint
 was produced, but MAY delete any partial tile once the corresponding full tile
-is either available, or has been removed by the pruning criteria below. Clients
+is available. If the full tile was once available but has since been removed by
+the pruning criteria below, the log MAY still delete the partial tile. Clients
 MUST NOT fetch arbitrary partial tiles without verifying a checkpoint with a
 size that requires their existence, and MAY fetch the full tile in parallel as a
 fallback in case the partial tile is not available anymore.
