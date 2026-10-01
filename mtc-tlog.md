@@ -115,6 +115,16 @@ For each CA prefix URL, an issuance log with a landmark sequence MUST
 
 The content type MUST be `text/plain; charset=utf-8`.
 
+Most deployments obtain landmark-relative certificates directly from the CA.
+Alternatively, a party holding a [standalone certificate][standalone certificates]
+can construct the corresponding [landmark-relative certificate][] by following
+the generic [construction procedure][constructing landmark-relative]. The
+landmark sequence is available at the URL above, and the required inclusion
+proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles].
+
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+[merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
 [CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
