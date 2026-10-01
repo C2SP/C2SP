@@ -19,7 +19,7 @@ body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
 GET https://c2sp.org/foo@v2.0.0
 code == 200
 header content-type == text/html; charset=utf-8
-body contains <h1>The Foo Specification</h1>
+body contains <h1 id="the-foo-specification">The Foo Specification</h1>
 body contains c2sp.org/foo
 body contains <a class="current" href="/foo@v2.0.0">v2.0.0</a>
 body contains href="/foo@v1.0.0"
@@ -98,7 +98,7 @@ GET https://c2sp.org/foo@main
 code == 200
 body contains development version
 body contains href="/foo@v2.0.0">v2.0.0</a>
-body contains <h1>The Foo Specification</h1>
+body contains <h1 id="the-foo-specification">The Foo Specification</h1>
 body contains https://github.com/C2SP/C2SP/blob/main/foo.md
 
 # foo: non-existent version
@@ -182,7 +182,7 @@ code == 400
 
 GET https://c2sp.org/
 code == 200
-body contains <h1 class="home">The Test Project</h1>
+body contains <h1 id="the-test-project" class="home">The Test Project</h1>
 body contains Test project readme prose.
 body contains <h2 id="specifications">
 body contains Associated things.

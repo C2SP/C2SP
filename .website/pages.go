@@ -32,6 +32,8 @@ type site struct {
 type pageData struct {
 	TabTitle    string
 	Title       string
+	TitleID     string
+	HasTitle    bool
 	Description string
 	Home        bool
 	Spec        *specData
@@ -162,6 +164,8 @@ func (s *site) serveSpec(w http.ResponseWriter, r *http.Request) {
 	s.servePage(w, r, gen, &pageData{
 		TabTitle:    title + " | C2SP",
 		Title:       title,
+		TitleID:     doc.TitleID,
+		HasTitle:    doc.HasTitle,
 		Description: doc.Description,
 		Spec:        sd,
 		Body:        doc.Body,
@@ -229,6 +233,8 @@ func (s *site) serveIndex(w http.ResponseWriter, r *http.Request) {
 	s.servePage(w, r, gen, &pageData{
 		TabTitle: "C2SP — " + title,
 		Title:    title,
+		TitleID:  doc.TitleID,
+		HasTitle: doc.HasTitle,
 		Home:     true,
 		Body:     template.HTML(body),
 	})
@@ -266,6 +272,8 @@ func (s *site) docHandler(path, fallbackTitle string) http.HandlerFunc {
 		s.servePage(w, r, gen, &pageData{
 			TabTitle: title + " | C2SP",
 			Title:    title,
+			TitleID:  doc.TitleID,
+			HasTitle: doc.HasTitle,
 			Body:     doc.Body,
 		})
 	}
