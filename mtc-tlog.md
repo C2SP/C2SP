@@ -28,23 +28,25 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][]
 ## Parameters
 
 An MTC CA following this profile has, in addition to [CA parameters][] defined
-in the MTC specification, a *CA prefix URL*. The CA prefix URL determines the
-serving URL for each issuance URL, as described below.
+in the MTC specification, one or more *CA prefix URLs*. Each CA prefix URL
+determines a set of serving URLs for the CA's issuance logs, as described below.
 
 When such a CA is [represented as an X.509 certificate][], the certificate has a
-non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.1 and syntax an
-IA5String, as defined below. The IA5String's contents are the CA prefix URL.
-Presence of this extension indicates that the certificate subject follows this
-specification.
+non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.2 and syntax a
+SEQUENCE OF IA5String, as defined below. Each IA5String's contents are one of
+the CA prefix URLs. Presence of this extension indicates that the certificate
+subject follows this specification.
 
 ``` asn.1
-id-mtcTlogPrefixURL OBJECT IDENTIFIER ::= {
+id-mtcTlogPrefixURLs OBJECT IDENTIFIER ::= {
     iso(1) org(3) dod(6) internet(1) private(4) enterprise(1) C2SP(64829)
-    mtc-tlog(2) 1 }
+    mtc-tlog(2) 2 }
 
-ext-mtcTlogPrefixURL EXTENSION ::= {
-    SYNTAX IA5String
-    IDENTIFIED BY id-mtcTlogPrefixURL
+MTCTlogPrefixURLs ::= SEQUENCE SIZE (1..MAX) OF IA5String
+
+ext-mtcTlogPrefixURLs EXTENSION ::= {
+    SYNTAX MTCTlogPrefixURLs
+    IDENTIFIED BY id-mtcTlogPrefixURLs
     CRITICALITY FALSE
 }
 ```
@@ -81,9 +83,9 @@ For example, the trust anchor ID `32473.1` is represented as
 ## Serving Issuance Logs
 
 MTC CAs following this profile MUST serve issuance logs as
-[tiled transparency logs][]. Each log's [prefix URL][] is the concatenation of
-the CA prefix URL and the log number, encoded as an ASCII decimal integer with
-no additional leading zeros:
+[tiled transparency logs][]. Each log's [prefix URLs][] are determined by
+concatenating the log number, encoded as an ASCII decimal integer with no
+additional leading zeros, to each CA prefix URL:
 
 ```
 <CA prefix URL>/<log number>
@@ -104,8 +106,8 @@ Relying parties SHOULD set restrictions on [pruning][], such as requiring
 that the log's minimum index be at most the minimum trusted index in
 up-to-date copies of the relying party's trust anchors
 
-An issuance log with a landmark sequence MUST [publish active landmarks][] at
-the following URL:
+For each CA prefix URL, an issuance log with a landmark sequence MUST
+[publish active landmarks][] at the following URL:
 
 ```
 <CA prefix URL>/<log number>/landmarks
@@ -117,7 +119,7 @@ The content type MUST be `text/plain; charset=utf-8`.
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
-[prefix URL]: https://c2sp.org/tlog-tiles#parameters
+[prefix URLs]: https://c2sp.org/tlog-tiles#parameters
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature

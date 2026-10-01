@@ -51,10 +51,9 @@ A mirror is a [cosigner][] that stores a copy of a log. A mirror's
 [cosignature][] makes the additional statement that the mirror has
 durably logged the contents of the [checkpoint][] and made them accessible.
 
-A mirror is defined by a name, a public key, and by two URL prefixes:
-the *submission prefix* for write APIs and the *monitoring prefix* for read
-APIs. A mirror MAY use the same value for both the *submission prefix* and the
-*monitoring prefix*.
+A mirror is defined by a name, a public key, a *submission prefix* for write
+APIs, and one or more *monitoring prefixes* for read APIs. A mirror MAY use the
+same value for both the *submission prefix* and one of its *monitoring prefix*.
 
 For each supported origin log, the mirror is configured with:
 
@@ -63,10 +62,10 @@ For each supported origin log, the mirror is configured with:
 * A minimum index to start mirroring (see below for how this is configured)
 
 The mirror maintains a copy of each origin log and serves it publicly via the
-[tiled transparency log][] interface. It uses a URL prefix of
-`<monitoring prefix>/<origin hash>`, where `origin hash` is the SHA-256 hash of
-the log's origin, hex encoded, in lowercase. The checkpoint served from this
-prefix MUST include a [cosignature][] from the mirror.
+[tiled transparency log][] interface. For each monitoring prefix, this copy has
+a URL prefix of `<monitoring prefix>/<origin hash>`, where `origin hash` is the
+SHA-256 hash of the log's origin, hex encoded, in lowercase. The checkpoint
+served from this prefix MUST include a [cosignature][] from the mirror.
 
 ## Updating a Mirror
 
@@ -296,7 +295,7 @@ SHOULD retry setting `upload_end` to the tree size, `upload_start` to the
 advertised next entry value, and the `ticket` to the received ticket. If a
 client doesn't have information on the mirror, it MAY initially make an
 `add-checkpoint` request to obtain a pending checkpoint size and fetch a
-checkpoint from the monitoring prefix; those can become stale before the
+checkpoint from a monitoring prefix; those can become stale before the
 `add-entries` request, but are a reasonable starting point for `upload_end`
 and `upload_start`, respectively.
 
