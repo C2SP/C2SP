@@ -22,7 +22,9 @@ This document describes a synchronous HTTP-based protocol to obtain
 ## Conventions used in this document
 
 The base64 encoding used throughout is the standard Base 64 encoding specified
-in [RFC 4648][], Section 4.
+in [RFC 4648][], Section 4, with `=` padding. Encoders MUST generate
+canonical base64 according to RFC 4648, Section 3.5, and decoders MUST reject
+non-canonical encodings.
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
