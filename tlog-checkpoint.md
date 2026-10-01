@@ -80,6 +80,10 @@ any note signature algorithm based on the ecosystem they operate in. Note that
 the ML-DSA-44 cosignature format doesn't sign the extension lines, which SHOULD
 be empty.
 
+There MAY be multiple signature lines with the same key name. However,
+there MUST NOT be multiple signature lines with both the same key
+name and the same key id.
+
 According to the note specification, clients MUST ignore unknown signatures.
 This enables, for example, log key rotation, and witness cosigning.
 
