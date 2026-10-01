@@ -32,7 +32,7 @@ in the MTC specification, one or more *CA prefix URLs*. Each CA prefix URL
 determines a set of serving URLs for the CA's issuance logs, as described below.
 
 When such a CA is [represented as an X.509 certificate][], the certificate has a
-non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.1 and syntax a
+non-critical X.509 extension with OID 1.3.6.1.4.1.64829.2.2 and syntax a
 SEQUENCE OF IA5String, as defined below. Each IA5String's contents are one of
 the CA prefix URLs. Presence of this extension indicates that the certificate
 subject follows this specification.
@@ -84,7 +84,7 @@ For example, the trust anchor ID `32473.1` is represented as
 
 MTC CAs following this profile MUST serve issuance logs as
 [tiled transparency logs][]. Each log's [prefix URLs][] are determined by
-contcatenating the log number, encoded as an ASCII decimal integer with no
+concatenating the log number, encoded as an ASCII decimal integer with no
 additional leading zeros, to each CA prefix URL:
 
 ```
