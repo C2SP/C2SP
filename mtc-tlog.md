@@ -104,7 +104,7 @@ additional cosignatures, including ones from cosigners that are not
 
 Relying parties SHOULD set restrictions on [pruning][], such as requiring
 that the log's minimum index be at most the minimum trusted index in
-up-to-date copies of the relying party's trust anchors
+up-to-date copies of the relying party's trust anchors.
 
 For each CA prefix URL, an issuance log with a landmark sequence MUST
 [publish active landmarks][] at the following URL:
