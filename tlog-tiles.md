@@ -212,11 +212,6 @@ does not change the structure of the tree or the identity of the log. This means
 all existing proofs remain valid, and existing log clients remain compatible
 with the pruned log.
 
-TODO: Some HTTP endpoint for fetching the minimum index? The semantics would be
-something like: serving a minimum index equivalent to returning 404 from the
-tiles that would be deleted by the pruning criteria, including when evaluating a
-log client's availability policies.
-
 #### Retention Policies
 
 This document defines *how* to prune a log, but not policies around *when* or *if*
