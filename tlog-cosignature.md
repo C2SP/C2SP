@@ -207,4 +207,4 @@ key associations in the log leaves".  See [tlog-mirror][] for an example.
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [tlog-mirror]: https://c2sp.org/tlog-mirror
 [FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
-[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-06.html#name-subtrees
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
