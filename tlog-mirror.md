@@ -21,6 +21,7 @@ signatures asserting that a mirror has done so.
 [witness]: https://c2sp.org/tlog-witness
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
 [subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtree-consistency-proofs
+[additional statement]: https://c2sp.org/tlog-cosignature#additional-statements
 
 ## Conventions used in this document
 
@@ -48,7 +49,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 ## Introduction
 
 A mirror is a [cosigner][] that stores a copy of a log. A mirror's
-[cosignature][] makes the additional statement that the mirror has
+[cosignature][] makes the [additional statement][] that the mirror has
 durably logged the contents of the [checkpoint][] and made them accessible.
 
 A mirror is defined by a name, a public key, a *submission prefix* for write
