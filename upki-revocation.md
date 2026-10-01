@@ -33,7 +33,7 @@ for this document.
 ## Conventions used in this document
 
 Data structures are described using notation inspired by Section 3 of
-[RFC 8446][]. This document deviates from RFC 8446 in one respect:
+[RFC 9846][]. This document deviates from RFC 9846 in one respect:
 length-prefixed sequences of composite types carry an **element count** rather
 than a byte length, and are written in the form
 
@@ -43,8 +43,8 @@ than a byte length, and are written in the form
 ```
 
 where the leading `count` field is on the wire. `opaque x[N]` retains its RFC
-8446 meaning of a fixed-length byte string of exactly `N` bytes. `opaque
-x<A..B>` retains its RFC 8446 meaning of a variable-length byte string prefixed
+9846 meaning of a fixed-length byte string of exactly `N` bytes. `opaque
+x<A..B>` retains its RFC 9846 meaning of a variable-length byte string prefixed
 by a byte-length field wide enough to encode `B`; for opaque byte strings this
 length is equivalently a count of bytes and of elements.
 
@@ -72,7 +72,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 8174][] when, and only when, they appear in all capitals, as shown here.
 
-[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
+[RFC 9846]: https://www.rfc-editor.org/rfc/rfc9846.html
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
 [RFC 5280]: https://www.rfc-editor.org/rfc/rfc5280.html
 [FIPS 180-4]: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
