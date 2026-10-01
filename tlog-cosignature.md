@@ -37,7 +37,7 @@ beyond the 128-bit security level.
 ## Conventions used in this document
 
 Data structures are defined according to the conventions laid out in Section 3
-of [RFC 8446][].
+of [RFC 9846][].
 
 `U+` followed by four hexadecimal characters denotes a Unicode codepoint, to be
 encoded in UTF-8. `0x` followed by two hexadecimal characters denotes a byte
@@ -51,7 +51,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 8174][] when, and only when, they appear in all capitals, as shown here.
 
-[RFC 8446]: https://www.rfc-editor.org/rfc/rfc8446.html
+[RFC 9846]: https://www.rfc-editor.org/rfc/rfc9846.html
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
@@ -110,7 +110,7 @@ with timestamps in the future.
 `signature` is an Ed25519 ([RFC 8032][]) or ML-DSA-44 ([FIPS 204][]) signature
 from the cosigner public key over the message defined below.
 
-Per [RFC 8446][], Section 3.3, these are serialized in sequence, with the
+Per [RFC 9846][], Section 3.3, these are serialized in sequence, with the
 timestamp encoded in big-endian order.
 
 ## Ed25519 signed message

@@ -38,7 +38,6 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 2119]: https://www.rfc-editor.org/rfc/rfc2119.html
 [RFC 8174]: https://www.rfc-editor.org/rfc/rfc8174.html
-[RFC 5246]: https://www.rfc-editor.org/rfc/rfc5246.html
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
 [RFC 8032]: https://www.rfc-editor.org/rfc/rfc8032.html
 
