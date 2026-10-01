@@ -16,8 +16,8 @@ This document describes a synchronous HTTP-based protocol to obtain
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
 [note]: https://c2sp.org/signed-note@v1.0.0
 [signed-note]: https://c2sp.org/signed-note@v1.0.0
-[subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03#section-4
-[draft-ietf-plants-merkle-tree-certs-03]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-03
+[subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07#section-4
+[draft-ietf-plants-merkle-tree-certs-07]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07
 
 ## Conventions used in this document
 
@@ -250,7 +250,7 @@ example.com/behind-the-sofa
 ```
 
 The half-open interval `[start, end)` MUST be a valid subtree per
-[draft-ietf-plants-merkle-tree-certs-03][], Section 4.1, and end MUST be less
+[draft-ietf-plants-merkle-tree-certs-07][], Section 4.1, and end MUST be less
 than or equal to the checkpoint size.
 
 If the request is invalid according to the rules above, the witness MUST respond
@@ -258,7 +258,7 @@ with a "400 Bad Request" HTTP status code.
 
 The consistency proof lines MUST encode a Subtree Consistency Proof from the
 subtree to the checkpoint according to
-[draft-ietf-plants-merkle-tree-certs-03][], Section 4.4. If the Merkle
+[draft-ietf-plants-merkle-tree-certs-07][], Section 4.4. If the Merkle
 Consistency Proof doesn't verify, the witness MUST respond with a "422
 Unprocessable Entity" HTTP status code.
 

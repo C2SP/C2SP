@@ -19,8 +19,8 @@ signatures asserting that a mirror has done so.
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [retention policy]: https://c2sp.org/tlog-tiles#retention-policies
 [witness]: https://c2sp.org/tlog-witness
-[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtrees
-[subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-02.html#name-subtree-consistency-proofs
+[subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
+[subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtree-consistency-proofs
 
 ## Conventions used in this document
 

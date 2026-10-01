@@ -11,7 +11,7 @@ description: A profile of Merkle Tree Certificates (MTCs) that uses tiled transp
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
-[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html
+[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html
 [tiled transparency logs]: https://c2sp.org/tlog-tiles
 
 ## Conventions used in this document
@@ -55,8 +55,8 @@ ext-mtcTlogPrefixURLs EXTENSION ::= {
 with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
 algorithm.
 
-[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authorities
-[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-representing-certification-
+[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
@@ -75,9 +75,9 @@ This is equivalent to the concatenation of:
 For example, the trust anchor ID `32473.1` is represented as
 `oid/1.3.6.1.4.1.32473.1`.
 
-[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-04.html#name-trust-anchor-identifiers
+[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html#name-trust-anchor-identifiers
 [checkpoint]: https://c2sp.org/tlog-checkpoint
-[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-04.html
+[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html
 [witness]: https://c2sp.org/tlog-witness
 
 ## Serving Issuance Logs
@@ -125,13 +125,13 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 [constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
 [landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
 [merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
-[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-certification-authority-cos
-[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-issuance-logs
-[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-cosigners
+[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authority-cos
+[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-issuance-logs
+[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
 [prefix URLs]: https://c2sp.org/tlog-tiles#parameters
 [pruning]: https://c2sp.org/tlog-tiles#pruning
-[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-publishing-landmarks
+[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
 
 ## Cosigners
@@ -163,6 +163,6 @@ configured to accept the next few unused log numbers.
 
 [mirror]: https://c2sp.org/tlog-mirror
 [ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
-[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-signature-format
+[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
-[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-standalone-certificates
+[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates
