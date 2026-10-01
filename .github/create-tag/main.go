@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"c2sp.org/C2SP/.github/linkcheck"
 	"c2sp.org/C2SP/website/spec"
 )
 
@@ -21,13 +22,31 @@ func main() {
 		log.Fatalf("failed to chdir to %s: %v", os.Args[1], err)
 	}
 
-	matches, err := filepath.Glob("*/.new-tag")
+	matches, err := linkcheck.ProposalPaths(".")
 	if err != nil {
-		log.Fatalf("failed to glob for .new-tag files: %v", err)
+		log.Fatalf("failed to find .new-tag files: %v", err)
 	}
 	if len(matches) == 0 {
 		log.Printf("no .new-tag files found, nothing to do")
 		return
+	}
+
+	// Validate the virtual post-release inventory before creating any tags.
+	// HEAD supplies the current-link baseline, not a blanket exemption for
+	// failures introduced by the proposed releases (which can tag older commits).
+	diagnostics, err := linkcheck.Check(".", "HEAD")
+	if err != nil {
+		log.Fatalf("check section links before tagging: %v", err)
+	}
+	var brokenLinks bool
+	for _, d := range diagnostics {
+		if !d.Existing {
+			log.Printf("%s:%d: %s", d.File, d.Line, d.Message)
+			brokenLinks = true
+		}
+	}
+	if brokenLinks {
+		log.Fatal("refusing to tag releases that introduce broken section links")
 	}
 
 	var failed bool

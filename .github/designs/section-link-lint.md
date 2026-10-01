@@ -1,6 +1,7 @@
 # Design: section-link linting
 
-Proposal only; no implementation or PR yet.
+Approved design for the section-link checker in `.github/linkcheck`, the shared
+renderer and analyzer in `.website/document`, and their CI integration.
 
 ## Goal
 
@@ -200,4 +201,6 @@ Use temporary Git repositories with real tags and a base/candidate pair:
 2. Git inventory and current/future graph checks, with regression diagnostics.
 3. CI and proposed-tag checks; audit existing failures and fix mutable sources.
 
-No PR is opened until the design is agreed.
+The initial audit's mutable-source failures are repaired by pointing unreleased
+section references explicitly at `@main` and using the public project-document
+route for the stewards link.

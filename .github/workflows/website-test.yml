@@ -3,9 +3,13 @@ on:
   push:
     paths:
       - .website/**
+      - .github/lint/**
+      - .github/linkcheck/**
   pull_request:
     paths:
       - .website/**
+      - .github/lint/**
+      - .github/linkcheck/**
 jobs:
   test:
     runs-on: ubuntu-latest
