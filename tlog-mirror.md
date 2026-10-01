@@ -21,7 +21,7 @@ signatures asserting that a mirror has done so.
 [witness]: https://c2sp.org/tlog-witness
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
 [subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtree-consistency-proofs
-[additional statement]: https://c2sp.org/tlog-cosignature#additional-statements
+[additional statement]: https://c2sp.org/tlog-cosignature@main#additional-statements
 
 ## Conventions used in this document
 
