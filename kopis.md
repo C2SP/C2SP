@@ -1,3 +1,11 @@
+---
+description: Post-quantum key encapsulation mechanism
+---
+
+> [!WARNING]
+> This is the editor's copy of this specification.
+> For a stable rendered reference, use [c2sp.org/kopis](https://c2sp.org/kopis).
+
 # The Kopis Key Encapsulation Mechanism
 
 This document contains a specification for the [Kopis](https://eprint.iacr.org/2026/2268) post-quantum key encapsulation mechanism (KEM). We do this in two parts, first defining an IND-CPA-secure public key encryption (PKE) scheme, then defining the IND-CCA-secure KEM via the Fujisaki-Okamoto transform.
