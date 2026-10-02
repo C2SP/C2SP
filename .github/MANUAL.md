@@ -51,7 +51,8 @@ prerelease version, if any. Otherwise, it renders the main branch of the
 specification.
 
 `@latest` always renders the latest tagged version of the specification, with
-the same logic as above (non-prerelease preferred over prerelease).
+the same logic as above (non-prerelease preferred over prerelease), falling
+back to main if there are no tags.
 
 `@main` always renders the main branch of the specification.
 
@@ -145,6 +146,67 @@ will be removed by the c2sp.org renderer.
 ```
 
 Next, a single top-level heading must be included with the title of the specification.
+
+#### Section links and compatibility anchors
+
+Link to sections using their c2sp.org URL and heading fragment, such as
+`https://c2sp.org/<spec-name>@<version>#<section>`. Copy the fragment from the
+rendered heading's permalink rather than guessing it.
+
+Renaming a heading changes its generated fragment. To preserve links to the old
+name, add an empty HTML anchor immediately before the replacement heading, with
+a blank line between the anchors and the heading:
+
+```markdown
+<a id="old-section-name"></a>
+<a id="even-older-section-name"></a>
+
+## New section name
+```
+
+The heading keeps its generated fragment and permalink. Multiple compatibility
+anchors are allowed, but their IDs must be nonempty and unique within the page,
+including the IDs generated for headings and footnotes. Preserve the exact old
+fragment, including any numeric suffix. Prefer `id` to legacy `name` anchors.
+HTML `<base href>` elements are not supported, as they change the destinations
+of relative links and generated section permalinks.
+
+The linter checks section links in current specifications, served project
+documents, and all tagged specification versions. A published version can still
+link to a changing destination. Pinned links are checked at their exact version;
+`@main` links are checked against the proposed main; bare and `@latest` links
+are checked both against their current destination and against the proposed
+main, assuming it will eventually become latest. Use `@main` when linking to a
+section that has not yet been released.
+
+If a rename would break a floating reference, the linter lists the referring
+documents and suggests a compatibility anchor. Put it at the appropriate
+replacement section; the linter cannot determine whether two sections have
+equivalent meaning. Links outside the checked repository corpus are not known
+to the linter, so preserving additional old anchors is encouraged.
+
+Undefined full (`[text][label]`) and collapsed (`[label][]`) references, including
+image references, and undefined footnotes (`[^label]`) are errors in the normal
+source lint, not just at release time. Definitions can appear later in the
+document. Code, math, and escaped literal brackets are not treated as references.
+An undefined shortcut reference (`[label]`) is indistinguishable from ordinary
+bracketed prose, so it is not flagged; use an explicit reference form to have
+missing definitions checked.
+
+To check a change locally, fetch main and all tags, then run:
+
+```sh
+git fetch origin main --tags
+cd .github
+go run ./lint --base origin/main
+```
+
+The checkout must not be shallow or partial. The linter reads local Git objects and does
+not access the network. With `--base`, pre-existing failures are reported as
+`existing` without failing the check, but new broken references and newly broken
+destinations fail. Without `--base`, it performs a full audit, including
+historical failures. Pending `.new-tag` files are also checked against the
+post-release destination selection before any tags are created.
 
 #### Mathematical expressions
 
@@ -241,6 +303,27 @@ branch.
 
 Merge this file to main, and a GitHub Action will create the tag
 `<spec-name>/v1.2.3` and remove the `.new-tag` file.
+
+While a `.new-tag` is present, CI runs the latest linters on that specification's
+source at the recorded commit, including the ordinary format, math, reference,
+and link checks. It uses the current linter code, not code from the historical
+commit, and does not run source lints on the other specifications at that commit.
+The tag-creation action repeats these checks before creating any tags. Existing
+published tags are not retroactively subject to new source-lint rules; the
+ordinary repository-wide link graph checks still apply.
+
+A proposed release, including a prerelease or v0.x version, must not link to
+another specification's explicit `@main`, or to its own explicit `@main`. Use a
+bare spec URL or a released version for dependencies, and a local `#fragment` for
+links within the released document. Bare and `@latest` links remain allowed even
+when they implicitly select main: untagged dependencies have no released version
+to reference. The ordinary destination and section checks still apply.
+
+Release-only checks also reject the unfinished-content markers `TODO`, `TK`,
+`TBD`, and `FIXME`. These are matched as exact uppercase words throughout the
+selected source, including comments and code, not as substrings of identifiers.
+They remain allowed during ordinary development. Unchecked task-list items are
+allowed, including in releases.
 
 ### Announcements
 

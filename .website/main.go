@@ -63,10 +63,16 @@ func handler(repo *Repo) http.Handler {
 
 	mux.HandleFunc("/{name}", s.serveSpec)
 
-	mux.HandleFunc("GET /-/coc", s.docHandler(".github/CODE_OF_CONDUCT.md", "Code of Conduct"))
-	mux.HandleFunc("GET /-/oids", s.docHandler(".github/OIDs.md", "OIDs"))
-	mux.HandleFunc("GET /-/manual", s.docHandler(".github/MANUAL.md", "C2SP Manual"))
-	mux.HandleFunc("GET /-/maintainers", s.docHandler(".github/MAINTAINERS.md", "Maintainers"))
+	for route, path := range spec.ProjectDocuments {
+		if route == "/" {
+			continue // The index also lists the specifications.
+		}
+		title := map[string]string{
+			"/-/coc": "Code of Conduct", "/-/oids": "OIDs",
+			"/-/manual": "C2SP Manual", "/-/maintainers": "Maintainers",
+		}[route]
+		mux.HandleFunc("GET "+route, s.docHandler(path, title))
+	}
 	mux.HandleFunc("GET /-/logo/{file}", s.serveLogo)
 	mux.Handle("GET /-/math/", http.StripPrefix("/-/math/", http.FileServerFS(mathml.Assets())))
 	mux.Handle("GET /-/static/", staticHandler())
@@ -82,7 +88,9 @@ func handler(repo *Repo) http.Handler {
 
 	// Renamed test vectors and specs.
 	mux.Handle("/CCTV/ed25519vectors", http.RedirectHandler("https://c2sp.org/CCTV/ed25519", http.StatusFound))
-	mux.Handle("/sunlight", http.RedirectHandler("https://c2sp.org/static-ct-api", http.StatusFound))
+	for from, to := range spec.SpecRedirects {
+		mux.Handle(from, http.RedirectHandler("https://c2sp.org"+to, http.StatusFound))
+	}
 
 	goGetMux := http.NewServeMux()
 	goGetMux.Handle("/", GoImportHandler("c2sp.org", "https://github.com/C2SP/C2SP"))

@@ -7,6 +7,7 @@ require (
 	github.com/filippo-agent/goldmark-mathml v0.4.0
 	github.com/google/go-github/v73 v73.0.0
 	github.com/yuin/goldmark v1.8.5
+	golang.org/x/mod v0.37.0
 )
 
 require (
@@ -15,7 +16,8 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
-	golang.org/x/mod v0.37.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.4 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )
 
