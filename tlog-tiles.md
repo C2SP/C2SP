@@ -64,6 +64,9 @@ with `Content-Type: text/plain; charset=utf-8`.
 This endpoint is mutable, so its headers SHOULD prevent caching beyond a few
 seconds.
 
+The checkpoint MUST contain at least one signature from the log. It MAY contain
+cosignatures from other [cosigners][].
+
 ### Merkle Tree
 
 Instead of serving consistency and inclusion proofs for arbitrary entries and/or
@@ -255,5 +258,6 @@ the feedback of the Sigsum team and of many individuals in the WebPKI community.
 [Certificate Transparency]: https://certificate.transparency.dev/
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
 [checkpoint]: https://c2sp.org/tlog-checkpoint
+[cosigners]: https://c2sp.org/tlog-cosignature
 [signed note]: https://c2sp.org/signed-note
 [temporal sharding]: https://googlechrome.github.io/CertificateTransparency/log_policy.html#temporal-sharding

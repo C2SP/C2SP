@@ -17,6 +17,8 @@ This document describes a synchronous HTTP-based protocol to obtain
 [note]: https://c2sp.org/signed-note@v1.0.0
 [signed-note]: https://c2sp.org/signed-note@v1.0.0
 [subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07#section-4
+[checkpoint cosignature]: https://c2sp.org/tlog-cosignature#checkpoint-cosignatures
+[subtree cosignature]: https://c2sp.org/tlog-cosignature#subtree-cosignatures
 [draft-ietf-plants-merkle-tree-certs-07]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07
 
 ## Conventions used in this document
@@ -124,7 +126,7 @@ Example request body:
     — example.com/behind-the-sofa Az3grlgtzPICa5OS8npVmf1Myq/5IZniMp+ZJurmRDeOoRDe4URYN7u5/Zhcyv2q1gGzGku9nTo+zyWE+xeMcTOAYQ8=
     — example.com/behind-the-sofa opLqBQsREYCgu6xQkYQwJr9fo45a62DN9EdmHXnZdXNqlcVGlCum2Wks+49/V6267UEjw6QUXTS5Rovnzv++qbSzm9Q=
 
-The witness MUST verify the checkpoint signature against the public key(s) it
+The witness MUST verify the checkpoint's signatures against the public key(s) it
 trusts for the checkpoint origin, and it MUST ignore signatures from unknown
 keys. If the checkpoint origin is unknown, the witness MUST respond with a "404
 Not Found" HTTP status code. The witness MUST respond with a "403 Forbidden"
@@ -171,12 +173,9 @@ If all the checks above pass, the witness MUST update its record of the latest
 cosigned checkpoint and respond with a "200 Success" HTTP status code. The
 response body MUST be a sequence of one or more [note][] signature lines, each
 starting with the `—` character (U+2014) and ending with a newline character
-(U+000A). The signatures MUST be [cosignatures][] from the witness key(s) on the
-checkpoint. Witnesses SHOULD use ML-DSA-44 [cosignatures][]. If the cosignature
-format supports subtrees, the cosignature returned by the witness MUST be for
-the entire tree in the submitted checkpoint, i.e. start MUST be zero and end
-MUST be the checkpoint size. The cosignature MUST NOT omit the timestamp, i.e.
-the timestamp MUST NOT be zero.
+(U+000A). The signatures MUST be [checkpoint cosignatures][] from the witness
+key(s), computed and formatted for the provided [checkpoint][]. Witnesses SHOULD
+use ML-DSA-44.
 
 Example response body:
 
@@ -184,7 +183,7 @@ Example response body:
     — witness.example/w1 I7rEps0pvK2UqkS2gSpVUDhrhVtQV9lgF6pRrWAvjJHjyWpW7VcE3SiOlVlbQNt64vWhO+DlkL0+UfzuOBMh9ChdMkP1vi/lCAsmlw==
     — witness.example/w2 AWui8Sk55XjYLOijihBjhqEH6nS1ndDymE0a+6idX7pLcnoB+dhnz0854aLZgrrKbYKA7nC3HNJhm/kWl7oJlqU3rXXvpysAdyP3wQ==
 
-The client MUST ignore any cosignatures from unknown keys. To parse the
+The client MUST ignore any signatures from unknown keys. To parse the
 response, the client MAY concatenate it to the checkpoint, and use a [note][]
 verification function configured with the witness keys it trusts. If that call
 succeeds, it can move the valid signatures to its own view of the checkpoint.
@@ -202,7 +201,7 @@ checkpoint must be performed atomically, otherwise the following race can occur:
 
 ### sign-subtree
 
-The `sign-subtree` call is used to request a [subtree][] cosignature from the
+The `sign-subtree` call is used to request a [subtree cosignature][] from the
 witness, by providing a checkpoint signed by the witness and a subtree
 consistency proof.
 
