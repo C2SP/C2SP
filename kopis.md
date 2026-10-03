@@ -280,6 +280,8 @@ We define three security levels for Kopis: Kopis-512, Kopis-768, and Kopis-1024,
 |Kopis-768  | `ℓ=3 t=4 μ=8`  | 992       | 1088      | 32        |
 |Kopis-1024 | `ℓ=4 t=6 μ=6`  | 1312      | 1472      | 32        |
 
-# Test Vectors
+# Reference Implementation
 
-Test vectors and a Python reference implementation can be found at [CCTV](https://github.com/C2SP/CCTV/tree/main/kopis).
+A runnable Lean implementation of this specification can be found in [`kopis/Kopis.lean`](./kopis/Kopis.lean). The [`README`](./kopis/README.md) in that directory has instructions on how to test it against the test vectors from [CCTV](https://github.com/C2SP/CCTV/tree/main/kopis).
+
+In any scenario where the behavior of the KEM API differs between this specification, the Lean implementation, and the Python implementation in CCTV differ, the canonical behavior is given by the Lean implementation.
