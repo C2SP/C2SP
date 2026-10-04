@@ -266,23 +266,6 @@ def deserialize_elem (n : ℕ) (bytes : 𝔹 (n * 256 / 8)) : R n := Id.run do
     coeffs := coeffs.set i (from_bits_le n (slice all_bits (n * i) n))
   return make_rn n coeffs
 
-/-- Returns the number of set bits in b
-```
-fn hamming(b: [bool; μ/2]) -> u13:
-  let mut weight = 0u13
-  for i in 0..μ/2:
-    if b[i]:
-      weight += 1
-  return weight
-```
--/
-def hamming {k : ℕ} (b : Vector Bool k) : ℕ := Id.run do
-  let mut weight := 0
-  for h : i in [0:k] do
-    if b[i] then
-      weight := weight + 1
-  return weight
-
 /-- The following variables represent security parameters, and depend on the security level being
 instantiated:
 
@@ -591,6 +574,23 @@ def bit_slices (bytes : 𝔹 (P.μ * 256 / 8)) : Vector (Vector Bool (P.μ / 2))
   for h : i in [0:512] do
     out := out.set i (slice all_bits (i * P.μ / 2) (P.μ / 2))
   return out
+
+/-- Returns the number of set bits in b
+```
+fn hamming(b: [bool; μ/2]) -> u13:
+  let mut weight = 0u13
+  for i in 0..μ/2:
+    if b[i]:
+      weight += 1
+  return weight
+```
+-/
+def hamming (b : Vector Bool (P.μ / 2)) : ℕ := Id.run do
+  let mut weight := 0
+  for h : i in [0:P.μ / 2] do
+    if b[i] then
+      weight := weight + 1
+  return weight
 
 end
 
