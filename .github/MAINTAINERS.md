@@ -110,7 +110,7 @@
 
 ### tlog-policy
 
-- [@BenBirt](https://github.com/BenBirt)
+- [@benbirt](https://github.com/benbirt)
 - [@niels-moller](https://github.com/niels-moller)
 
 ### tlog-proof
