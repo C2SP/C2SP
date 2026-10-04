@@ -10,21 +10,21 @@ description: Post-quantum key encapsulation mechanism
 
 This document contains a specification for the [Kopis](https://eprint.iacr.org/2026/2268) post-quantum key encapsulation mechanism (KEM). We do this in two parts, first defining an IND-CPA-secure public key encryption (PKE) scheme, then defining the IND-CCA-secure KEM via the Fujisaki-Okamoto transform.
 
-# Preliminaries
+## Preliminaries
 
 We first specify all the algorithms, syntax, and mathematics we will need for the specification.
 
-## Dependencies
+### Dependencies
 
 We use the TurboSHAKE XOF family defined in [RFC 9861](https://www.rfc-editor.org/rfc/rfc9861.html). We invoke it as `TurboSHAKE128/TurboSHAKE256(M, L, D)`, where `M` is the message to be hashed, `L` is the desired output length, and `D` is the domain separator in the range `[0x01, 0x7f]`.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [BCP 14](https://www.rfc-editor.org/info/bcp14) [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) when, and only when, they appear in all capitals, as shown here.
 
-## Syntax
+### Syntax
 
 We use pseudocode resembling a mix of Rust and Python. Variables declared with `let mut` are mutable. Function definitions are preceded with `fn`, each function input name is followed by a colon, then the type signature, and each function is followed by an arrow `->` then the return type. Ranges are denoted `a..b`, and indicate the range `[a, b)` (i.e., including `a`, excluding `b`). When `s` is a sequence type (e.g., a bitstring or bytestring), `s[a..b]` is used to denote the subsequence starting at index `a` (0-indexed), and ending at and excluding index `b`. We use underscores in the LHS of assignments to denote the elision of a value that is normally bound, e.g., `let (a, _) = f()` where `f()` returns two values. We use ellipses to denote the elision of multiple values, e.g., `let (a, ...) = f()`, where `f()` returns three values. We use infix `||` to denote concatenation of bytestrings. We use infix `^` to denote integer exponentiation when the inputs are expressions. We write `[uK; N]` to mean an array of `N` many `K`-bit integers. Subtraction over `uK` is always defined as wrapping subtraction, e.g., `0u8 - 1u8 = 255u8`.
 
-## Mathematical Definitions
+### Mathematical Definitions
 
 Let `R` be the negacyclic polynomial ring `ℤ[X]/(X²⁵⁶ + 1)`. We denote by `R13` the polynomial ring modulo `2^13`, i.e., `R/2¹³R` (this is isomorphic to `(ℤ/2¹³ℤ)[X]/(X²⁵⁶ + 1)`). Similarly, `R10` denotes `R/2¹⁰R` and `R1` denotes `R/2R`.
 
@@ -38,7 +38,7 @@ For an element `r` in `Rn` and integer `N`, we define the right-shift `r >> N` a
 
 We define `to_bits_le(n: ℤ, k: un) -> [bool; n]` to be the function that converts an `n`-bit integer to its bit representation, starting with the least significant bit. Similarly, we define `from_bits_le(n: ℤ, bits: [bool; n]) -> un` to interpret `n` bits as a `un` value, using `bits[0]` as the least significant bit of the output, and so on.
 
-# Main Algorithms
+## Main Algorithms
 
 We now define a **public key encryption (PKE) scheme**. For the purposes of this specification, the secret key space is simply `[u8; 32]`, and generating a fresh secret key amounts to generating a fresh uniform bytestring. We define a public key encryption scheme as the set of the following algorithms:
 
@@ -56,7 +56,7 @@ For real-world usage of these algorithms, the `randomness` parameters above MUST
 
 An implementation note: the purpose of Kopis is to be used in settings that require constant-time operations. Thus, any implementation of the above functions MUST be constant-time with respect to all inputs.
 
-## Parameters
+### Parameters
 
 The following variables represent security parameters, and depend on the security level being instantiated:
 
@@ -64,7 +64,7 @@ The following variables represent security parameters, and depend on the securit
 * `μ` — The binomial parameter used for secret generation. This is always even.
 * `t` — The base-2 logarithm of the modulus of the space of compressed ring elements
 
-## Constants
+### Constants
 
 We define the constants used in our implementation. The sizes in bytes of our secret keys, public keys, and ciphertexts are functions of the parameters above:
 
@@ -81,7 +81,7 @@ We also require domain separators for all our TurboSHAKE invocations:
 * `DOMSEP_FO = 0x05`
 * `DOMSEP_NOREJECT = 0x06`
 
-## PKE
+### PKE
 
 We define key generation, encryption, and decryption for the Kopis IND-CPA-secure PKE scheme. We will define the helper functions later.
 
@@ -118,7 +118,7 @@ fn PkeDecrypt(sk: [u8; 32], ct: [u8; CT_SIZE]) -> [u8; 32]:
   return serialize_elem(1, mprime)
 ```
 
-## KEM
+### KEM
 
 We define the IND-CCA-secure Kopis KEM below. The `SkToPk` function is identical to the one given in the PKE above.
 
@@ -155,7 +155,7 @@ We note again that, along with all other top-level functions, `KemDecap` MUST be
 
 For efficiency, implementers MAY internally cache the expanded decapsulation key. But this expanded key SHOULD NOT be persisted anywhere.
 
-## Auxiliary Functions
+### Auxiliary Functions
 
 We now define the auxiliary functions used in the schemes above:
 
@@ -270,7 +270,7 @@ fn hamming(b: [bool; μ/2]) -> u13:
   return weight
 ```
 
-# Parameter Sets
+## Parameter Sets
 
 We define three security levels for Kopis: Kopis-512, Kopis-768, and Kopis-1024, referring to the dimension of the public key vector over `ℤ/2¹⁰ℤ`:
 
@@ -280,7 +280,7 @@ We define three security levels for Kopis: Kopis-512, Kopis-768, and Kopis-1024,
 |Kopis-768  | `ℓ=3 t=4 μ=8`  | 992       | 1088      | 32        |
 |Kopis-1024 | `ℓ=4 t=6 μ=6`  | 1312      | 1472      | 32        |
 
-# Reference Implementation
+## Reference Implementation
 
 A runnable Lean implementation of this specification can be found in [`kopis/Kopis.lean`](./kopis/Kopis.lean). The [`README`](./kopis/README.md) in that directory has instructions on how to test it against the test vectors from [CCTV](https://github.com/C2SP/CCTV/tree/main/kopis).
 
