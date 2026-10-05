@@ -128,8 +128,9 @@ In client configuration, the public key MAY be encoded as a [vkey][] with
 signature type 0x04 and the 32-byte Ed25519 cosigner public key as the
 public key material.
 
-This signature type SHOULD only be used by non-log cosigners. If using Ed25519,
-the log itself SHOULD use Ed25519 log signatures, defined above.
+Historically, this signature type was used for Ed25519 non-log cosigners, and
+Ed25519 log signatures was used for the log owner. [tlog-cosignature][] has
+since generalized the notion of cosigner to include the log owner.
 
 [tlog-cosignature]: https://c2sp.org/tlog-cosignature
 [signed note]: https://c2sp.org/signed-note@v1.0.0
