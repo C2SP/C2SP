@@ -42,6 +42,9 @@ policy:
           - the jq255 maintainers have authored relevant changes
           - the jq255 maintainers have approved relevant changes
         - or:
+          - the kopis maintainers have authored relevant changes
+          - the kopis maintainers have approved relevant changes
+        - or:
           - the mtc-tlog maintainers have authored relevant changes
           - the mtc-tlog maintainers have approved relevant changes
         - or:
@@ -426,6 +429,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/jq255"
+    requires:
+      count: 0
+
+  - name: the kopis maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^kopis\\.md$"
+          - "^kopis/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/kopis"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the kopis maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^kopis\\.md$"
+          - "^kopis/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/kopis"
     requires:
       count: 0
 

@@ -307,7 +307,7 @@ Stewards follow these instructions when creating a new spec, after it was
 approved per the process described in the ["New specifications" section][new
 specifications] above.
 
-* Create a new [@C2SP/maintainers sub-team](https://github.com/orgs/C2SP/teams)
+* [Create a new @C2SP/maintainers sub-team](https://github.com/orgs/C2SP/new-team?parent_team=maintainers)
   and add the new maintainers.
 
 * Create a `<spec-name>.md` file with contents:
