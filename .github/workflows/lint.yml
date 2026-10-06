@@ -7,9 +7,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: .github/go.mod
-      - run: |
-          cd .github/lint
-          go run .
+      - name: Test lint tooling
+        working-directory: .github
+        run: go test ./...
+      - name: Lint specifications and section links
+        working-directory: .github
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          args=()
+          if [[ "$EVENT" == pull_request ]]; then
+            # checkout's merge commit, not a possibly newer origin/main.
+            args+=(--base "$(git rev-parse HEAD^1)")
+          elif [[ "$REF_TYPE" != tag ]]; then
+            if [[ -n "$BEFORE" && "$BEFORE" != 0000000000000000000000000000000000000000 ]]; then
+              args+=(--base "$BEFORE")
+            else
+              args+=(--base "$(git merge-base HEAD origin/main)")
+            fi
+          fi
+          go run ./lint "${args[@]}"

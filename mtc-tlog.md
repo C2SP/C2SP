@@ -130,7 +130,7 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
 [note signature]: http://c2sp.org/signed-note
 [prefix URLs]: https://c2sp.org/tlog-tiles#parameters
-[pruning]: https://c2sp.org/tlog-tiles#pruning
+[pruning]: https://c2sp.org/tlog-tiles@main#pruning
 [publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
 
@@ -162,7 +162,7 @@ as needed for failure recovery. Witnesses and other non-CA cosigners SHOULD be
 configured to accept the next few unused log numbers.
 
 [mirror]: https://c2sp.org/tlog-mirror
-[ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
+[ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature@main#ml-dsa-44-signed-message
 [MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
-[sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
+[sign-subtree]: https://c2sp.org/tlog-witness@main#sign-subtree
 [standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates

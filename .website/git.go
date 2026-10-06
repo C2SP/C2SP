@@ -10,19 +10,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
+
 	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"c2sp.org/C2SP/website/spec"
 	"golang.org/x/mod/semver"
 )
 
 const repoURL = "https://github.com/C2SP/C2SP.git"
-
-var commitHashRE = regexp.MustCompile(`^[0-9a-fA-F]{7,40}$`)
 
 // Repo is a local bare mirror of the upstream repository, kept up to date by
 // periodic fetches.
@@ -299,18 +298,7 @@ func (r *Repo) Versions(name string) ([]string, error) {
 // prerelease version if no releases exist. It returns "" if there are no
 // versions.
 func latestVersion(versions []string) string {
-	var latestRelease, latestPrerelease string
-	for _, v := range versions {
-		if semver.Prerelease(v) != "" {
-			latestPrerelease = v
-		} else {
-			latestRelease = v
-		}
-	}
-	if latestRelease != "" {
-		return latestRelease
-	}
-	return latestPrerelease
+	return spec.LatestVersion(versions)
 }
 
 // IsCommit returns whether the given ref is a valid git commit hash reachable
@@ -319,7 +307,7 @@ func (r *Repo) IsCommit(ref string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if !commitHashRE.MatchString(ref) {
+	if !spec.ValidCommit(ref) {
 		return false
 	}
 
