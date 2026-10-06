@@ -232,7 +232,7 @@ Each consistency proof line MUST encode a single hash in base64. The client MUST
 NOT send more than 63 consistency proof lines.
 
 The checkpoint MUST include exactly one note signature. That signature MUST be
-from one of the witness's keys(s).
+from one of the witness's keys.
 
 Example request body:
 
