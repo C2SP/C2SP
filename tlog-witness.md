@@ -17,7 +17,7 @@ This document describes a synchronous HTTP-based protocol to obtain
 [note]: https://c2sp.org/signed-note@v1.0.0
 [signed-note]: https://c2sp.org/signed-note@v1.0.0
 [subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07#section-4
-[checkpoint cosignature]: https://c2sp.org/tlog-cosignature#checkpoint-cosignatures
+[checkpoint cosignatures]: https://c2sp.org/tlog-cosignature#checkpoint-cosignatures
 [subtree cosignature]: https://c2sp.org/tlog-cosignature#subtree-cosignatures
 [draft-ietf-plants-merkle-tree-certs-07]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07
 

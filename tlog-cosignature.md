@@ -76,9 +76,8 @@ For ecosystems that use OIDs for identification, the cosigner name MAY be the
 string `oid/` followed by an OID in dotted decimal form.
 
 Logs are also identified by strings following the above construction. These
-identifiers are known as the log's *origin*. A log's origin MAY also be a
-cosigner name. In this case, the cosigner is the log itself and MUST NOT sign
-cosignatures for other logs.
+identifiers are known as the log's *origin*. The same string MAY be both a log
+origin and a cosigner name.
 
 Cosigners maintain private keys for one or more of the cosigner algorithms
 defined in this document. Clients are configured with tuples of (cosigner name,
