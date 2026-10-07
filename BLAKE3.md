@@ -547,7 +547,7 @@ in the message block `m`, and the compress output and final hash value
 are the same bytes with different endianness.
 
 ```
- == COMPRESS: CHUNK  1, BLOCK  0 ==
+ == COMPRESS: CHUNK  0, BLOCK  0 ==
 
  h:
  6a09e667 bb67ae85 3c6ef372 a54ff53a 510e527f 9b05688c 1f83d9ab 5be0cd19
