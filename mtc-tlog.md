@@ -61,8 +61,8 @@ algorithm.
 ## Representing Trust Anchor IDs
 
 MTC entities are named using [trust anchor IDs][]. This section defines how to
-map these to tiled transparency log [checkpoint][] origins and [witness][]
-names. A trust anchor ID is represented as the concatenation of:
+map these to [log origins and cosigner names][]. A trust anchor ID is
+represented as the concatenation of:
 
 * The 16-byte ASCII string `oid/1.3.6.1.4.1.`, including the trailing period
 * The trust anchor ID's [ASCII representation][]
@@ -76,9 +76,8 @@ For example, the trust anchor ID `32473.1` is represented as
 `oid/1.3.6.1.4.1.32473.1`.
 
 [ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html#name-trust-anchor-identifiers
-[checkpoint]: https://c2sp.org/tlog-checkpoint
 [trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html
-[witness]: https://c2sp.org/tlog-witness
+[log origins and cosigner names]: https://c2sp.org/tlog-cosignature#cosigners
 
 ## Serving Issuance Logs
 
@@ -91,12 +90,11 @@ additional leading zeros, to each CA prefix URL:
 <CA prefix URL>/<log number>
 ```
 
-Each issuance log’s [checkpoint][] origin is its [log ID][] represented as an
-origin, as described above. For example, log 42 of a CA with ID `32473.2` has a
-log ID of `32473.2.0.42` and a checkpoint origin of
-`oid/1.3.6.1.4.1.32473.2.0.42`.
+Each issuance log’s origin is its [log ID][] represented as described above.
+For example, log 42 of a CA with ID `32473.2` has a
+log ID of `32473.2.0.42` and a log origin of `oid/1.3.6.1.4.1.32473.2.0.42`.
 
-Each issuance log MUST serve a checkpoint that includes a signature from its
+Each issuance log MUST serve a [checkpoint][] that includes a signature from its
 [CA cosigner][], formatted as a [note signature][]. The CA cosigner is mapped to
 a [transparency log cosigner][] as described below. Issuance logs MAY serve
 additional cosignatures, including ones from cosigners that are not
@@ -133,25 +131,25 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 [pruning]: https://c2sp.org/tlog-tiles#pruning
 [publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature
+[checkpoint]: https://c2sp.org/tlog-checkpoint
 
 ## Cosigners
 
 An [MTC cosigner][] is mapped to a [transparency log cosigner][] as follows:
 
-* The cosigner’s name is derived from the MTC cosigner’s ID as described above.
+* The cosigner name is derived from the MTC cosigner’s ID as described above.
   For example, an MTC cosigner with ID `32473.3` has name
   `oid/1.3.6.1.4.1.32473.3`.
 
-* The cosigner MUST use an ML-DSA-44 key and generate
-  [ML-DSA-44 signed messages][], which are compatible with the MTC construction.
-  This MAY be extended to future [MTC-compatible][], subtree-capable signed
-  messages.
+* The MTC cosigner MUST generate cosignatures with ML-DSA-44, defined in
+  [RFC 9881][]. The transparency log cosigner is then an [ML-DSA-44 cosigner][],
+  which is compatible with the MTC signature format. This MAY be extended to
+  future [MTC-compatible][], subtree-capable cosigners.
 
 Conversely, a [witness][], [mirror][], or other transparency log cosigner whose
-signatures are used in [standalone certificates][] MUST be an MTC cosigner. In
-particular, it MUST have a cosigner name and key satisfying the above
-requirements. It SHOULD implement the [`sign-subtree` endpoint][sign-subtree]
-for CAs to request subtree signatures.
+subtree cosignatures are used in [standalone certificates][] MUST have a
+cosigner name satisfying the above requirements. It SHOULD implement the
+[`sign-subtree` endpoint][sign-subtree] for CAs to request subtree signatures.
 
 An MTC CA’s [CA cosigner][] has the same ID as the CA, so a CA with ID `32473.2`
 has a cosigner name of `oid/1.3.6.1.4.1.32473.2`. Note this is different from
@@ -161,8 +159,10 @@ An MTC CA operates a series of issuance logs, switching to the next log number
 as needed for failure recovery. Witnesses and other non-CA cosigners SHOULD be
 configured to accept the next few unused log numbers.
 
+[witness]: https://c2sp.org/tlog-witness
 [mirror]: https://c2sp.org/tlog-mirror
-[ML-DSA-44 signed messages]: https://c2sp.org/tlog-cosignature#ml-dsa-44-signed-message
+[RFC 9881]: https://www.rfc-editor.org/info/rfc9881/
+[ML-DSA-44 cosigner]: https://c2sp.org/tlog-cosignature#ml-dsa-44
 [MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
 [standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates
