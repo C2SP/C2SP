@@ -146,7 +146,7 @@ runtime if possible.
   identifier that is unlikely to collide.
 
 [github.com/transparency-dev/witness]: https://github.com/transparency-dev/witness
-[static-ct-api]: https://c2sp.org/static-ct-api@v1.2.0
+[static-ct-api]: https://c2sp.org/static-ct-api@v1.1.0
 [tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
 ### Ed25519 signatures
