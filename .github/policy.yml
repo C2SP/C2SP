@@ -69,6 +69,9 @@ policy:
           - the tlog-cosignature maintainers have authored relevant changes
           - the tlog-cosignature maintainers have approved relevant changes
         - or:
+          - the tlog-list maintainers have authored relevant changes
+          - the tlog-list maintainers have approved relevant changes
+        - or:
           - the tlog-mirror maintainers have authored relevant changes
           - the tlog-mirror maintainers have approved relevant changes
         - or:
@@ -672,6 +675,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/tlog-cosignature"
+    requires:
+      count: 0
+
+  - name: the tlog-list maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-list\\.md$"
+          - "^tlog-list/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/tlog-list"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the tlog-list maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-list\\.md$"
+          - "^tlog-list/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/tlog-list"
     requires:
       count: 0
 
