@@ -12,7 +12,7 @@ This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
 [Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html
-[tiled transparency logs]: https://c2sp.org/tlog-tiles
+[tiled transparency logs]: https://c2sp.org/tlog-tiles@v1.0.0
 
 ## Conventions used in this document
 
@@ -77,7 +77,7 @@ For example, the trust anchor ID `32473.1` is represented as
 
 [ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html#name-trust-anchor-identifiers
 [trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html
-[log origins and cosigner names]: https://c2sp.org/tlog-cosignature#cosigners
+[log origins and cosigner names]: https://c2sp.org/tlog-cosignature@v1.1.0#cosigners
 
 ## Serving Issuance Logs
 
@@ -122,16 +122,16 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 
 [constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
 [landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
-[merkle tree tiles]: https://c2sp.org/tlog-tiles#merkle-tree
+[merkle tree tiles]: https://c2sp.org/tlog-tiles@v1.0.0#merkle-tree
 [CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authority-cos
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-issuance-logs
 [MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
-[note signature]: http://c2sp.org/signed-note
-[prefix URLs]: https://c2sp.org/tlog-tiles#parameters
-[pruning]: https://c2sp.org/tlog-tiles#pruning
+[note signature]: https://c2sp.org/signed-note@v1.1.0
+[prefix URLs]: https://c2sp.org/tlog-tiles@v1.0.0#parameters
+[pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
 [publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
-[transparency log cosigner]: https://c2sp.org/tlog-cosignature
-[checkpoint]: https://c2sp.org/tlog-checkpoint
+[transparency log cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
 ## Cosigners
 
@@ -159,10 +159,10 @@ An MTC CA operates a series of issuance logs, switching to the next log number
 as needed for failure recovery. Witnesses and other non-CA cosigners SHOULD be
 configured to accept the next few unused log numbers.
 
-[witness]: https://c2sp.org/tlog-witness
-[mirror]: https://c2sp.org/tlog-mirror
+[witness]: https://c2sp.org/tlog-witness@v1.1.0
+[mirror]: https://c2sp.org/tlog-mirror@v0.1.0
 [RFC 9881]: https://www.rfc-editor.org/info/rfc9881/
-[ML-DSA-44 cosigner]: https://c2sp.org/tlog-cosignature#ml-dsa-44
+[ML-DSA-44 cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0#ml-dsa-44
 [MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
-[sign-subtree]: https://c2sp.org/tlog-witness#sign-subtree
+[sign-subtree]: https://c2sp.org/tlog-witness@v1.1.0#sign-subtree
 [standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates

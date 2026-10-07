@@ -132,7 +132,7 @@ Historically, this signature type was used for Ed25519 non-log cosigners, and
 Ed25519 log signatures were used for the log owner. [tlog-cosignature][] has
 since generalized the notion of cosigner to include the log owner.
 
-[tlog-cosignature]: https://c2sp.org/tlog-cosignature
-[signed note]: https://c2sp.org/signed-note@v1.0.0
-[signing the note text with Ed25519]: https://c2sp.org/signed-note@v1.0.0#ed25519-signatures
-[vkey]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
+[tlog-cosignature]: https://c2sp.org/tlog-cosignature@v1.1.0
+[signed note]: https://c2sp.org/signed-note@v1.1.0
+[signing the note text with Ed25519]: https://c2sp.org/signed-note@v1.1.0#ed25519-signatures
+[vkey]: https://c2sp.org/signed-note@v1.1.0#verifier-keys

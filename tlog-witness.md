@@ -11,14 +11,14 @@ description: HTTP protocol to obtain transparency log witness cosignatures
 This document describes a synchronous HTTP-based protocol to obtain
 [cosignatures][] from transparency log witnesses.
 
-[cosignatures]: https://c2sp.org/tlog-cosignature
+[cosignatures]: https://c2sp.org/tlog-cosignature@v1.1.0
 [bastion]: https://c2sp.org/https-bastion
-[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
-[note]: https://c2sp.org/signed-note@v1.0.0
-[signed-note]: https://c2sp.org/signed-note@v1.0.0
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[note]: https://c2sp.org/signed-note@v1.1.0
+[signed-note]: https://c2sp.org/signed-note@v1.1.0
 [subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07#section-4
-[checkpoint cosignatures]: https://c2sp.org/tlog-cosignature#checkpoint-cosignatures
-[subtree cosignature]: https://c2sp.org/tlog-cosignature#subtree-cosignatures
+[checkpoint cosignatures]: https://c2sp.org/tlog-cosignature@v1.1.0#checkpoint-cosignatures
+[subtree cosignature]: https://c2sp.org/tlog-cosignature@v1.1.0#subtree-cosignatures
 [draft-ietf-plants-merkle-tree-certs-07]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07
 
 ## Conventions used in this document

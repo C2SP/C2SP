@@ -257,7 +257,7 @@ the feedback of the Sigsum team and of many individuals in the WebPKI community.
 
 [Certificate Transparency]: https://certificate.transparency.dev/
 [RFC 6962]: https://www.rfc-editor.org/rfc/rfc6962.html
-[checkpoint]: https://c2sp.org/tlog-checkpoint
-[cosigners]: https://c2sp.org/tlog-cosignature
-[signed note]: https://c2sp.org/signed-note
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[cosigners]: https://c2sp.org/tlog-cosignature@v1.1.0
+[signed note]: https://c2sp.org/signed-note@v1.1.0
 [temporal sharding]: https://googlechrome.github.io/CertificateTransparency/log_policy.html#temporal-sharding

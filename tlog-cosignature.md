@@ -235,8 +235,8 @@ cosigner. The Ed25519 signed message format doesn't commit to the cosigner name,
 so the same public key can't be used across multiple cosigners.
 
 [Merkle Tree hash]: https://www.rfc-editor.org/info/rfc9162/#name-definition-of-the-merkle-tr
-[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
-[tlog-mirror]: https://c2sp.org/tlog-mirror
+[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[tlog-mirror]: https://c2sp.org/tlog-mirror@v0.1.0
 [FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
-[witness]: https://c2sp.org/tlog-witness
+[witness]: https://c2sp.org/tlog-witness@v1.1.0
