@@ -150,7 +150,7 @@ These statements MUST include the base cosignature semantics, and MAY include
 other statements that are non-conflicting.  Examples of non-conflicting
 statements include "I also mirrored the log up until the checkpoint size" and
 "I certify the SAN ←→ public key associations in the log leaves".
-See [tlog-mirror][] for an example.
+See [c2sp.org/tlog-mirror][] for an example.
 
 ## Cosignature algorithms
 
@@ -221,7 +221,7 @@ of the following lines. Each line is terminated by a newline (U+000A):
 * Zero or more lines, each containing one extension line, in order.
 
 The following is an example of the signature input. The format after the first
-two lines is identical to the format used in [tlog-checkpoint][].
+two lines is identical to the format used in [c2sp.org/tlog-checkpoint][].
 
     cosignature/v1
     time 1679315147
@@ -235,8 +235,8 @@ cosigner. The Ed25519 signed message format doesn't commit to the cosigner name,
 so the same public key can't be used across multiple cosigners.
 
 [Merkle Tree hash]: https://www.rfc-editor.org/info/rfc9162/#name-definition-of-the-merkle-tr
-[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.0.0
-[tlog-mirror]: https://c2sp.org/tlog-mirror
+[c2sp.org/tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[c2sp.org/tlog-mirror]: https://c2sp.org/tlog-mirror@v0.1.0
 [FIPS 204]: https://csrc.nist.gov/pubs/fips/204/final
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
-[witness]: https://c2sp.org/tlog-witness
+[witness]: https://c2sp.org/tlog-witness@v1.1.0

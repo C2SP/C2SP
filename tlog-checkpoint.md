@@ -51,7 +51,7 @@ document are to be interpreted as described in [BCP 14][] [RFC 2119][] [RFC
 The note text of a checkpoint is a sequence of at least three non-empty lines,
 separated by newlines (U+000A).
 
- 1. The first line is the log's **origin**, as defined in [tlog-cosignature][].
+ 1. The first line is the log's **origin**, as defined in [c2sp.org/tlog-cosignature][].
 
  2. The second line is the **tree size**, the number of leaves in the tree
     encoded as an ASCII decimal.
@@ -73,7 +73,7 @@ There MAY be multiple signature lines with the same key name. However,
 there MUST NOT be multiple signature lines with both the same key
 name and the same key id.
 
-A log or [cosigner][tlog-cosignature] MUST NOT sign any checkpoint which is
+A log or [cosigner][c2sp.org/tlog-cosignature] MUST NOT sign any checkpoint which is
 inconsistent with any checkpoint it previously signed. Two checkpoints are
 inconsistent if they are for the same log, and a consistency proof can't be
 constructed from one to the other.
@@ -86,7 +86,7 @@ be empty.
 
 ### ML-DSA-44 Checkpoint Cosignatures
 
-An ML-DSA-44 checkpoint cosignature is computed as defined in [tlog-cosignature][],
+An ML-DSA-44 checkpoint cosignature is computed as defined in [c2sp.org/tlog-cosignature][],
 including the 8-byte timestamp. The signature inputs come from the first three
 lines of the checkpoint. Extension lines are ignored and not covered by the
 signature. It is represented as a note signature with a key name of the cosigner
@@ -113,7 +113,7 @@ signatures do not include a timestamp.
 
 ### Ed25519 Checkpoint Cosignatures
 
-An Ed25519 checkpoint cosignature is computed as defined in [tlog-cosignature][],
+An Ed25519 checkpoint cosignature is computed as defined in [c2sp.org/tlog-cosignature][],
 including the 8-byte timestamp. The signature inputs come from the checkpoint.
 Extension lines from the checkpoint MUST be included in the signature
 computation. Note that the input message to Ed25519 aligns with the note text
@@ -129,10 +129,10 @@ signature type 0x04 and the 32-byte Ed25519 cosigner public key as the
 public key material.
 
 Historically, this signature type was used for Ed25519 non-log cosigners, and
-Ed25519 log signatures were used for the log owner. [tlog-cosignature][] has
+Ed25519 log signatures were used for the log owner. [c2sp.org/tlog-cosignature][] has
 since generalized the notion of cosigner to include the log owner.
 
-[tlog-cosignature]: https://c2sp.org/tlog-cosignature
-[signed note]: https://c2sp.org/signed-note@v1.0.0
-[signing the note text with Ed25519]: https://c2sp.org/signed-note@v1.0.0#ed25519-signatures
-[vkey]: https://c2sp.org/signed-note@v1.0.0#verifier-keys
+[c2sp.org/tlog-cosignature]: https://c2sp.org/tlog-cosignature@v1.1.0
+[signed note]: https://c2sp.org/signed-note@v1.1.0
+[signing the note text with Ed25519]: https://c2sp.org/signed-note@v1.1.0#ed25519-signatures
+[vkey]: https://c2sp.org/signed-note@v1.1.0#verifier-keys

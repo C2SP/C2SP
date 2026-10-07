@@ -121,7 +121,7 @@ runtime if possible.
 
 * `0x01` — Ed25519 signatures as specified by this document.
 
-* `0x02` — ECDSA signatures as implemented by github.com/transparency-dev/witness.
+* `0x02` — ECDSA signatures as implemented by [github.com/transparency-dev/witness][].
 
   * The ECDSA curve MUST be one of NIST P-256, NIST P-384, or NIST P-521, and
     SHOULD be NIST P-256.
@@ -132,18 +132,22 @@ runtime if possible.
 * `0x03` — Reserved.
 
 * `0x04` — Timestamped Ed25519 checkpoint cosignatures, as specified by
-  c2sp.org/tlog-checkpoint.
+  [c2sp.org/tlog-checkpoint][].
 
-* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by c2sp.org/static-ct-api.
+* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by [c2sp.org/static-ct-api][].
 
 * `0x06` — Timestamped ML-DSA-44 checkpoint cosignatures, as specified by
-  c2sp.org/tlog-checkpoint.
+  [c2sp.org/tlog-checkpoint][].
 
 * `0xfa`–`0xfe` — Reserved for future use.
 
 * `0xff` — Reserved for signature types without an identifier byte assigned by
   this specification. It is RECOMMENDED that this byte be followed by a longer
   identifier that is unlikely to collide.
+
+[github.com/transparency-dev/witness]: https://github.com/transparency-dev/witness
+[c2sp.org/static-ct-api]: https://c2sp.org/static-ct-api@v1.1.0
+[c2sp.org/tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
 ### Ed25519 signatures
 

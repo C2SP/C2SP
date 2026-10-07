@@ -11,17 +11,17 @@ description: HTTP protocol to mirror transparency logs
 This document describes how to mirror a transparency log, and how to obtain
 signatures asserting that a mirror has done so.
 
-[cosigner]: https://c2sp.org/tlog-cosignature
-[cosignature]: https://c2sp.org/tlog-cosignature
-[checkpoint]: https://c2sp.org/tlog-checkpoint
-[note]: https://c2sp.org/signed-note
-[tiled transparency log]: https://c2sp.org/tlog-tiles
-[pruning]: https://c2sp.org/tlog-tiles#pruning
-[retention policy]: https://c2sp.org/tlog-tiles#retention-policies
-[witness]: https://c2sp.org/tlog-witness
+[cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0
+[cosignature]: https://c2sp.org/tlog-cosignature@v1.1.0
+[checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[note]: https://c2sp.org/signed-note@v1.1.0
+[tiled transparency log]: https://c2sp.org/tlog-tiles@v1.0.0
+[pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
+[retention policy]: https://c2sp.org/tlog-tiles@v1.0.0#retention-policies
+[witness]: https://c2sp.org/tlog-witness@v1.1.0
 [subtree]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtrees
 [subtree consistency proof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-subtree-consistency-proofs
-[additional statement]: https://c2sp.org/tlog-cosignature@main#additional-statements
+[additional statement]: https://c2sp.org/tlog-cosignature@v1.1.0#additional-statements
 
 ## Conventions used in this document
 
