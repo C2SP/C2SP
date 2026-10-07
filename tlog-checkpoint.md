@@ -129,7 +129,7 @@ signature type 0x04 and the 32-byte Ed25519 cosigner public key as the
 public key material.
 
 Historically, this signature type was used for Ed25519 non-log cosigners, and
-Ed25519 log signatures was used for the log owner. [tlog-cosignature][] has
+Ed25519 log signatures were used for the log owner. [tlog-cosignature][] has
 since generalized the notion of cosigner to include the log owner.
 
 [tlog-cosignature]: https://c2sp.org/tlog-cosignature
