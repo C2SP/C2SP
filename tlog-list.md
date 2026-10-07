@@ -11,7 +11,7 @@ description: Text format for lists of transparency logs and their witnessing par
 This document describes a line-terminated log-list format.
 
 Lines are separated by newline (0x0A) characters.
-Lines have all leading and trailing space (0x20) and tab (0x09) removed before processing.
+Lines have all leading and trailing space (0x20) and tab (0x09) characters removed before processing.
 Blank lines are ignored.
 Lines starting with `#` denote comments and are also ignored.
 
@@ -47,7 +47,7 @@ Zero or more logs follow after the `logs/v0` line.
 ## List of logs
 
 A log is identified by its origin, and defined by a sequence of key-value lines.
-The order of key-value lines is strict.
+For each log, the order of key-value lines is fixed and MUST match the order defined below.
 Lines that are optional are denoted by square brackets.
 
     vkey VKEY
@@ -58,8 +58,8 @@ Lines that are optional are denoted by square brackets.
 `VKEY` is the log's verification key in vkey format, see <https://c2sp.org/signed-note#verifier-keys>.
 Each log can have only one vkey.
 
-`ORIGIN` the log's origin line, see <https://C2SP.org/tlog-checkpoint#note-text>. 
-If omitted, the log's origin line defaults to the vkey's key name. 
+`ORIGIN` is the log's origin line, see <https://C2SP.org/tlog-checkpoint#note-text>.
+If omitted, the log's origin line defaults to the vkey's key name.
 Newly deployed logs SHOULD omit this line.
 Two logs MUST NOT share the same origin.
 
