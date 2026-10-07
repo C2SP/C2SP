@@ -15,7 +15,7 @@ This document describes a synchronous HTTP-based protocol to obtain
 [bastion]: https://c2sp.org/https-bastion
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 [note]: https://c2sp.org/signed-note@v1.1.0
-[signed-note]: https://c2sp.org/signed-note@v1.1.0
+[c2sp.org/signed-note]: https://c2sp.org/signed-note@v1.1.0
 [subtree]: https://datatracker.ietf.org/doc/html/draft-ietf-plants-merkle-tree-certs-07#section-4
 [checkpoint cosignatures]: https://c2sp.org/tlog-cosignature@v1.1.0#checkpoint-cosignatures
 [subtree cosignature]: https://c2sp.org/tlog-cosignature@v1.1.0#subtree-cosignatures
@@ -133,7 +133,7 @@ Not Found" HTTP status code. The witness MUST respond with a "403 Forbidden"
 HTTP status code if either no signature from a trusted key for the origin is
 present, or a signature line's key name and ID match a trusted key but the
 signature itself fails to verify (such a note is malformed per
-[signed-note][]).
+[c2sp.org/signed-note][]).
 
 The old size MUST be equal to or lower than the checkpoint size. Otherwise,
 the witness MUST respond with a "400 Bad Request" HTTP status code.

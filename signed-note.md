@@ -132,12 +132,12 @@ runtime if possible.
 * `0x03` — Reserved.
 
 * `0x04` — Timestamped Ed25519 checkpoint cosignatures, as specified by
-  [tlog-checkpoint][].
+  [c2sp.org/tlog-checkpoint][].
 
-* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by [static-ct-api][].
+* `0x05` — RFC 6962 `TreeHeadSignature`s, as specified by [c2sp.org/static-ct-api][].
 
 * `0x06` — Timestamped ML-DSA-44 checkpoint cosignatures, as specified by
-  [tlog-checkpoint][].
+  [c2sp.org/tlog-checkpoint][].
 
 * `0xfa`–`0xfe` — Reserved for future use.
 
@@ -146,8 +146,8 @@ runtime if possible.
   identifier that is unlikely to collide.
 
 [github.com/transparency-dev/witness]: https://github.com/transparency-dev/witness
-[static-ct-api]: https://c2sp.org/static-ct-api@v1.1.0
-[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
+[c2sp.org/static-ct-api]: https://c2sp.org/static-ct-api@v1.1.0
+[c2sp.org/tlog-checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
 ### Ed25519 signatures
 
