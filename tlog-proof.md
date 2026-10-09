@@ -14,8 +14,8 @@ observed by some number of witnesses.
 
 More specifically, a proof composes the following information:
 
-  - a [checkpoint][tlog-checkpoint] issued by the log, optionally including
-    [cosignatures][tlog-cosignature] from [witnesses][tlog-witness];
+  - a [checkpoint][c2sp.org/tlog-checkpoint] issued by the log, optionally including
+    [cosignatures][c2sp.org/tlog-cosignature] from [witnesses][c2sp.org/tlog-witness];
 
   - the index of the entry in the log;
 
@@ -93,11 +93,11 @@ hash per line, starting from the leaf's sibling hash up to the root's child
 hash. See [RFC 6962, Section 2.1.1] for the precise format.
 
 After the inclusion proof lines and an empty line, the checkpoint issued by the
-log is included verbatim, according to [tlog-checkpoint][].
+log is included verbatim, according to [c2sp.org/tlog-checkpoint][].
 
-[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint
-[tlog-cosignature]: https://c2sp.org/tlog-cosignature
-[tlog-witness]: https://c2sp.org/tlog-witness
+[c2sp.org/tlog-checkpoint]: https://c2sp.org/tlog-checkpoint
+[c2sp.org/tlog-cosignature]: https://c2sp.org/tlog-cosignature
+[c2sp.org/tlog-witness]: https://c2sp.org/tlog-witness
 [RFC 6962, Section 2.1.1]: https://www.rfc-editor.org/rfc/rfc6962.html#section-2.1.1
 
 ## Verifying a tlog proof

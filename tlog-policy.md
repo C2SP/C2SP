@@ -115,13 +115,13 @@ defined earlier.
 
 Public keys are written in [vkey][] format. Log and witness keys must
 use a signature type approprate respective function, see
-[tlog-checkpoint][] and [tlog-cosignature][]. Two vkeys are considered
+[c2sp.org/tlog-checkpoint][] and [c2sp.org/tlog-cosignature][]. Two vkeys are considered
 *duplicate* if they wrap the same underlying public key, even if they
 differ by key name and key id.
 
 [vkey]: https://c2sp.org/signed-note#verifier-keys
-[tlog-checkpoint]: https://c2sp.org/tlog-checkpoint
-[tlog-cosignature]: https://c2sp.org/tlog-cosignature
+[c2sp.org/tlog-checkpoint]: https://c2sp.org/tlog-checkpoint
+[c2sp.org/tlog-cosignature]: https://c2sp.org/tlog-cosignature
 
 ### Defining a log
 
@@ -158,12 +158,12 @@ Since only logs and possibly monitors interact directly with
 witnesses, most policy files will not need any witness URLs. The
 meaning of the URL is application specific, but if a URL is provided,
 it is recommended that it is the witness' "submission prefix" URL, as
-defined by the [tlog-witness][] protocol.
+defined by the [c2sp.org/tlog-witness][] protocol.
 
 Duplicate witnesses, i.e., multiple witness lines with the same public
 key, are not allowed.
 
-[tlog-witness]: https://c2sp.org/tlog-witness
+[c2sp.org/tlog-witness]: https://c2sp.org/tlog-witness
 
 ### Defining the quorum
 
