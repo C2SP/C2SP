@@ -1,5 +1,5 @@
 ---
-description: Post-quantum KEM designed for public keys and/or ciphertexts obfuscation
+description: Post-quantum KEM designed for public key and/or ciphertext obfuscation
 ---
 
 > [!WARNING]
