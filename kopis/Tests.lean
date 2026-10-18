@@ -1,8 +1,7 @@
 import Kopis
 import Lean.Data.Json
 
-/-! Known-answer tests, from `kopis-rs`'s `tests/test_vectors-kopis*.jsonl`. Run from the package
-root with `lake exe kopisTests`. -/
+/-! Known-answer test harness. Run with `lake exe kopisKats`. -/
 
 open Kopis Lean
 

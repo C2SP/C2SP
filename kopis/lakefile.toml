@@ -5,7 +5,7 @@ defaultTargets = ["Kopis"]
 name = "Wychelean"
 git = "https://github.com/rozbb/wychelean"
 #rev = "feat/turboshake"
-rev = "d9f2add2fa113425fe4b031a099f28e56f6ae9da"
+rev = "6024573ddc91d1d1c4a3ca0db240d207887cd58c"
 
 [[lean_lib]]
 name = "Kopis"

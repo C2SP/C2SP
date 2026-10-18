@@ -1,10 +1,14 @@
-import Mathlib.Data.ZMod.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic.Ring
-import Wychelean.Hashes.TurboSHAKE
+module
 
-/-! # The Kopis KEM, as specified in `kopis-spec.md`
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Algebra.BigOperators.Fin
+public import Wychelean.Hashes.TurboSHAKE
+import Mathlib.Tactic.Ring
+
+@[expose] public section
+
+/-! # The Kopis KEM
 
 Every function here corresponds to one in the specification, under the same name, and carries the
 relevant spec text above it.
@@ -610,3 +614,5 @@ example : (ParameterSet.Kopis_768.PK_SIZE, ParameterSet.Kopis_768.CT_SIZE) = (99
 example : (ParameterSet.Kopis_1024.PK_SIZE, ParameterSet.Kopis_1024.CT_SIZE) = (1312, 1472) := rfl
 
 end Kopis
+
+end
