@@ -40,8 +40,9 @@ abbrev 𝔹 := Wychelean.ByteVec
 @[local grind =] private theorem mem_range (x a b : ℕ) : x ∈ [a:b] ↔ a ≤ x ∧ x < b := by
   simp [Membership.mem, Nat.mod_one]
 
-/-- Slot `i` of a loop over `[0:N]`, each slot `k` cells wide, lies within `k * N` cells. The three
-`slice`s whose bounds are nonlinear in the loop index need this spelled out for `grind`. -/
+/-- Slot `i` of a loop over `[0:N]`, each slot `k` cells wide, lies within `k * N` cells. The
+`slice`s and `setSlice`s whose bounds are nonlinear in the loop index need this spelled out for
+`grind`. -/
 theorem slot_fits {i N : ℕ} (k : ℕ) (h : i ∈ [0:N]) : k * i + k ≤ k * N :=
   Nat.mul_le_mul_left k ((mem_range i 0 N).mp h).2
 
@@ -71,14 +72,14 @@ def TurboSHAKE128 {m : ℕ} (M : 𝔹 m) (L : ℕ) (D : Byte) (h : 0 < D ∧ D <
 def TurboSHAKE256 {m : ℕ} (M : 𝔹 m) (L : ℕ) (D : Byte) (h : 0 < D ∧ D < 0x80 := by decide) :
     𝔹 L := Wychelean.Hashes.TurboSHAKE.turboShake256 M D L h
 
-/-- `s[a..a+len]`. The slice must lie within `s`; Lean checks this at every use. -/
+/-- `s[a..a+len]`. The slice must lie within `s` -/
 def slice {α : Type} {n : ℕ} (s : Vector α n) (a len : ℕ) (h : a + len ≤ n := by get_elem_tactic) :
     Vector α len :=
   Vector.ofFn fun j => s[a + j.val]
 
-/-- `s[a..a+k] = t`, for `t` of length `k`. -/
-def _root_.Vector.setSlice {α : Type} {n k : ℕ} (s : Vector α n) (a : ℕ) (t : Vector α k) :
-    Vector α n :=
+/-- `s[a..a+k] = t`, for `t` of length `k`. The slice must lie within `s` -/
+def _root_.Vector.setSlice {α : Type} {n k : ℕ} (s : Vector α n) (a : ℕ) (t : Vector α k)
+    (_ : a + k ≤ n := by get_elem_tactic) : Vector α n :=
   Vector.ofFn fun j => if h : a ≤ j.val ∧ j.val - a < k then t[j.val - a] else s[j]
 
 /-- We define `to_bits_le(n: ℤ, k: un) -> [bool; n]` to be the function that converts an `n`-bit
@@ -257,6 +258,7 @@ def serialize_elem (n : ℕ) (r : R n) : 𝔹 (n * 256 / 8) := Id.run do
 
   let mut all_bits := Vector.replicate (n * 256) false
   for h : i in [0:256] do
+    have := slot_fits n h
     all_bits := all_bits.setSlice (n * i) (to_bits_le n a[i])
 
   let mut out := Vector.replicate (n * 256 / 8) (0 : Byte)
@@ -560,6 +562,7 @@ fn serialize_vec(n: ℤ, v: VecRn) -> [u8; ℓ*n*256/8]:
 def serialize_vec (n : ℕ) (v : VecR n P.ℓ) : 𝔹 (256 * P.ℓ * n / 8) := Id.run do
   let mut out := Vector.replicate (256 * P.ℓ * n / 8) (0 : Byte)
   for h : i in [0:P.ℓ] do
+    have := slot_fits (n * 32) h
     out := out.setSlice (n * 32 * i) (serialize_elem n v[i])
   return out
 
