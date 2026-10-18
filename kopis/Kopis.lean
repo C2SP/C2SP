@@ -20,7 +20,14 @@ The pseudocode is transcribed as follows:
 * `r as R10` is `r.as_rn 10`, and `v as VecR10` is `v.as_vecn 10`.
 * `r >> N` and `r << N` are `r >>> N` and `r <<< N`.
 * A byte length written `n*256/8` is the same number as `32*n`; we use whichever form makes the
-  types line up. -/
+  types line up.
+* The security parameters `ℓ`, `t`, `μ` are the fields of a `ParameterSet`, which every function
+  that depends on them takes as an explicit first argument `P` (so `SkToPk P sk`, etc.).
+* Machine integers `un` are modeled as unbounded `ℕ` (or `ℤ`); wrapping happens when a value is
+  cast into `ZMod (2 ^ n)`.
+* The functions of the main spec are given in the same order as the Markdown, which puts callers
+  before callees; they sit in a `mutual` block only so that Lean accepts those forward references
+  (none of them actually recurse). -/
 
 namespace Kopis
 
@@ -95,6 +102,33 @@ def Poly.add {m : ℕ} (f g : Poly m) : Poly m := Vector.zipWith (· + ·) f g
 
 def Poly.sub {m : ℕ} (f g : Poly m) : Poly m := Vector.zipWith (· - ·) f g
 
+instance {m : ℕ} : Zero (Poly m) where zero := Poly.zero m
+instance {m : ℕ} : Add (Poly m) where add := Poly.add
+instance {m : ℕ} : Sub (Poly m) where sub := Poly.sub
+
+/-- `Poly m` adds like `(ℤ/mℤ)²⁵⁶`. This packages the `0` and `+` above together with their laws,
+which is what lets us write `∑` over polynomials below. -/
+instance polyAddCommMonoid {m : ℕ} : AddCommMonoid (Poly m) where
+  add := Poly.add
+  zero := Poly.zero m
+  nsmul := nsmulRec
+  add_assoc a b c := by
+    show Poly.add (Poly.add a b) c = Poly.add a (Poly.add b c)
+    apply Vector.ext; intro p hp
+    simp only [Poly.add, Vector.getElem_zipWith]; ring
+  zero_add a := by
+    show Poly.add (Poly.zero m) a = a
+    apply Vector.ext; intro p hp
+    simp only [Poly.add, Poly.zero, Vector.getElem_zipWith, Vector.getElem_replicate]; ring
+  add_zero a := by
+    show Poly.add a (Poly.zero m) = a
+    apply Vector.ext; intro p hp
+    simp only [Poly.add, Poly.zero, Vector.getElem_zipWith, Vector.getElem_replicate]; ring
+  add_comm a b := by
+    show Poly.add a b = Poly.add b a
+    apply Vector.ext; intro p hp
+    simp only [Poly.add, Vector.getElem_zipWith]; ring
+
 /-- The naive negacyclic convolution. -/
 def Poly.mul {m : ℕ} (a b : Poly m) : Poly m := Id.run do
   let mut c := Poly.zero m
@@ -108,9 +142,6 @@ def Poly.mul {m : ℕ} (a b : Poly m) : Poly m := Id.run do
         c := c.set k (c[k] - a[i] * b[j])
   pure c
 
-instance {m : ℕ} : Zero (Poly m) where zero := Poly.zero m
-instance {m : ℕ} : Add (Poly m) where add := Poly.add
-instance {m : ℕ} : Sub (Poly m) where sub := Poly.sub
 instance {m : ℕ} : Mul (Poly m) where mul := Poly.mul
 
 /-- For an element `r` in `Rn` and integer `N`, we define the right-shift `r >> N` as
@@ -157,28 +188,6 @@ def PolyVector.coerce {m ℓ : ℕ} (v : PolyVector m ℓ) (m' : ℕ) : PolyVect
 
 def PolyVector.as_vecn {m ℓ : ℕ} (v : PolyVector m ℓ) (n : ℕ) : VecR n ℓ := v.coerce (2 ^ n)
 
-/-- `Poly m` adds like `(ℤ/mℤ)²⁵⁶`, so `∑` makes sense below. -/
-instance polyAddCommMonoid {m : ℕ} : AddCommMonoid (Poly m) where
-  add := Poly.add
-  zero := Poly.zero m
-  nsmul := nsmulRec
-  add_assoc a b c := by
-    show Poly.add (Poly.add a b) c = Poly.add a (Poly.add b c)
-    apply Vector.ext; intro p hp
-    simp only [Poly.add, Vector.getElem_zipWith]; ring
-  zero_add a := by
-    show Poly.add (Poly.zero m) a = a
-    apply Vector.ext; intro p hp
-    simp only [Poly.add, Poly.zero, Vector.getElem_zipWith, Vector.getElem_replicate]; ring
-  add_zero a := by
-    show Poly.add a (Poly.zero m) = a
-    apply Vector.ext; intro p hp
-    simp only [Poly.add, Poly.zero, Vector.getElem_zipWith, Vector.getElem_replicate]; ring
-  add_comm a b := by
-    show Poly.add a b = Poly.add b a
-    apply Vector.ext; intro p hp
-    simp only [Poly.add, Vector.getElem_zipWith]; ring
-
 /-- `transpose` transposes the given matrix or vector. -/
 structure PolyRowVector (m ℓ : ℕ) where
   col : PolyVector m ℓ
@@ -196,7 +205,9 @@ instance {m ℓ : ℕ} : HMul (PolyMatrix m ℓ) (PolyVector m ℓ) (PolyVector 
   hMul A v := Vector.ofFn fun i => ∑ j : Fin ℓ, A i j * v[j]
 
 /-- For any `n`, we write `make_rn` to refer to the natural morphism from the space of
-coefficients `[un; 256]` to `Rn` (input is interpreted lowest-degree-coefficient-first). -/
+coefficients `[un; 256]` to `Rn` (input is interpreted lowest-degree-coefficient-first).
+
+We accept any `ℤ` coefficients, which the cast reduces mod `2 ^ n`; every `un` is such a `ℤ`. -/
 def make_rn (n : ℕ) (coeffs : Vector ℤ 256) : R n := coeffs.map (↑)
 
 /-- `make_vecn` takes an array `[Rn; ℓ]` and interprets it as a column vector in `VecRn`, in the
@@ -522,6 +533,7 @@ def GenSecret (seed : 𝔹 32) : VecR 13 P.ℓ := Id.run do
     let vals := bit_slices buf
     let mut r := Vector.replicate 256 (0 : ℤ)
     for hk : k in [0:256] do
+      -- Recall subtraction is wrapping
       r := r.set k ((hamming vals[2 * k] - hamming vals[2 * k + 1] : ℤ) % 2 ^ 13)
     s := s.set i (make_rn 13 r)
   return make_vecn 13 s
