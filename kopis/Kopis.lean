@@ -40,6 +40,11 @@ abbrev 𝔹 := Wychelean.ByteVec
 @[local grind =] private theorem mem_range (x a b : ℕ) : x ∈ [a:b] ↔ a ≤ x ∧ x < b := by
   simp [Membership.mem, Nat.mod_one]
 
+/-- Slot `i` of a loop over `[0:N]`, each slot `k` cells wide, lies within `k * N` cells. The three
+`slice`s whose bounds are nonlinear in the loop index need this spelled out for `grind`. -/
+theorem slot_fits {i N : ℕ} (k : ℕ) (h : i ∈ [0:N]) : k * i + k ≤ k * N :=
+  Nat.mul_le_mul_left k ((mem_range i 0 N).mp h).2
+
 /-- * `SK_SIZE = 32` -/
 def SK_SIZE : ℕ := 32
 
@@ -66,9 +71,10 @@ def TurboSHAKE128 {m : ℕ} (M : 𝔹 m) (L : ℕ) (D : Byte) (h : 0 < D ∧ D <
 def TurboSHAKE256 {m : ℕ} (M : 𝔹 m) (L : ℕ) (D : Byte) (h : 0 < D ∧ D < 0x80 := by decide) :
     𝔹 L := Wychelean.Hashes.TurboSHAKE.turboShake256 M D L h
 
-/-- `s[a..a+len]`. Indices past the end of `s` read as `default`; the spec never uses one. -/
-def slice {α : Type} [Inhabited α] {n : ℕ} (s : Vector α n) (a len : ℕ) : Vector α len :=
-  Vector.ofFn fun j => s[a + j.val]!
+/-- `s[a..a+len]`. The slice must lie within `s`; Lean checks this at every use. -/
+def slice {α : Type} {n : ℕ} (s : Vector α n) (a len : ℕ) (h : a + len ≤ n := by get_elem_tactic) :
+    Vector α len :=
+  Vector.ofFn fun j => s[a + j.val]
 
 /-- `s[a..a+k] = t`, for `t` of length `k`. -/
 def _root_.Vector.setSlice {α : Type} {n k : ℕ} (s : Vector α n) (a : ℕ) (t : Vector α k) :
@@ -278,6 +284,7 @@ def deserialize_elem (n : ℕ) (bytes : 𝔹 (n * 256 / 8)) : R n := Id.run do
 
   let mut coeffs := Vector.replicate 256 (0 : ℤ)
   for h : i in [0:256] do
+    have := slot_fits n h
     coeffs := coeffs.set i (from_bits_le n (slice all_bits (n * i) n))
   return make_rn n coeffs
 
@@ -297,6 +304,9 @@ def ParameterSet.PK_SIZE (P : ParameterSet) : ℕ := 256 * P.ℓ * 10 / 8 + 32
 
 /-- * `CT_SIZE = 256*t/8 + 256*ℓ*10/8` -/
 def ParameterSet.CT_SIZE (P : ParameterSet) : ℕ := 256 * P.t / 8 + 256 * P.ℓ * 10 / 8
+
+-- Lets `grind` see through these when checking `slice` bounds on public keys and ciphertexts.
+attribute [local grind] ParameterSet.PK_SIZE ParameterSet.CT_SIZE
 
 section
 variable (P : ParameterSet)
@@ -565,6 +575,7 @@ fn deserialize_vec(n: ℤ, bytes: [u8; ℓ*n*256/8]) -> VecRn:
 def deserialize_vec (n : ℕ) (bytes : 𝔹 (256 * P.ℓ * n / 8)) : VecR n P.ℓ := Id.run do
   let mut elems := Vector.replicate P.ℓ (0 : R n)
   for h : i in [0:P.ℓ] do
+    have := slot_fits (n * 32) h
     elems := elems.set i (deserialize_elem n (slice bytes (n * 32 * i) (n * 256 / 8)))
   return make_vecn n elems
 
@@ -588,6 +599,7 @@ def bit_slices (bytes : 𝔹 (P.μ * 256 / 8)) : Vector (Vector Bool (P.μ / 2))
 
   let mut out := Vector.replicate 512 (Vector.replicate (P.μ / 2) false)
   for h : i in [0:512] do
+    have := slot_fits P.μ h
     out := out.set i (slice all_bits (i * P.μ / 2) (P.μ / 2))
   return out
 
