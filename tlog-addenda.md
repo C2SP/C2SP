@@ -190,6 +190,9 @@ Because the digest indication format in the entries is compact,
 it's also effectively indistinguishable from arbitrary trailing bytes.
 Tools cannot reasonably infer its use from log entries themselves.
 
+Therefore, logs containing entries structured with the addenda extension MUST signal this explicitly,
+if they want general purpose tools to be able to interact with the addenda information.
+
 A log whose entries use the digest indication format signals this by serving a marker resource at
 
 	<prefix>/addenda.v1
@@ -198,6 +201,9 @@ The body of the marker MUST be empty.
 
 The presence of the marker asserts that *every* entry in the log ends with a digest indication index --
 including entries with no addenda, which end in a single `0x00` byte.
+
+Tools built to work on generic logs MUST NOT assume log entries contain
+the digest indication format in entries UNLESS it is explicitly signalled with the above mechanism.
 
 
 ## Relationship to Monitoring
