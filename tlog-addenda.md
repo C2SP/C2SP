@@ -8,13 +8,13 @@ description: Detachable (and optionally redactable) data committed by a transpar
 
 # Transparency Log Addenda
 
-This document describes mechanisms for attaching data to a transparency log,
+This document describes an extension mechanism for attaching data to a transparency log,
 such that the data becomes discoverable and manageable by common tooling,
 but without directly introducing the data to the log's entries.
 
 We call such attached data an *addendum*.
 
-The mechanism described by this document is, as a whole, optional.
+The mechanism described by this document is, as a whole, **optional**.
 Transparency log instances do not need to choose to align their content with this spec.
 For those that do, there are three main pieces of value:
 
@@ -23,6 +23,12 @@ For those that do, there are three main pieces of value:
    for example, log explorers and mirroring tools --
    can use to operate over the addenda of any conforming log without needing instance-specific knowledge.
 3. This spec addresses recurring practical design subjects such as redaction in a concrete way.
+
+For details on how the use of this extension is signalled,
+jump to the "[Signalling use of Addenda](#signalling-use-of-addenda)" section.
+
+For details on the encoding that appears in log entries,
+jump to the "[The Digest Indication Format](#the-digest-indication-format)" section.
 
 
 ## Conventions used in this document
@@ -152,7 +158,7 @@ and indicates where in the entry that digests for addenda data are found.
 In this way, the bulk of a log entry's data is still composed of whatever data that application desires,
 and in whatever encoding that application already uses.
 
-### The digest indication format
+### The Digest Indication Format
 
 A simple format suffixed to the end of log entry content indicates where digests can be found within that content.
 It is parsed from the end of the document, backwards
@@ -248,6 +254,11 @@ The exact composition is not in the scope of this document.
 
 - This specification has standardized on SHA-256.  Use of other hashes is unspecified.
 - This specification only describes binary encodings of digests.  Use of other encodings is unspecified.
+- This specification only describes a signalling mechanism for the extension's use which applies at the scope of a whole log.
+  Signalling that only specific ranges of the log should be parsed as containing the addenda format is not possible.
+
+These parameterizations are not specified in this version of tlog-addenda;
+however, they may be included in future versions of the spec.
 
 
 ## Acknowledgements
