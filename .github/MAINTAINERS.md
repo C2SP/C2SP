@@ -90,6 +90,11 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@mcpherrinm](https://github.com/mcpherrinm)
 
+### tlog-addenda
+
+- [@warpfork](https://github.com/warpfork)
+- [@FiloSottile](https://github.com/FiloSottile)
+
 ### tlog-checkpoint
 
 - [@FiloSottile](https://github.com/FiloSottile)
