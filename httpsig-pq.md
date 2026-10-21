@@ -10,47 +10,65 @@ description: Post-quantum algorithms for HTTP Message Signatures
 
 [c2sp.org/httpsig-pq](https://c2sp.org/httpsig-pq)
 
-- **Version**: v1.0.0
+- **Version**: v1.0.1
 - **Authors**:
-  - [Soatok Dreamseeker](https://github.com/soatok)
+  - [Soatok Dreamseeker]
 
 ## Introduction
 
 This document specifies three HTTP Message Signature algorithm identifiers for the ML-DSA signature schemes standardized
-in FIPS 204. The identifiers are defined for the `alg` signature parameter and the HTTP Signature Algorithms registry
+in [FIPS 204]. The identifiers are defined for the `alg` signature parameter and the HTTP Signature Algorithms registry
 created by RFC 9421.
 
 HTTP Message Signatures, including signature base construction, the `Signature-Input` field, the `Signature` field, and
 application-level verification requirements, are specified by RFC 9421. This document defines the complete mapping
-between the byte-oriented `HTTP_SIGN` and `HTTP_VERIFY` primitives in RFC 9421 and ML-DSA.
+between the byte-oriented `HTTP_SIGN` and `HTTP_VERIFY` primitives in
+[RFC 9421, Section 3.3](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.3) and ML-DSA.
+
+The ML-DSA identifiers registered for JOSE and COSE by [RFC 9964] are not usable here:
+[RFC 9421, Section 3.3.7](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.3.7) excludes JSON Web Algorithm values
+from the HTTP Signature Algorithms registry and from the `alg` signature parameter.
+
+Beyond the key material at the `HTTP_SIGN` and `HTTP_VERIFY` boundary, this document does not define key containers,
+key discovery or distribution, or policy for when an application selects ML-DSA.
 
 ## Normative references
 
 This document normatively references the following fixed publications:
 
-- [BCP 14, Key Words for Use in RFCs to Indicate Requirement Levels](https://www.rfc-editor.org/info/bcp14), comprising
-  RFC 2119 and RFC 8174.
-- [RFC 4648, The Base16, Base32, and Base64 Data Encodings](https://www.rfc-editor.org/rfc/rfc4648.html), especially
-  Section 4.
-- [RFC 9421, HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html), especially Sections 2.5, 3.1,
-  3.2, 4.2, and 6.2.
-- [FIPS 204, Module-Lattice-Based Digital Signature Standard, published August 13, 2024](https://doi.org/10.6028/NIST.FIPS.204),
-  especially Section 3.6, Table 2, Algorithms 1, 2, 3, 6, and 13, and the key and signature encodings in Section 7.2
-  (Algorithms 22 through 27).
+- [BCP 14, Key Words for Use in RFCs to Indicate Requirement Levels][BCP 14], comprising RFC 2119 and RFC 8174.
+- [RFC 4648, The Base16, Base32, and Base64 Data Encodings][RFC 4648], especially Section 4.
+- [RFC 9421, HTTP Message Signatures][RFC 9421], especially Sections 2.3, 2.5, 3.1, 3.2, 3.3, 4.2, and 6.2.
+- [FIPS 204, Module-Lattice-Based Digital Signature Standard, published August 13, 2024][FIPS 204], especially Section
+  3.6, Tables 1 and 2, Algorithms 1, 2, 3, 6, and 13, and the key and signature encodings in Section 7.2 (Algorithms 22
+  through 27).
 
 In this document, “FIPS 204” means that specific August 13, 2024 publication. A later revision, successor, or
 technically changed erratum is not automatically incorporated into these algorithm identifiers. Any incompatible change
 to an identifier defined here requires a new HTTP Signature Algorithms registry identifier.
 
+## Informative references
+
+- [RFC 9881, Internet X.509 Public Key Infrastructure -- Algorithm Identifiers for the Module-Lattice-Based Digital
+  Signature Algorithm (ML-DSA)][RFC 9881]
+- [RFC 9882, Use of the ML-DSA Signature Algorithm in the Cryptographic Message Syntax (CMS)][RFC 9882]
+- [RFC 9958, Post-Quantum Cryptography for Engineers][RFC 9958]
+- [RFC 9964, ML-DSA for JSON Object Signing and Encryption (JOSE) and CBOR Object Signing and Encryption
+  (COSE)][RFC 9964]
+
 ## Conventions
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",
-"NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in
-[BCP 14](https://www.rfc-editor.org/info/bcp14) when, and only when, they appear in all capitals.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT
+RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [BCP 14] when, and only when,
+they appear in all capitals.
 
 An octet is an 8-bit byte. `len(X)` denotes the length of byte string `X` in octets. `empty` denotes the zero-length
-byte string. Base64 is the standard Base 64 encoding in [RFC 4648, Section 4](https://www.rfc-editor.org/rfc/rfc4648.html#section-4),
-including padding and without whitespace unless the containing protocol states otherwise.
+byte string. Base64 is the standard Base 64 encoding in
+[RFC 4648, Section 4](https://www.rfc-editor.org/rfc/rfc4648.html#section-4), including padding and without whitespace
+unless the containing protocol states otherwise.
+
+ML-DSA-44, ML-DSA-65, and ML-DSA-87 denote ML-DSA with the parameter sets given in [FIPS 204] Table 1. ML-DSA denotes
+the pure signature scheme of [FIPS 204] Algorithms 2 and 3, not HashML-DSA ([FIPS 204] Section 5.4).
 
 ## Algorithms
 
@@ -64,26 +82,27 @@ The following values are defined for the RFC 9421 `alg` signature parameter:
 
 The `Ks`, `Kv`, and `S` columns describe the values at the `HTTP_SIGN` and `HTTP_VERIFY` algorithm boundary. In
 particular, the `Ks` size is the seed representation defined below, not the size of the expanded `skEncode` value
-reported as a private key by FIPS 204 Table 2.
+reported as a private key by [FIPS 204] Table 2.
 
 Each `alg` value is an indivisible identifier for exactly the parameter set and operations defined below.
 Implementations MUST compare the complete identifier and MUST NOT construct or infer other algorithm identifiers by
-parsing its components. When carried in the RFC 9421 `alg` signature parameter, the identifier is a Structured Fields
-String value; for example, `ml-dsa-44` is serialized as `;alg="ml-dsa-44"`. Identifiers are case-sensitive, and no other
-spelling identifies an algorithm defined by this document.
+parsing its components. When carried in the `alg` signature parameter
+([RFC 9421, Section 2.3](https://www.rfc-editor.org/rfc/rfc9421.html#section-2.3)), the identifier is a Structured
+Fields String value; for example, `ml-dsa-44` is serialized as `;alg="ml-dsa-44"`. Identifiers are case-sensitive, and
+no other spelling identifies an algorithm defined by this document.
 
 ### Key material
 
 For all three algorithms, the signing key material `Ks` is exactly the 32-octet seed `ξ` generated in line 1 of
-`ML-DSA.KeyGen` in FIPS 204 Algorithm 1. The public verification key `Kv` is the `pk` output obtained by applying
+`ML-DSA.KeyGen` in [FIPS 204] Algorithm 1. The public verification key `Kv` is the `pk` output obtained by applying
 `ML-DSA.KeyGen_internal` in Algorithm 6 for the selected parameter set:
 
 ```text
 (Kv, sk) = ML-DSA.KeyGen_internal(Ks)
 ```
 
-`Kv` is exactly the `pkEncode(ρ, t1)` byte string defined by FIPS 204 Algorithm 22. The value `sk` is the expanded
-`skEncode(ρ, K, tr, s1, s2, t0)` byte string defined by FIPS 204 Algorithm 24 and used as the input to FIPS 204
+`Kv` is exactly the `pkEncode(ρ, t1)` byte string defined by [FIPS 204] Algorithm 22. The value `sk` is the expanded
+`skEncode(ρ, K, tr, s1, s2, t0)` byte string defined by [FIPS 204] Algorithm 24 and used as the input to [FIPS 204]
 Algorithm 2. In this document, `sk` is a derived, implementation-internal representation of `Ks`; it is not an
 alternative encoding of `Ks`.
 
@@ -93,7 +112,7 @@ expanded representation in memory after processing `Ks`, but no expanded private
 document.
 
 A new `Ks` MUST be generated as a fresh 32-octet random value with the approved random bit generator and security
-strength required for `ξ` by FIPS 204 Section 3.6.1. The parameter set is not encoded in `Ks`; applications MUST bind
+strength required for `ξ` by [FIPS 204] Section 3.6.1. The parameter set is not encoded in `Ks`; applications MUST bind
 each `Ks` to exactly one of the three complete algorithm identifiers. Although Algorithm 6 incorporates the selected
 parameter set into key expansion, trying the same `Ks` under multiple parameter sets is not a key-selection mechanism.
 
@@ -103,56 +122,67 @@ protocol, or other key container. Applications that use such mechanisms MUST rec
 
 ### Mapping the signature base to ML-DSA
 
-For both signing and verification, `M` is the ordered byte sequence returned by the signature base creation algorithm
-in RFC 9421 Section 2.5. RFC 9421 requires that sequence to be ASCII. Implementations MUST pass those bytes unchanged:
-they MUST NOT append a newline, convert LF to CRLF, re-encode the text, prehash it, or add framing.
+For both signing and verification, `M` is the ordered byte sequence returned by the signature base creation algorithm in
+[RFC 9421, Section 2.5](https://www.rfc-editor.org/rfc/rfc9421.html#section-2.5): created by the signer as part of
+[RFC 9421, Section 3.1](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.1), and recreated by the verifier as part
+of [RFC 9421, Section 3.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.2). RFC 9421 requires that sequence to
+be ASCII. Implementations MUST pass those bytes unchanged: they MUST NOT append a newline, convert LF to CRLF, re-encode
+the text, prehash it, or add framing.
 
-Write the octets of `M` as `M[0]` through `M[len(M)-1]`. FIPS 204 Algorithms 2 and 3 take a bit string as their message
-input. That bit string is `BytesToBits(M)` from FIPS 204 Algorithm 13: for every `i` and for `j` from 0 through 7, bit
-`8i+j` is `(floor(M[i] / 2^j) mod 2)`. This is little-endian bit order within each octet. An ML-DSA API whose message
-input is a byte string MUST be given `M` directly; the byte-oriented API performs this conversion.
+Write the octets of `M` as `M[0]` through `M[len(M)-1]`. [FIPS 204] Algorithms 2 and 3 take a bit string as their
+message input. That bit string is `BytesToBits(M)` from [FIPS 204] Algorithm 13: for every `i` and for `j` from 0
+through 7, bit `8i+j` is `(floor(M[i] / 2^j) mod 2)`. This is little-endian bit order within each octet. An ML-DSA API
+whose message input is a byte string MUST be given `M` directly; the byte-oriented API performs this conversion.
 
-The ML-DSA context `ctx` is the zero-length byte string `empty`. Consequently, line 10 of FIPS 204 Algorithm 2 and line
-5 of Algorithm 3 form their internal message as `BytesToBits(0x00 || 0x00 || M)`. The two `0x00` octets are added by
-`ML-DSA.Sign` and `ML-DSA.Verify`; callers MUST NOT prepend them to `M`.
+The ML-DSA context `ctx` is the zero-length byte string `empty`. Consequently, line 10 of [FIPS 204] Algorithm 2 and
+line 5 of Algorithm 3 form their internal message as `BytesToBits(0x00 || 0x00 || M)`. The two `0x00` octets are added
+by `ML-DSA.Sign` and `ML-DSA.Verify`; callers MUST NOT prepend them to `M`.
 
 ### `HTTP_SIGN`
 
 For a selected identifier, `HTTP_SIGN(M, Ks)` returns a signature byte string `S` or an error:
 
-1. If `len(Ks)` is not 32 or `Ks` is bound to another parameter set, return an error and no signature.
-2. Obtain `(Kv, sk)` by applying `ML-DSA.KeyGen_internal(Ks)` from FIPS 204 Algorithm 6 for the selected parameter set.
-   An implementation MAY reuse values previously derived from the same `Ks` for that parameter set. This expansion or
-   retrieval occurs inside the implementation; `sk` is not an additional input to `HTTP_SIGN`.
-3. Invoke `ML-DSA.Sign(sk, BytesToBits(M), empty)` as specified by FIPS 204 Algorithm 2.
+1. If `len(Ks)` is not 32, or the application has bound `Ks` to a parameter set other than the one the selected
+   identifier denotes, return an error and no signature.
+2. Obtain `(Kv, sk)` by applying `ML-DSA.KeyGen_internal(Ks)` from [FIPS 204] Algorithm 6 for the selected parameter
+   set. An implementation MAY reuse values previously derived from the same `Ks` for that parameter set. This expansion
+   or retrieval occurs inside the implementation; `sk` is not an additional input to `HTTP_SIGN`.
+3. Invoke `ML-DSA.Sign(sk, BytesToBits(M), empty)` as specified by [FIPS 204] Algorithm 2.
 4. If key derivation or retrieval, random generation, or signing fails, return an error and no signature. Otherwise,
-   let `S` be the Algorithm 2 output `σ`. `S` is exactly the `sigEncode(c_tilde, z, h)` byte string defined by FIPS 204
-   Algorithm 26 and has the length in the table above.
+   let `S` be the Algorithm 2 output `σ`. `S` is exactly the `sigEncode(c_tilde, z, h)` byte string defined by
+   [FIPS 204] Algorithm 26 and has the length in the table above.
 
-FIPS 204 permits hedged and deterministic variants of Algorithm 2. Signers MAY implement either variant, and
-verifiers MUST accept valid signatures from both. Signers SHOULD use the default hedged variant for production. In the
-deterministic variant, the internal `rnd` value is 32 zero octets as specified by FIPS 204; `rnd` is not an additional
-input to `HTTP_SIGN`.
+[FIPS 204] permits hedged and deterministic variants of Algorithm 2. Signers SHOULD use the default hedged variant and
+MAY use the deterministic variant. Both variants produce signatures that `HTTP_VERIFY` accepts, and a verifier cannot
+distinguish them. Because hedged signatures over the same `M` differ, a verifier MUST use `HTTP_VERIFY` and MUST NOT
+check a signature by re-signing `M` and comparing the results
+([RFC 9421, Section 7.3.5](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.3.5)). In the deterministic variant,
+the internal `rnd` value is 32 zero octets as specified by [FIPS 204]; `rnd` is not an additional input to `HTTP_SIGN`.
 
 ### `HTTP_VERIFY`
 
 For a selected identifier, `HTTP_VERIFY(M, Kv, S)` returns a Boolean:
 
-1. If `Kv` is bound to another parameter set or `len(Kv)` does not equal the public-key size in the table above for the
-   selected identifier, return `false`.
+1. If the application has bound `Kv` to a parameter set other than the one the selected identifier denotes, or
+   `len(Kv)` does not equal the public-key size in the table above for the selected identifier, return `false`.
 2. If `len(S)` does not equal the signature size in the table above for the selected identifier, return `false`.
-3. Invoke `ML-DSA.Verify(Kv, BytesToBits(M), S, empty)` as specified by FIPS 204 Algorithm 3.
+3. Invoke `ML-DSA.Verify(Kv, BytesToBits(M), S, empty)` as specified by [FIPS 204] Algorithm 3, where `S` is the
+   signature extracted from the `Signature` field as described in
+   [RFC 9421, Section 3.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.2).
 4. Return `true` only if Algorithm 3 returns `true`. Return `false` for every other result, including a decoding error,
    a malformed signature, or any other verification failure.
 
-The signature output `S` is inserted as the RFC 9421 `Signature` field's Byte Sequence value. It is not DER encoded,
-wrapped in ASN.1, prefixed with an algorithm identifier or length, or otherwise transformed before insertion. The
-Structured Fields serialization of a Byte Sequence uses Base64 to transport `S`; that Base64 text is not the output of
-`HTTP_SIGN` and is not the input to `HTTP_VERIFY`. For a signature labeled `sig1`, the field is serialized as
-`Signature: sig1=:<Base64(S)>:`; the two colon characters delimit the Byte Sequence and are not part of `S`.
+The signature output `S` is inserted as the Byte Sequence value of the `Signature` field
+([RFC 9421, Section 4.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-4.2)). It is not DER encoded, wrapped in
+ASN.1, prefixed with an algorithm identifier or length, or otherwise transformed before insertion. The Structured Fields
+serialization of a Byte Sequence uses Base64 to transport `S`; that Base64 text is not the output of `HTTP_SIGN` and is
+not the input to `HTTP_VERIFY`. For a signature labeled `sig1`, the field is serialized as `Signature:
+sig1=:<Base64(S)>:`; the two colon characters delimit the Byte Sequence and are not part of `S`.
 
-HashML-DSA, application-level prehashing, external message-representative (`mu`) processing, non-empty ML-DSA contexts,
-and any other representation of `M` are not defined for these identifiers and MUST NOT be used.
+HashML-DSA ([FIPS 204] Section 5.4), application-level prehashing, external message-representative (`mu`) processing,
+non-empty ML-DSA contexts, and any other representation of `M` are not defined for these identifiers and MUST NOT be
+used. The signature base is fully constructed before signing, so prehashing is unnecessary, and HashML-DSA signatures
+are not verifiable with `ML-DSA.Verify`.
 
 An implementation MAY realize these operations using `ML-DSA.Sign_internal`, `ML-DSA.Verify_internal`, or another
 mathematically equivalent procedure, provided its observable behavior is equivalent to the specified calls to
@@ -162,11 +192,12 @@ mathematically equivalent procedure, provided its observable behavior is equival
 
 ### Algorithm binding
 
-The algorithm selected by an application, the complete `alg` value when present, and the parameter set associated
-with the key material MUST agree. A verifier MUST apply the algorithm-selection and consistency checks in RFC 9421
-Section 3.2, including failing verification when algorithms selected from different sources disagree. The `alg`
-parameter remains optional as specified by RFC 9421; an application can select one of these algorithms through trusted
-configuration or other external information without sending the parameter.
+The algorithm selected by an application, the complete `alg` value when present, and the parameter set associated with
+the key material MUST agree. A verifier MUST apply the algorithm-selection and consistency checks in
+[RFC 9421, Section 3.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.2), including failing verification when
+algorithms selected from different sources disagree. The `alg` parameter remains optional as specified by RFC 9421; an
+application can select one of these algorithms through trusted configuration or other external information without
+sending the parameter.
 
 ## Test vectors
 
@@ -175,10 +206,10 @@ one deterministic signing and verification vector for each identifier, including
 `ξ`, the `pkEncode` output, the signature-base octets, a SHA-256 checksum of those octets, the serialized
 `Signature-Input` field, and the `sigEncode` output.
 
-For each vector, `private_key_seed_hex` is the lowercase hexadecimal encoding of the 32-octet `ξ` input to FIPS 204
+For each vector, `private_key_seed_hex` is the lowercase hexadecimal encoding of the 32-octet `ξ` input to [FIPS 204]
 Algorithm 6. `public_key_base64`, `signature_base_base64`, and `deterministic_signature_base64` are padded RFC 4648
 Base64 encodings without whitespace. They decode to `pk`, `M`, and `S`, respectively. The seed is supplied solely to
-make `(pk, sk)` and the deterministic signature reproducible; it is not substituted for `sk` as the input to FIPS 204
+make `(pk, sk)` and the deterministic signature reproducible; it is not substituted for `sk` as the input to [FIPS 204]
 Algorithm 2.
 
 The `signature_base_base64` member is the unambiguous representation of the bytes passed to `HTTP_SIGN` and
@@ -186,7 +217,7 @@ The `signature_base_base64` member is the unambiguous representation of the byte
 and has no terminal newline. The displayed code blocks below have a presentation newline before the closing fence;
 that presentation newline is not part of the signature base.
 
-The signatures use the deterministic FIPS 204 signing variant with the internal `rnd` value set to 32 zero octets.
+The signatures use the deterministic [FIPS 204] signing variant with the internal `rnd` value set to 32 zero octets.
 Production hedged signatures will generally differ and are equally valid.
 
 ### ML-DSA-44
@@ -248,7 +279,7 @@ The following JSON object is the machine-readable form of the test vectors speci
 ```json
 {
   "version": 1,
-  "description": "Deterministic conformance vectors for Post-Quantum Algorithms for HTTP Message Signatures v1.0.0",
+  "description": "Deterministic conformance vectors for Post-Quantum Algorithms for HTTP Message Signatures v1.0.1",
   "vectors": [
     {
       "id": "ml-dsa-44-deterministic",
@@ -294,38 +325,72 @@ version of this specification and its algorithm definitions.
 
 | Algorithm Name | Description              | Status | Reference                                                                                      |
 |----------------|--------------------------|--------|------------------------------------------------------------------------------------------------|
-| `ml-dsa-44`    | ML-DSA-44 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.0#algorithms](https://c2sp.org/httpsig-pq@v1.0.0#algorithms) |
-| `ml-dsa-65`    | ML-DSA-65 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.0#algorithms](https://c2sp.org/httpsig-pq@v1.0.0#algorithms) |
-| `ml-dsa-87`    | ML-DSA-87 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.0#algorithms](https://c2sp.org/httpsig-pq@v1.0.0#algorithms) |
+| `ml-dsa-44`    | ML-DSA-44 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.1#algorithms](https://c2sp.org/httpsig-pq@v1.0.1#algorithms) |
+| `ml-dsa-65`    | ML-DSA-65 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.1#algorithms](https://c2sp.org/httpsig-pq@v1.0.1#algorithms) |
+| `ml-dsa-87`    | ML-DSA-87 using FIPS 204 | Active | [https://c2sp.org/httpsig-pq@v1.0.1#algorithms](https://c2sp.org/httpsig-pq@v1.0.1#algorithms) |
 
 These identifiers permanently name the algorithms defined by this version. A future compatible version of this
 specification may add identifiers but MUST NOT change the meaning of these identifiers.
 
 ## Security considerations
 
-Applications inherit the security considerations of RFC 9421, including signature replay, insufficient component
-coverage, algorithm confusion and downgrade attacks, multiple-signature confusion, and the requirement to match covered
-components to the target message.
+Applications inherit the security considerations of RFC 9421, including signature replay
+([Section 7.2.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.2.2)), insufficient component coverage
+([Section 7.2.1](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.2.1)), key specification mixup
+([Section 7.3.4](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.3.4)), algorithm downgrade
+([Section 7.3.6](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.3.6)), multiple-signature confusion
+([Section 7.2.6](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.2.6)), and the requirement to match covered
+components to the target message. The security considerations of [RFC 9881] for ML-DSA also apply. [RFC 9958] provides
+general background on the transition to post-quantum cryptography.
+
+ML-DSA includes a hash of the public key in the message representative it signs, binding each signature to the key that
+produced it. This mitigates the key substitution concern of
+[RFC 9421, Section 7.3.4](https://www.rfc-editor.org/rfc/rfc9421.html#section-7.3.4), but verifiers still need to check
+that the key material and the algorithm are appropriate for the application.
 
 The 32-octet seed `ξ` is the complete private-key representation `Ks` defined by this document. Possession of `Ks`
 permits regeneration of every private value used by ML-DSA. It MUST remain secret, MUST be generated with the randomness
-quality required by FIPS 204 Section 3.6.1, and SHOULD be destroyed when no longer needed along with the corresponding
+quality required by [FIPS 204] Section 3.6.1, and SHOULD be destroyed when no longer needed along with the corresponding
 derived `sk` and any other cached private-key material.
 
-FIPS 204 permits deterministic signing, but recommends hedged signing because fresh signing randomness helps mitigate
-side-channel and fault attacks. Implementations that use deterministic signing need protections appropriate to their
-execution environment. Deterministic signing is used in the test vectors for reproducibility and is not a production
-recommendation.
+[FIPS 204] permits deterministic signing, but recommends hedged signing because fresh signing randomness helps mitigate
+side-channel and fault attacks, as discussed in [RFC 9881] Section 9. Implementations that use deterministic signing
+need protections appropriate to their execution environment. Deterministic signing is used in the test vectors for
+reproducibility and is not a production recommendation.
 
 ML-DSA signatures are substantially larger than pre-quantum signatures. Before field names, labels, and delimiters,
 their RFC 4648 Base64 encodings are 3228, 4412, and 6172 octets for ML-DSA-44, ML-DSA-65, and ML-DSA-87 respectively.
 HTTP implementations and intermediaries need field-size limits that accommodate the selected parameter set, while still
-applying resource limits appropriate to untrusted inputs.
+applying resource limits appropriate to untrusted inputs. Per-field and total header limits of around 8 kilobytes are
+common; a single ML-DSA-87 signature consumes most of such a limit, and messages carrying multiple signatures
+([RFC 9421, Section 4.3](https://www.rfc-editor.org/rfc/rfc9421.html#section-4.3)) multiply the cost. Because each
+signature value is unique, HTTP/2 and HTTP/3 header compression does not reduce it. [RFC 9958] discusses the operational
+effects of post-quantum signature sizes more generally.
 
 Applications SHOULD enable only the parameter sets they use and MUST bind each key to its intended algorithm. An
-attacker-controlled `alg` parameter alone is not sufficient authorization to select an algorithm or key.
+attacker-controlled `alg` parameter alone is not sufficient authorization to select an algorithm or key. During
+migration, a verifier that accepts both ML-DSA and a classical algorithm gains post-quantum resistance only for
+signatures actually made with ML-DSA. Such a verifier SHOULD determine the acceptable algorithm from the key material or
+trusted configuration rather than from the `alg` parameter, and SHOULD NOT accept a classical algorithm from a signer
+for which ML-DSA is expected.
+
+The ML-DSA context string is fixed to `empty`, as in [RFC 9881], [RFC 9882], and [RFC 9964]. Separation between HTTP
+message signatures made for different purposes comes from the signature base, which covers the signature parameters,
+including the application-specific `tag` parameter. Fixing the context also keeps every input to these algorithms
+determined by this document. An application that needs cryptographic separation between HTTP message signatures and
+other uses of an ML-DSA key SHOULD use a separate key for each.
 
 This document does not specify hybrid or composite signature schemes. Applications can use RFC 9421's support for
 multiple signatures on the same HTTP message, for example an Ed25519 signature and an ML-DSA signature with different
 labels. Application profiles that require multiple signatures MUST specify which labels and algorithms are required and
 MUST NOT treat one valid signature as satisfying a policy that requires more than one.
+
+[Soatok Dreamseeker]: https://github.com/soatok
+[BCP 14]: https://www.rfc-editor.org/info/bcp14
+[RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
+[RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421.html
+[FIPS 204]: https://doi.org/10.6028/NIST.FIPS.204
+[RFC 9881]: https://www.rfc-editor.org/rfc/rfc9881.html
+[RFC 9882]: https://www.rfc-editor.org/rfc/rfc9882.html
+[RFC 9958]: https://www.rfc-editor.org/rfc/rfc9958.html
+[RFC 9964]: https://www.rfc-editor.org/rfc/rfc9964.html
