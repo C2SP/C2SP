@@ -12,7 +12,7 @@ description: Post-quantum algorithms for HTTP Message Signatures
 
 - **Version**: v1.0.1
 - **Authors**:
-  - [Soatok Dreamseeker]
+  - [Soatok Dreamseeker](https://github.com/soatok)
 
 ## Introduction
 
@@ -24,10 +24,6 @@ HTTP Message Signatures, including signature base construction, the `Signature-I
 application-level verification requirements, are specified by RFC 9421. This document defines the complete mapping
 between the byte-oriented `HTTP_SIGN` and `HTTP_VERIFY` primitives in
 [RFC 9421, Section 3.3](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.3) and ML-DSA.
-
-The ML-DSA identifiers registered for JOSE and COSE by [RFC 9964] are not usable here:
-[RFC 9421, Section 3.3.7](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.3.7) excludes JSON Web Algorithm values
-from the HTTP Signature Algorithms registry and from the `alg` signature parameter.
 
 Beyond the key material at the `HTTP_SIGN` and `HTTP_VERIFY` boundary, this document does not define key containers,
 key discovery or distribution, or policy for when an application selects ML-DSA.
@@ -132,7 +128,8 @@ the text, prehash it, or add framing.
 Write the octets of `M` as `M[0]` through `M[len(M)-1]`. [FIPS 204] Algorithms 2 and 3 take a bit string as their
 message input. That bit string is `BytesToBits(M)` from [FIPS 204] Algorithm 13: for every `i` and for `j` from 0
 through 7, bit `8i+j` is `(floor(M[i] / 2^j) mod 2)`. This is little-endian bit order within each octet. An ML-DSA API
-whose message input is a byte string MUST be given `M` directly; the byte-oriented API performs this conversion.
+whose message input is a byte string MUST be given `M` directly; the byte-oriented API performs this conversion. In the
+steps below, `BytesToBits(M)` is this bit string; it is `M` in the form FIPS 204 specifies, not a separate input.
 
 The ML-DSA context `ctx` is the zero-length byte string `empty`. Consequently, line 10 of [FIPS 204] Algorithm 2 and
 line 5 of Algorithm 3 form their internal message as `BytesToBits(0x00 || 0x00 || M)`. The two `0x00` octets are added
@@ -140,17 +137,25 @@ by `ML-DSA.Sign` and `ML-DSA.Verify`; callers MUST NOT prepend them to `M`.
 
 ### `HTTP_SIGN`
 
-For a selected identifier, `HTTP_SIGN(M, Ks)` returns a signature byte string `S` or an error:
+For a selected identifier, `HTTP_SIGN(M, Ks)` returns a signature byte string `S` or an error. `M` is the signature base
+created by the signer as part of [RFC 9421, Section 3.1](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.1), and
+`Ks` is the signer's 32-octet seed defined in [Key material](#key-material).
 
 1. If `len(Ks)` is not 32, or the application has bound `Ks` to a parameter set other than the one the selected
    identifier denotes, return an error and no signature.
-2. Obtain `(Kv, sk)` by applying `ML-DSA.KeyGen_internal(Ks)` from [FIPS 204] Algorithm 6 for the selected parameter
-   set. An implementation MAY reuse values previously derived from the same `Ks` for that parameter set. This expansion
-   or retrieval occurs inside the implementation; `sk` is not an additional input to `HTTP_SIGN`.
-3. Invoke `ML-DSA.Sign(sk, BytesToBits(M), empty)` as specified by [FIPS 204] Algorithm 2.
-4. If key derivation or retrieval, random generation, or signing fails, return an error and no signature. Otherwise,
-   let `S` be the Algorithm 2 output `σ`. `S` is exactly the `sigEncode(c_tilde, z, h)` byte string defined by
-   [FIPS 204] Algorithm 26 and has the length in the table above.
+2. Derive `sk`, the second output of `ML-DSA.KeyGen_internal(Ks)` ([FIPS 204] Algorithm 6), for the selected parameter
+   set. An implementation MAY reuse an `sk` previously derived from the same `Ks` for that parameter set. This
+   derivation occurs inside the implementation; `sk` is not an additional input to `HTTP_SIGN`.
+3. Invoke `ML-DSA.Sign` ([FIPS 204] Algorithm 2) with `sk` as its private key input `sk`, `BytesToBits(M)` as its
+   message input `M`, and `empty` as its context input `ctx`.
+4. If key derivation, random generation, or signing fails, return an error and no signature. Otherwise, let `S` be the
+   Algorithm 2 output `σ`: the `sigEncode(c_tilde, z, h)` byte string defined by [FIPS 204] Algorithm 26, with the
+   signature length in the table above. `S` is the signature value that
+   [RFC 9421, Section 3.1](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.1) places in the `Signature` field as
+   that field's Byte Sequence value ([RFC 9421, Section 4.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-4.2)),
+   without DER encoding, ASN.1 wrapping, an algorithm or length prefix, or any other transformation. For a signature
+   labeled `sig1`, the field is serialized as `Signature: sig1=:<Base64(S)>:`, where the text between the two delimiting
+   colons is the Base64 encoding of `S`.
 
 [FIPS 204] permits hedged and deterministic variants of Algorithm 2. Signers SHOULD use the default hedged variant and
 MAY use the deterministic variant. Both variants produce signatures that `HTTP_VERIFY` accepts, and a verifier cannot
@@ -161,23 +166,19 @@ the internal `rnd` value is 32 zero octets as specified by [FIPS 204]; `rnd` is 
 
 ### `HTTP_VERIFY`
 
-For a selected identifier, `HTTP_VERIFY(M, Kv, S)` returns a Boolean:
+For a selected identifier, `HTTP_VERIFY(M, Kv, S)` returns the verification result `V` as a Boolean. `M` is the
+signature base recreated by the verifier as part of [RFC 9421, Section 3.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.2),
+`Kv` is the `pkEncode` public key defined in [Key material](#key-material), and `S` is the signature that RFC 9421
+Section 3.2 extracts from the `Signature` field: the decoded octets of that field's Byte Sequence value, not its Base64
+text.
 
 1. If the application has bound `Kv` to a parameter set other than the one the selected identifier denotes, or
    `len(Kv)` does not equal the public-key size in the table above for the selected identifier, return `false`.
 2. If `len(S)` does not equal the signature size in the table above for the selected identifier, return `false`.
-3. Invoke `ML-DSA.Verify(Kv, BytesToBits(M), S, empty)` as specified by [FIPS 204] Algorithm 3, where `S` is the
-   signature extracted from the `Signature` field as described in
-   [RFC 9421, Section 3.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-3.2).
+3. Invoke `ML-DSA.Verify` ([FIPS 204] Algorithm 3) with `Kv` as its public key input `pk`,
+   `BytesToBits(M)` as its message input `M`, `S` as its signature input `σ`, and `empty` as its context input `ctx`.
 4. Return `true` only if Algorithm 3 returns `true`. Return `false` for every other result, including a decoding error,
    a malformed signature, or any other verification failure.
-
-The signature output `S` is inserted as the Byte Sequence value of the `Signature` field
-([RFC 9421, Section 4.2](https://www.rfc-editor.org/rfc/rfc9421.html#section-4.2)). It is not DER encoded, wrapped in
-ASN.1, prefixed with an algorithm identifier or length, or otherwise transformed before insertion. The Structured Fields
-serialization of a Byte Sequence uses Base64 to transport `S`; that Base64 text is not the output of `HTTP_SIGN` and is
-not the input to `HTTP_VERIFY`. For a signature labeled `sig1`, the field is serialized as `Signature:
-sig1=:<Base64(S)>:`; the two colon characters delimit the Byte Sequence and are not part of `S`.
 
 HashML-DSA ([FIPS 204] Section 5.4), application-level prehashing, external message-representative (`mu`) processing,
 non-empty ML-DSA contexts, and any other representation of `M` are not defined for these identifiers and MUST NOT be
@@ -385,7 +386,6 @@ multiple signatures on the same HTTP message, for example an Ed25519 signature a
 labels. Application profiles that require multiple signatures MUST specify which labels and algorithms are required and
 MUST NOT treat one valid signature as satisfying a policy that requires more than one.
 
-[Soatok Dreamseeker]: https://github.com/soatok
 [BCP 14]: https://www.rfc-editor.org/info/bcp14
 [RFC 4648]: https://www.rfc-editor.org/rfc/rfc4648.html
 [RFC 9421]: https://www.rfc-editor.org/rfc/rfc9421.html
