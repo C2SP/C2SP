@@ -63,6 +63,9 @@ policy:
           - the static-ct-api maintainers have authored relevant changes
           - the static-ct-api maintainers have approved relevant changes
         - or:
+          - the tlog-addenda maintainers have authored relevant changes
+          - the tlog-addenda maintainers have approved relevant changes
+        - or:
           - the tlog-checkpoint maintainers have authored relevant changes
           - the tlog-checkpoint maintainers have approved relevant changes
         - or:
@@ -618,6 +621,33 @@ approval_rules:
       has_author_in:
         teams:
           - "C2SP/static-ct-api"
+    requires:
+      count: 0
+
+  - name: the tlog-addenda maintainers have approved relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-addenda\\.md$"
+          - "^tlog-addenda/.*$"
+    requires:
+      count: 1
+      teams:
+        - "C2SP/tlog-addenda"
+    options:
+      allow_contributor: true
+      methods:
+        comments: [] # disable comment-based approval
+
+  - name: the tlog-addenda maintainers have authored relevant changes
+    if:
+      changed_files:
+        paths:
+          - "^tlog-addenda\\.md$"
+          - "^tlog-addenda/.*$"
+      has_author_in:
+        teams:
+          - "C2SP/tlog-addenda"
     requires:
       count: 0
 
