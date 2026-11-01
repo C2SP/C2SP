@@ -48,6 +48,6 @@ def runKAT (P : ParameterSet) (path : System.FilePath) : IO Unit := do
   IO.println s!"    all {n} vectors OK"
 
 def main : IO Unit := do
-  runKAT .Kopis_512 "test_vectors-kopis512.jsonl"
-  runKAT .Kopis_768 "test_vectors-kopis768.jsonl"
-  runKAT .Kopis_1024 "test_vectors-kopis1024.jsonl"
+  runKAT .Kopis_512 "test_vectors_kopis512.jsonl"
+  runKAT .Kopis_768 "test_vectors_kopis768.jsonl"
+  runKAT .Kopis_1024 "test_vectors_kopis1024.jsonl"
