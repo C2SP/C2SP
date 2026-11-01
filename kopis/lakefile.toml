@@ -1,0 +1,15 @@
+name = "Kopis"
+defaultTargets = ["Kopis"]
+
+[[require]]
+name = "Wychelean"
+git = "https://github.com/rozbb/wychelean"
+#rev = "feat/turboshake"
+rev = "6024573ddc91d1d1c4a3ca0db240d207887cd58c"
+
+[[lean_lib]]
+name = "Kopis"
+
+[[lean_exe]]
+name = "kopisKats"
+root = "Tests"
