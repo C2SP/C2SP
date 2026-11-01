@@ -4,9 +4,9 @@
 
 ## How to run
 
-First off, Lean should be installed. See [here](https://lean-lang.org/install/manual/) for instructions.
+This requires that Lean be installed. See [here](https://lean-lang.org/install/manual/) for instructions.
 
-1. First, fetch the Mathlib cache so the build doesn't take forever: `lake exe cache get`
+1. Fetch the Mathlib cache so the build doesn't take forever: `lake exe cache get`
 2. Now check the spec: `lake build`
-3. Fetch the JSONL test vectors from [CCTV](https://github.com/rozbb/CCTV/tree/main/kopis) and place them in this directory.
-4. Run known-answer tests: `lake exe kopisKats`. This takes several minutes: the spec uses schoolbook polynomial multiplication and makes no attempt to be fast.
+3. Fetch the JSONL test vectors from [CCTV](https://github.com/C2SP/CCTV/tree/main/kopis) and place them in this directory.
+4. Run known-answer tests: `lake exe kopisKats`. This will take several minutes.
