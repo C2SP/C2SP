@@ -106,6 +106,11 @@
 - [@FiloSottile](https://github.com/FiloSottile)
 - [@rgdd](https://github.com/rgdd)
 
+### tlog-list
+
+- [@benbirt](https://github.com/benbirt)
+- [@rgdd](https://github.com/rgdd)
+
 ### tlog-mirror
 
 - [@AlCutter](https://github.com/AlCutter)
