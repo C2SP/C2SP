@@ -1,0 +1,8 @@
+name = "Blake3"
+defaultTargets = ["Blake3", "Theorems"]
+
+[[lean_lib]]
+name = "Blake3"
+
+[[lean_lib]]
+name = "Theorems"

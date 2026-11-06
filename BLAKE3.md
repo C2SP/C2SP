@@ -49,6 +49,11 @@ messages using a single thread on CPUs supporting AVX-512.  When using
 multiple threads and hashing large messages, BLAKE3 can be more than
 twenty times faster than BLAKE2.
 
+An executable Lean specification transcribed from this document is in
+[`BLAKE3/`](./BLAKE3/), with a checker that ties the two together (its
+README). Where this document and the Lean specification differ, the
+Lean specification is definitive.
+
 ### 1.1.  Hashing Modes
 
 BLAKE3 can instantiate multiple cryptographic primitives, to offer a
