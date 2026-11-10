@@ -104,14 +104,42 @@ Relying parties SHOULD set restrictions on [pruning][], such as requiring
 that the log's minimum index be at most the minimum trusted index in
 up-to-date copies of the relying party's trust anchors.
 
-For each CA prefix URL, an issuance log with a landmark sequence MUST
-[publish active landmarks][] at the following URL:
+### Landmarks
+
+For each CA prefix URL, an issuance log with a [landmark sequence][] MUST
+publish its active landmarks at the following URL:
 
 ```
 <CA prefix URL>/<log number>/landmarks
 ```
 
-The content type MUST be `text/plain; charset=utf-8`.
+The content type MUST be `text/plain; charset=utf-8`. The content MUST be a
+sequence of lines, each terminated by a newline character (U+000A), as follows:
+
+* A header line consisting of a decimal integer, `latest_landmark`, with the
+  landmark number of the log's most recent landmark at the time of publishing.
+  This value MUST be at most 2<sup>48</sup>-1.
+
+* A sequence of `num_active_landmarks + 1` lines, where `num_active_landmarks`
+  is the number of active landmarks at the time of publishing. Decoders MUST
+  reject documents where there are greater than `latest_landmark + 1` such
+  lines. Numbered consecutively from zero, line `i` in this sequence consists
+  of:
+
+  * The tree size for landmark `latest_landmark - i` as a decimal integer. This
+    value MUST be at most 2<sup>48</sup>-1.
+  * A single space character (U+0020).
+  * The expiration time for landmark `latest_landmark - i` as a decimal integer
+    containing [seconds since the Epoch][].
+
+Tree sizes MUST be strictly monotonically decreasing, and expiration times MUST
+be monotonically decreasing. There MUST be at least one expiration time before
+the current time.
+
+Decoders MUST reject documents that do not strictly conform to the above
+requirements, including extraneous whitespace and the lack of an expired
+landmark. A decoder MAY process only a prefix of this document, provided there
+is at least one expired landmark to denote the end of the active landmarks.
 
 Most deployments obtain landmark-relative certificates directly from the CA.
 Alternatively, a party holding a [standalone certificate][standalone certificates]
@@ -129,7 +157,8 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 [note signature]: https://c2sp.org/signed-note@v1.1.0
 [prefix URLs]: https://c2sp.org/tlog-tiles@v1.0.0#parameters
 [pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
-[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
+[landmark sequence]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-tree-sizes
+[seconds since the Epoch]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap04.html#tag_04_19
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
