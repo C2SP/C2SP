@@ -141,6 +141,18 @@ requirements, including extraneous whitespace and the lack of an expired
 landmark. A decoder MAY process only a prefix of this document, provided there
 is at least one expired landmark to denote the end of the active landmarks.
 
+For example, the following document, published at time 1700000000, describes a
+log whose latest landmark is number 42, with landmarks 40 through 42 active.
+Landmark 39 is expired.
+
+```
+42
+1234567 1700009800
+1230000 1700006200
+1225000 1700002600
+1220000 1699999000
+```
+
 Most deployments obtain landmark-relative certificates directly from the CA.
 Alternatively, a party holding a [standalone certificate][standalone certificates]
 can construct the corresponding [landmark-relative certificate][] by following
