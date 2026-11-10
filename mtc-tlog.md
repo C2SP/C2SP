@@ -11,7 +11,7 @@ description: A profile of Merkle Tree Certificates (MTCs) that uses tiled transp
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
-[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html
+[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html
 [tiled transparency logs]: https://c2sp.org/tlog-tiles@v1.0.0
 
 ## Conventions used in this document
@@ -55,8 +55,8 @@ ext-mtcTlogPrefixURLs EXTENSION ::= {
 with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
 algorithm.
 
-[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authorities
-[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-representing-certification-
+[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
@@ -120,12 +120,12 @@ the generic [construction procedure][constructing landmark-relative]. The
 landmark sequence is available at the URL above, and the required inclusion
 proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles].
 
-[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
-[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-relative-certifica
 [merkle tree tiles]: https://c2sp.org/tlog-tiles@v1.0.0#merkle-tree
-[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authority-cos
-[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-issuance-logs
-[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
+[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certification-authority-cos
+[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-issuance-logs
+[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-cosigners
 [note signature]: https://c2sp.org/signed-note@v1.1.0
 [prefix URLs]: https://c2sp.org/tlog-tiles@v1.0.0#parameters
 [pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
@@ -163,6 +163,6 @@ configured to accept the next few unused log numbers.
 [mirror]: https://c2sp.org/tlog-mirror@v0.1.0
 [RFC 9881]: https://www.rfc-editor.org/info/rfc9881/
 [ML-DSA-44 cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0#ml-dsa-44
-[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
+[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness@v1.1.0#sign-subtree
-[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates
+[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-standalone-certificates
