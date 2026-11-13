@@ -11,7 +11,7 @@ description: A profile of Merkle Tree Certificates (MTCs) that uses tiled transp
 This document defines a profile of [Merkle Tree Certificates][] (MTCs) that uses
 [tiled transparency logs][].
 
-[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html
+[Merkle Tree Certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html
 [tiled transparency logs]: https://c2sp.org/tlog-tiles@v1.0.0
 
 ## Conventions used in this document
@@ -55,8 +55,8 @@ ext-mtcTlogPrefixURLs EXTENSION ::= {
 with SHA-256, so MTC CAs following this profile MUST use SHA-256 as the hash
 algorithm.
 
-[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authorities
-[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-representing-certification-
+[CA parameters]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certification-authorities
+[represented as an X.509 certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-representing-certification-
 
 ## Representing Trust Anchor IDs
 
@@ -104,32 +104,124 @@ Relying parties SHOULD set restrictions on [pruning][], such as requiring
 that the log's minimum index be at most the minimum trusted index in
 up-to-date copies of the relying party's trust anchors.
 
-For each CA prefix URL, an issuance log with a landmark sequence MUST
-[publish active landmarks][] at the following URL:
+### Landmarks
+
+For each CA prefix URL, an issuance log with a [landmark sequence][] MUST
+publish its active landmarks at the following URL:
 
 ```
 <CA prefix URL>/<log number>/landmarks
 ```
 
-The content type MUST be `text/plain; charset=utf-8`.
+The content type MUST be `text/plain; charset=utf-8`. The content MUST be a
+sequence of lines, each terminated by a newline character (U+000A), as follows:
 
-Most deployments obtain landmark-relative certificates directly from the CA.
-Alternatively, a party holding a [standalone certificate][standalone certificates]
-can construct the corresponding [landmark-relative certificate][] by following
-the generic [construction procedure][constructing landmark-relative]. The
-landmark sequence is available at the URL above, and the required inclusion
-proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles].
+* A header line consisting of a decimal integer, `latest_landmark`, with the
+  landmark number of the log's most recent landmark at the time of publishing.
+  This value MUST be at most 2<sup>48</sup>-1.
 
-[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-constructing-landmark-relat
-[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-04.html#name-landmark-relative-certifica
+* A sequence of `num_active_landmarks + 1` lines, where `num_active_landmarks`
+  is the number of active landmarks at the time of publishing. Decoders MUST
+  reject documents where there are greater than `latest_landmark + 1` such
+  lines. Numbered consecutively from zero, line `i` in this sequence consists
+  of:
+
+  * The tree size for landmark `latest_landmark - i` as a decimal integer. This
+    value MUST be at most 2<sup>48</sup>-1.
+  * A single space character (U+0020).
+  * The expiration time for landmark `latest_landmark - i` as a decimal integer
+    containing [seconds since the Epoch][].
+
+Tree sizes MUST be strictly monotonically decreasing, and expiration times MUST
+be monotonically decreasing. There MUST be at least one expiration time before
+the current time.
+
+Decoders MUST reject documents that do not strictly conform to the above
+requirements, including extraneous whitespace and the lack of an expired
+landmark. A decoder MAY process only a prefix of this document, provided there
+is at least one expired landmark to denote the end of the active landmarks.
+
+For example, the following document, published at time 1700000000, describes a
+log whose latest landmark is number 42, with landmarks 40 through 42 active.
+Landmark 39 is expired.
+
+```
+42
+1234567 1700009800
+1230000 1700006200
+1225000 1700002600
+1220000 1699999000
+```
+
+### Landmark Subtree Cosignatures
+
+For each CA prefix URL, an issuance log with a landmark sequence SHOULD publish
+cosignatures on each active landmark subtree, at the following URL:
+
+```
+<CA prefix URL>/<log number>/subtrees/<start>-<end>
+```
+
+`<start>` is the subtree's start index, encoded as in
+[tlog-tiles tile paths][merkle tree tiles]. `<end>` is the subtree's end index,
+encoded as an ASCII decimal integer with no leading zeroes. For example, the
+subtree `[1228800, 1232896)` is served at:
+
+```
+<CA prefix URL>/<log number>/subtrees/x001/x228/800-1232896
+```
+
+The content type MUST be `application/octet-stream`. The content is the
+`signatures` field of the [MTCProof][] structure, encoded as in the following
+TLS presentation language definitions, where `TrustAnchorID` is defined in
+[draft-ietf-tls-trust-anchor-ids][trust anchor IDs]:
+
+```
+opaque TrustAnchorID<1..2^8-1>;
+
+struct {
+    TrustAnchorID cosigner_id;
+    opaque signature<0..2^16-1>;
+} Cosignature;
+
+Cosignature signatures<0..2^24-1>;
+```
+
+The signatures MUST be sorted as required by the MTCProof structure. The CA
+SHOULD include its own cosignature and the cosignatures of a set of cosigners
+it expects supported relying parties to require.
+
+Each resource MAY be updated once published, for example to add new signatures.
+
+A log MAY stop serving a landmark subtree's cosignatures after that landmark's
+expiration.
+
+### Constructing Certificates from Published Data
+
+Most deployments obtain certificates directly from the CA. Alternatively,
+certificates can be constructed from data published at the CA prefix URL. For a
+given index in the CA issuance log with corresponding unhashed subject public
+key, a party can retrieve the [log entry][log entries] and follow the generic
+[construction procedure][constructing landmark-relative] to construct a
+[landmark-relative certificate][], using the [landmark sequence](#landmarks) and
+the inclusion proof hashes from the log's
+[Merkle Tree tiles][merkle tree tiles]. Populating the MTCProof's signatures
+with [landmark subtree cosignatures](#landmark-subtree-cosignatures) yields a
+[standalone certificate][standalone certificates].
+
+[constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-constructing-landmark-relat
+[landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-relative-certifica
+[log entries]: https://c2sp.org/tlog-tiles@v1.0.0#log-entries
 [merkle tree tiles]: https://c2sp.org/tlog-tiles@v1.0.0#merkle-tree
-[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-certification-authority-cos
-[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-issuance-logs
-[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-cosigners
+[CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certification-authority-cos
+[log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-issuance-logs
+[MTC cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-cosigners
 [note signature]: https://c2sp.org/signed-note@v1.1.0
 [prefix URLs]: https://c2sp.org/tlog-tiles@v1.0.0#parameters
 [pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
-[publish active landmarks]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-publishing-landmarks
+[landmark sequence]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-tree-sizes
+[seconds since the Epoch]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap04.html#tag_04_19
+[MTCProof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certificate-format
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
@@ -163,6 +255,6 @@ configured to accept the next few unused log numbers.
 [mirror]: https://c2sp.org/tlog-mirror@v0.1.0
 [RFC 9881]: https://www.rfc-editor.org/info/rfc9881/
 [ML-DSA-44 cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0#ml-dsa-44
-[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-signature-format
+[MTC-compatible]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-signature-format
 [sign-subtree]: https://c2sp.org/tlog-witness@v1.1.0#sign-subtree
-[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-07.html#name-standalone-certificates
+[standalone certificates]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-standalone-certificates
