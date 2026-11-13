@@ -172,12 +172,26 @@ subtree `[1228800, 1232896)` is served at:
 ```
 
 The content type MUST be `application/octet-stream`. The content is the
-`signatures` field of the [MTCProof][] structure, including its uint24 length
-prefix. The CA SHOULD include its own cosignature and the cosignatures of the
-cosigners it expects relying parties to require.
+`signatures` field of the [MTCProof][] structure, encoded as in the following
+TLS presentation language definitions, where `TrustAnchorID` is defined in
+[draft-ietf-tls-trust-anchor-ids][trust anchor IDs]:
 
-Each resource is immutable once published: a log MUST NOT serve different
-contents at the same URL, and its caching headers SHOULD be long-lived.
+```
+opaque TrustAnchorID<1..2^8-1>;
+
+struct {
+    TrustAnchorID cosigner_id;
+    opaque signature<0..2^16-1>;
+} Cosignature;
+
+Cosignature signatures<0..2^24-1>;
+```
+
+The signatures MUST be sorted as required by the MTCProof structure. The CA
+SHOULD include its own cosignature and the cosignatures of a set of cosigners
+it expects supported relying parties to require.
+
+Each resource MAY be updated once published, for example to add new signatures.
 
 A log MAY stop serving a landmark subtree's cosignatures after that landmark's
 expiration.
