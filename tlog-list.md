@@ -36,6 +36,12 @@ Lines starting with `#` denote comments and are also ignored.
     	qpd 24
     	contact sysadmin (at) bar.org
 
+    # 3rd list item -- baz's log, which has been frozen
+    vkey tlog.baz.org+cccccccc+CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+    qpd 0
+    contact https://tlog.baz.org/contact
+    state frozen
+
 ## Header
 
 The list starts with a single line declaring the list format.
@@ -54,6 +60,7 @@ Lines that are optional are denoted by square brackets.
     [origin ORIGIN]
     qpd QPD
     contact CONTACT
+    [state STATE]
 
 `VKEY` is the log's verification key in vkey format, see <https://c2sp.org/signed-note#verifier-keys>.
 Each log can have only one vkey.
@@ -64,8 +71,16 @@ Newly deployed logs SHOULD omit this line.
 Two logs MUST NOT share the same origin.
 
 `QPD` is the number of add-checkpoint requests the log may do per day.
-It MUST be a number in the range [1, 2^31) encoded as an ASCII decimal consisting of characters in the range `0`-`9` only, with no leading zeroes.
+It MUST be a number in the range [0, 2^31) encoded as an ASCII decimal consisting of characters in the range `0`-`9` only, with no leading zeroes.
+`qpd` SHOULD be `0` for `frozen` logs.
 
 `CONTACT` is an arbitrary string useful for humans to reach the log operator.
+
+`STATE` is the log's state.
+It MUST be either `live` or `frozen`.
+If omitted, the log's state defaults to `live`.
+A `live` log may grow and produce new checkpoints.
+A `frozen` log MUST NOT grow, and it MUST NOT produce new checkpoints, not even for its existing tree size and root hash.
+Freezing is permanent: a `frozen` log MUST NOT become `live` again.
 
 This key-value sequence repeats for each defined log.
