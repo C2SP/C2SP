@@ -75,8 +75,8 @@ This is equivalent to the concatenation of:
 For example, the trust anchor ID `32473.1` is represented as
 `oid/1.3.6.1.4.1.32473.1`.
 
-[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html#name-trust-anchor-identifiers
-[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-06.html
+[ASCII representation]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-07.html#name-trust-anchor-identifiers
+[trust anchor IDs]: https://www.ietf.org/archive/id/draft-ietf-tls-trust-anchor-ids-07.html
 [log origins and cosigner names]: https://c2sp.org/tlog-cosignature@v1.1.0#cosigners
 
 ## Serving Issuance Logs
@@ -153,15 +153,65 @@ Landmark 39 is expired.
 1220000 1699999000
 ```
 
-Most deployments obtain landmark-relative certificates directly from the CA.
-Alternatively, a party holding a [standalone certificate][standalone certificates]
-can construct the corresponding [landmark-relative certificate][] by following
-the generic [construction procedure][constructing landmark-relative]. The
-landmark sequence is available at the URL above, and the required inclusion
-proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles].
+### Landmark Subtree Cosignatures
+
+For each CA prefix URL, an issuance log with a landmark sequence SHOULD publish
+cosignatures on each active landmark subtree, at the following URL:
+
+```
+<CA prefix URL>/<log number>/subtrees/<start>-<end>
+```
+
+`<start>` is the subtree's start index, encoded as in
+[tlog-tiles tile paths][merkle tree tiles]. `<end>` is the subtree's end index,
+encoded as an ASCII decimal integer with no leading zeroes. For example, the
+subtree `[1228800, 1232896)` is served at:
+
+```
+<CA prefix URL>/<log number>/subtrees/x001/x228/800-1232896
+```
+
+The content type MUST be `application/octet-stream`. The content is the
+`signatures` field of the [MTCProof][] structure, encoded as in the following
+TLS presentation language definitions, where `TrustAnchorID` is defined in
+[draft-ietf-tls-trust-anchor-ids][trust anchor IDs]:
+
+```
+opaque TrustAnchorID<1..32>;
+
+struct {
+    TrustAnchorID cosigner_id;
+    opaque signature<0..2^16-1>;
+} Cosignature;
+
+Cosignature signatures<0..2^24-1>;
+```
+
+The signatures MUST be sorted as required by the MTCProof structure. The CA
+SHOULD include its own cosignature and the cosignatures of a set of cosigners
+it expects supported relying parties to require.
+
+Each resource MAY be updated once published, for example to add new signatures.
+
+A log MAY stop serving a landmark subtree's cosignatures after that landmark's
+expiration.
+
+### Constructing Certificates from Published Data
+
+Most deployments obtain certificates directly from the CA. Alternatively,
+certificates can be constructed from data published at the CA prefix URL. For a
+given index in the CA issuance log with corresponding unhashed subject public
+key, a party can retrieve the [log entry][log entries] and follow the generic
+[construction procedure][constructing landmark-relative] to construct a
+[landmark-relative certificate][], using the [landmark sequence](#landmarks) and
+the inclusion proof hashes from the log's
+[Merkle Tree tiles][merkle tree tiles]. Populating the MTCProof's signatures
+with [landmark subtree cosignatures](#landmark-subtree-cosignatures) yields a
+[standalone certificate][standalone certificates].
 
 [constructing landmark-relative]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-constructing-landmark-relat
 [landmark-relative certificate]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-relative-certifica
+[log entries]: https://c2sp.org/tlog-tiles@v1.0.0#log-entries
 [merkle tree tiles]: https://c2sp.org/tlog-tiles@v1.0.0#merkle-tree
 [CA cosigner]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certification-authority-cos
 [log ID]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-issuance-logs
@@ -171,6 +221,7 @@ proof hashes are available from the log's [Merkle Tree tiles][merkle tree tiles]
 [pruning]: https://c2sp.org/tlog-tiles@v1.0.0#pruning
 [landmark sequence]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-landmark-tree-sizes
 [seconds since the Epoch]: https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap04.html#tag_04_19
+[MTCProof]: https://www.ietf.org/archive/id/draft-ietf-plants-merkle-tree-certs-08.html#name-certificate-format
 [transparency log cosigner]: https://c2sp.org/tlog-cosignature@v1.1.0
 [checkpoint]: https://c2sp.org/tlog-checkpoint@v1.1.0
 
