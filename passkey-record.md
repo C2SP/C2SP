@@ -43,6 +43,7 @@ In the PHC String syntax, a WebAuthn credential record has
 - Function symbolic name: `webauthn`
 - Version: `1`
 - An optional `transports` parameter with value a `+`-separated list
+- An optional `rk` parameter with value `0`
 - Salt: authenticator data
 
 (According to [c2sp.org/phc-strings](https://c2sp.org/phc-strings), if there is
@@ -56,12 +57,21 @@ A record MUST start with
 $webauthn$v=1$
 ```
 
-### Transports parameters
+### Parameters
+
+Parameters, if any, follow the prefix as a `,`-separated list of `name=value`
+pairs, followed by a `$` character. If there are no parameters, the payload
+follows the prefix directly.
+
+Producers MUST emit the `transports` parameter, if any, before the `rk`
+parameter, if any. Parsers MUST reject a record in which the `rk` parameter
+precedes the `transports` parameter.
+
+#### Transports parameter
 
 If available, the credential’s transports list MAY be encoded by joining each
-transport name with a `+` character, and then appending to the prefix the string
-`transports=`, followed by the encoded list and a `$` character. The list MUST
-be sorted lexicographically and deduplicated.
+transport name with a `+` character, as the value of the `transports`
+parameter. The list MUST be sorted lexicographically and deduplicated.
 
 If any of the transports is empty or contains non-ASCII characters or characters
 besides lowercase letters, uppercase letters, digits, `/`, `.`, and `-`, the
@@ -79,6 +89,26 @@ The transports are returned by the [`getTransports()` method of the
 and are encoded as the `.response.transports` array in the [JSON encoding](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/toJSON)
 of an [`AuthenticatorAttestationResponse`](https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse)
 returned by [`navigator.credentials.create()`](https://developer.mozilla.org/en-US/docs/Web/API/CredentialsContainer/create).
+
+#### Discoverability parameter
+
+By default, a record describes a discoverable credential (a passkey), as
+produced by a registration ceremony that requested `residentKey: "required"`.
+
+If the credential is not known to be discoverable, the record MUST include the
+`rk` parameter with value `0`. A credential is not known to be discoverable if
+the registration ceremony did not require a discoverable credential (that is,
+`residentKey` was `"preferred"` or `"discouraged"`) and the response did not
+indicate that one was created through the `rk` field of the [`credProps` client
+extension output](https://www.w3.org/TR/webauthn-3/#sctn-authenticator-credential-properties-extension).
+If `credProps.rk` is absent, producers MAY also consider a credential with the
+BE flag set to be discoverable.
+
+A record for a discoverable credential MUST NOT include the `rk` parameter.
+Parsers MUST reject a record with more than one `rk` parameter, or whose `rk`
+value is not `0`.
+
+#### Other parameters
 
 Parsers MUST ignore other parameters, but MUST reject a record with a parameter
 that does not match the PHC String grammar: a name of one to 32 characters from
@@ -131,9 +161,10 @@ UI, such as a nickname, and creation and last use timestamps.
 - One with several transports exercising sort/dedup and a
   well-formed-but-unregistered value.
 - One with extra parameters, with and without transports
+- One with `rk=0`, with and without transports
 - One with extension data present (ED flag set).
 - Negative vectors, each with the reason it must be rejected: padded
-  B64, base64url, non-canonical trailing bits, missing `v=1`, empty `transports=`, unsorted transports, duplicate transports, AT flag clear, trailing
+  B64, base64url, non-canonical trailing bits, missing `v=1`, empty `transports=`, unsorted transports, duplicate transports, `rk=1`, empty `rk=`, duplicate `rk`, `rk` before `transports`, AT flag clear, trailing
   bytes after the COSE key, non-canonical CBOR in the COSE key, invalid public keys, invalid ignored parameters
 - For each positive vector, give the decoded fields (credential ID, SPKI,
   AAGUID, flags, algorithm) so implementations can check accessors and
